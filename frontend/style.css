@@ -87,6 +87,13 @@ body {
     max-width: 280px;
 }
 
+pre, code, pre code {
+    white-space: pre-wrap !important;  /* ✅ يكسر الأسطر الطويلة */
+    word-break: break-word !important; /* ✅ يكسر الكلمات الطويلة */
+    overflow-x: auto !important;       /* ✅ يسمح بالتمرير الأفقي عند الحاجة */
+    max-width: 100% !important;        /* ✅ يمنع التمدد خارج العرض */
+    box-sizing: border-box;
+}
 .file-card {
     display: flex;
     align-items: center;
@@ -234,15 +241,16 @@ body {
 /* Code Block Styling - ChatGPT Style */
 pre {
     position: relative;
-    background-color: #0D1117; /* Dark background similar to ChatGPT */
+    background-color: #0D1117;
     border-radius: 8px;
-    padding: 0; /* No padding as header and code will have their own */
+    padding: 0;
     margin-top: 1rem;
     margin-bottom: 1rem;
-    overflow: hidden; /* Hide overflow to maintain rounded corners */
-    border: 1px solid #21262d; /* Subtle border */
+    /* overflow: hidden; */ /* <-- الخطوة 1: قم بتعليق هذا السطر أو حذفه */
+    border: 1px solid #21262d;
     display: flex;
-    flex-direction: column; /* Stack header and code vertically */
+    flex-direction: column;
+    max-width: 100%; /* <-- الخطوة 2: أضف هذا السطر المهم */
 }
 
 /* Code Header - ChatGPT Style */
