@@ -13,15 +13,3 @@ run = ["node", "backend/index.js"]
 [[ports]]
 localPort = 3000
 externalPort = 80
-
-[workflows]
-runButton = "Start Server"
-
-[[workflows.workflow]]
-name = "Start Server"
-author = 21142836
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && node index.js"
