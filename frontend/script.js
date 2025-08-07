@@ -1,7 +1,10 @@
 // API Endpoint for the backend
 const API_ENDPOINT = '/api/chat';
 
-// Global state
+// ===============================================
+// المتغيرات العامة
+// ===============================================
+let currentUser = null;
 let currentChatId = null;
 let chats = {};
 let settings = {
@@ -102,7 +105,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('messagesContainer').classList.remove('hidden');
         displayMessages();
     }
-});
+
+    // ✨ التحقق من حالة المستخدم ✨
+    checkUserStatus();
+});  // نهاية DOMContentLoaded
 
 // تحديث المزودين المخصصين في كائن providers
 function updateCustomProviders() {
@@ -1312,7 +1318,6 @@ async function sendToOpenRouterSimple(messages, attachments) {
         });
     }
 
-    // Convert messages
     messages.forEach(msg => {
         if (msg.role === 'user') {
             let content = msg.content;
@@ -2385,3 +2390,29 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 
     appendToStreamingMessage('', true);
 }
+
+// Placeholder for checkUserStatus function, assuming it exists elsewhere or will be defined.
+// If this function is critical and missing, the application might not behave as expected.
+function checkUserStatus() {
+    console.log("Checking user status...");
+    // Implement user status check logic here.
+    // For example, check if the user is logged in, fetch user info, etc.
+    // If currentUser is expected to be set here, it would be done like:
+    // currentUser = { id: 'user123', name: 'John Doe' };
+}
+
+// --- Marked.js configuration ---
+// Ensure marked.js is loaded before this script if you use it for Markdown parsing.
+// You might need to include it in your index.html:
+// <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+// Or handle its loading dynamically.
+
+// --- Highlight.js configuration ---
+// Ensure highlight.js is loaded and CSS is included for code highlighting.
+// You might need to include it in your index.html:
+// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> <!-- Example language -->
+// document.addEventListener('DOMContentLoaded', (event) => {
+//   hljs.highlightAll();
+// });

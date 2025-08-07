@@ -983,3 +983,35 @@ pre code .hljs-title {
     max-width: 200px;
     transform: scale(0.9); /* تصغيرها قليلاً لتناسب التصميم الجديد */
 }
+/* أنماط القائمة المنسدلة للمستخدم */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    position: absolute;
+    right: 0;
+    background-color: #1f2937;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: 0.5rem;
+    border: 1px solid #374151;
+}
+
+.dropdown-content a {
+    color: #f3f4f6;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: #374151;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
