@@ -742,9 +742,7 @@ function readFileAsBase64(file) {
         const reader = new FileReader();
         reader.onloadend = () => {
             // نزيل الجزء الأول من السلسلة "data:image/jpeg;base64,"
-            const base64String = reader.result
-                .replace('data:', '')
-                .replace(/^.+,/, '');
+            const base64String = reader.result.split(',')[1];
             resolve(base64String);
         };
         reader.onerror = reject;
