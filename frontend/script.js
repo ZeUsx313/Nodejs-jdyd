@@ -2398,23 +2398,24 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 function checkUserStatus() {
     console.log("Checking user status...");
     
-    // فحص إذا كان المستخدم مسجل دخول من localStorage
-    const savedUser = localStorage.getItem('zeusCurrentUser');
-    
-    if (savedUser) {
-        try {
-            currentUser = JSON.parse(savedUser);
-            console.log("User is logged in:", currentUser);
-            displayUserInfo();
-        } catch (error) {
-            console.error("Error parsing user data:", error);
-            localStorage.removeItem('zeusCurrentUser');
+    // فحص حالة المستخدم من الخادم
+    fetch('/api/user')
+        .then(response => response.json())
+        .then(data => {
+            if (data.loggedIn && data.user) {
+                currentUser = data.user;
+                console.log("User is logged in:", currentUser);
+                displayUserInfo();
+            } else {
+                currentUser = null;
+                console.log("User is not logged in");
+                displayLoginButton();
+            }
+        })
+        .catch(error => {
+            console.error("Error checking user status:", error);
             displayLoginButton();
-        }
-    } else {
-        console.log("User is not logged in");
-        displayLoginButton();
-    }
+        });
 }
 
 function displayLoginButton() {
@@ -2465,41 +2466,30 @@ function displayUserInfo() {
 }
 
 function loginWithGoogle() {
-    // محاكاة تسجيل دخول بـ Google
-    // في التطبيق الحقيقي، ستستخدم Google OAuth API
+    showNotification('جارٍ توجيهك لتسجيل الدخول بـ Google...', 'info');
     
-    showNotification('جارٍ تسجيل الدخول...', 'info');
-    
-    // محاكاة تأخير الشبكة
-    setTimeout(() => {
-        // بيانات مستخدم وهمية للاختبار
-        const mockUser = {
-            id: 'user_' + Date.now(),
-            name: 'مستخدم تجريبي',
-            email: 'test@example.com',
-            picture: 'https://via.placeholder.com/100/10a37f/ffffff?text=T'
-        };
-        
-        // حفظ بيانات المستخدم
-        currentUser = mockUser;
-        localStorage.setItem('zeusCurrentUser', JSON.stringify(mockUser));
-        
-        // عرض معلومات المستخدم
-        displayUserInfo();
-        
-        showNotification('تم تسجيل الدخول بنجاح!', 'success');
-    }, 1500);
+    // توجيه المستخدم لصفحة تسجيل الدخول بـ Google الحقيقية
+    window.location.href = '/auth/google';
 }
 
 function logout() {
-    // مسح بيانات المستخدم
-    currentUser = null;
-    localStorage.removeItem('zeusCurrentUser');
+    showNotification('جارٍ تسجيل الخروج...', 'info');
     
-    // إظهار زر تسجيل الدخول مرة أخرى
-    displayLoginButton();
-    
-    showNotification('تم تسجيل الخروج بنجاح', 'success');
+    // تسجيل الخروج من الخادم
+    fetch('/auth/logout')
+        .then(() => {
+            // مسح بيانات المستخدم المحلية
+            currentUser = null;
+            
+            // إظهار زر تسجيل الدخول مرة أخرى
+            displayLoginButton();
+            
+            showNotification('تم تسجيل الخروج بنجاح', 'success');
+        })
+        .catch(error => {
+            console.error("Error logging out:", error);
+            showNotification('حدث خطأ أثناء تسجيل الخروج', 'error');
+        });
 }
 
 // --- Marked.js configuration ---
