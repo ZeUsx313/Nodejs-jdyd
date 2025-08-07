@@ -104,7 +104,7 @@ app.post('/api/chat', async (req, res) => {
 // 5. عرض الملفات الثابتة
 // =================================================================
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-app.get('/*', (req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
