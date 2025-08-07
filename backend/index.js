@@ -44,10 +44,10 @@ const oauth2Client = new OAuth2Client(
 
 app.use(express.json({ limit: '50mb' }));
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, httpOnly: true, maxAge: 1000 * 60 * 60 * 24 * 7 }
+    cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 60 * 24 * 7 }
 } ));
 
 
@@ -237,7 +237,7 @@ function streamOpenAICompatibleAPI(options, body, res) {
 // =================================================================
 // 7. تشغيل الخادم
 // =================================================================
-const PORT = 3000;
-server.listen(PORT, () => {
-    console.log(`✅ Zeus Pro Server (Manual Env) is now running on http://localhost:${PORT}` );
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Zeus Pro Server (Manual Env) is now running on http://0.0.0.0:${PORT}` );
 });
