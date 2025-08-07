@@ -274,12 +274,12 @@ function renderCustomProviderApiKeys(providerId) {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateCustomProviderApiKeyValue('${providerId}', ${index}, this.value)"
                     id="customProviderApiKeyInput-${providerId}-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح API">
-                <button type="button" onclick="toggleCustomProviderApiKeyVisibility('${providerId}', ${index})" 
+                <button type="button" onclick="toggleCustomProviderApiKeyVisibility('${providerId}', ${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="customProviderApiKeyToggleIcon-${providerId}-${index}" class="fas fa-eye"></i>
                 </button>
@@ -288,7 +288,7 @@ function renderCustomProviderApiKeys(providerId) {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeCustomProviderApiKey('${providerId}', ${index})" 
+            <button onclick="removeCustomProviderApiKey('${providerId}', ${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -312,7 +312,6 @@ function addCustomProviderApiKey() {
         key: '',
         status: 'active'
     });
-
     renderCustomProviderApiKeys(provider);
 }
 
@@ -375,18 +374,18 @@ function renderCustomProviders() {
         providerCard.innerHTML = `
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
-                    <input type="text" value="${provider.name}" 
+                    <input type="text" value="${provider.name}"
                         onchange="updateCustomProviderName(${index}, this.value)"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm"
                         placeholder="اسم المزود">
                 </div>
-                <button onclick="removeCustomProvider(${index})" 
+                <button onclick="removeCustomProvider(${index})"
                     class="p-2 ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
             <div class="mb-3">
-                <input type="text" value="${provider.baseUrl || ''}" 
+                <input type="text" value="${provider.baseUrl || ''}"
                     onchange="updateCustomProviderBaseUrl(${index}, this.value)"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm"
                     placeholder="رابط API الأساسي">
@@ -394,7 +393,7 @@ function renderCustomProviders() {
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">النماذج:</span>
-                    <button onclick="addCustomProviderModel(${index})" 
+                    <button onclick="addCustomProviderModel(${index})"
                         class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
                         <i class="fas fa-plus ml-1"></i>إضافة نموذج
                     </button>
@@ -402,15 +401,15 @@ function renderCustomProviders() {
                 <div id="customProviderModels-${index}" class="space-y-2">
                     ${provider.models ? provider.models.map((model, modelIndex) => `
                         <div class="flex items-center space-x-2 space-x-reverse">
-                            <input type="text" value="${model.id}" 
+                            <input type="text" value="${model.id}"
                                 onchange="updateCustomProviderModelId(${index}, ${modelIndex}, this.value)"
                                 class="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-sm"
                                 placeholder="معرف النموذج">
-                            <input type="text" value="${model.name}" 
+                            <input type="text" value="${model.name}"
                                 onchange="updateCustomProviderModelName(${index}, ${modelIndex}, this.value)"
                                 class="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-sm"
                                 placeholder="اسم النموذج">
-                            <button onclick="removeCustomProviderModel(${index}, ${modelIndex})" 
+                            <button onclick="removeCustomProviderModel(${index}, ${modelIndex})"
                                 class="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                 <i class="fas fa-times text-xs"></i>
                             </button>
@@ -550,20 +549,20 @@ function renderCustomModels() {
                 <div class="flex-1 grid grid-cols-2 gap-3">
                     <div>
                         <label class="form-label">اسم النموذج</label>
-                        <input type="text" value="${model.name}" 
+                        <input type="text" value="${model.name}"
                             onchange="updateCustomModelName(${index}, this.value)"
                             class="form-input"
                             placeholder="اسم النموذج">
                     </div>
                     <div>
                         <label class="form-label">معرف النموذج</label>
-                        <input type="text" value="${model.id}" 
+                        <input type="text" value="${model.id}"
                             onchange="updateCustomModelId(${index}, this.value)"
                             class="form-input"
                             placeholder="معرف النموذج">
                     </div>
                 </div>
-                <button onclick="removeCustomModel(${index})" 
+                <button onclick="removeCustomModel(${index})"
                     class="p-2 ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -581,7 +580,7 @@ function renderCustomModels() {
                 </div>
                 <div>
                     <label class="form-label">درجة الحرارة الافتراضية</label>
-                    <input type="number" min="0" max="1" step="0.1" value="${model.defaultTemperature || 0.7}" 
+                    <input type="number" min="0" max="1" step="0.1" value="${model.defaultTemperature || 0.7}"
                         onchange="updateCustomModelTemperature(${index}, this.value)"
                         class="form-input"
                         placeholder="0.7">
@@ -589,7 +588,7 @@ function renderCustomModels() {
             </div>
             <div>
                 <label class="form-label">وصف النموذج</label>
-                <textarea onchange="updateCustomModelDescription(${index}, this.value)" 
+                <textarea onchange="updateCustomModelDescription(${index}, this.value)"
                     class="form-input form-textarea"
                     placeholder="وصف مختصر للنموذج">${model.description || ''}</textarea>
             </div>
@@ -712,7 +711,7 @@ async function processAttachedFiles(files) {
                 console.error('Error reading file:', error);
                 fileInfo.content = `خطأ في قراءة الملف: ${file.name}`;
             }
-        } 
+        }
         // ✨ إضافة: التحقق إذا كان الملف صورة
         else if (imageExtensions.includes(extension) || file.type.startsWith('image/')) {
             try {
@@ -1072,7 +1071,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     } catch (error) {
         console.error('Error sending request to server:', error);
         // عرض الخطأ في الواجهة
-        appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+        appendToStreamingMessage('\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}', true);
     }
 }
 
@@ -1965,12 +1964,12 @@ function renderGeminiApiKeys() {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateGeminiApiKey(${index}, this.value)"
                     id="geminiApiKeyInput-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح Gemini API">
-                <button type="button" onclick="toggleGeminiApiKeyVisibility(${index})" 
+                <button type="button" onclick="toggleGeminiApiKeyVisibility(${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="geminiApiKeyToggleIcon-${index}" class="fas fa-eye"></i>
                 </button>
@@ -1979,7 +1978,7 @@ function renderGeminiApiKeys() {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeGeminiApiKey(${index})" 
+            <button onclick="removeGeminiApiKey(${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -2040,12 +2039,12 @@ function renderOpenRouterApiKeys() {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateOpenRouterApiKey(${index}, this.value)"
                     id="openrouterApiKeyInput-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح OpenRouter API">
-                <button type="button" onclick="toggleOpenRouterApiKeyVisibility(${index})" 
+                <button type="button" onclick="toggleOpenRouterApiKeyVisibility(${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="openrouterApiKeyToggleIcon-${index}" class="fas fa-eye"></i>
                 </button>
@@ -2054,7 +2053,7 @@ function renderOpenRouterApiKeys() {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeOpenRouterApiKey(${index})" 
+            <button onclick="removeOpenRouterApiKey(${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -2397,7 +2396,7 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 
 function checkUserStatus() {
     console.log("Checking user status...");
-    
+
     // فحص حالة المستخدم من الخادم
     fetch('/api/user')
         .then(response => response.json())
@@ -2418,6 +2417,53 @@ function checkUserStatus() {
         });
 }
 
+// ===============================================
+// تحديث معلومات المستخدم في الواجهة
+// ===============================================
+function updateUserDisplay() {
+    const userInfoContainer = document.getElementById('user-info-container');
+
+    if (currentUser) {
+        // المستخدم مسجل دخول - عرض معلوماته
+        userInfoContainer.innerHTML = `
+            <div class="flex items-center space-x-2 space-x-reverse bg-gray-800/50 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-700">
+                <img src="${currentUser.picture}" alt="User Avatar" class="w-6 h-6 rounded-full">
+                <span class="text-sm text-white font-medium">${currentUser.name}</span>
+                <div class="flex items-center space-x-1 space-x-reverse">
+                    <button onclick="logout()" class="text-xs text-gray-400 hover:text-gray-200 transition-colors p-1 rounded hover:bg-gray-700" title="تسجيل الخروج">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        // المستخدم غير مسجل دخول - عرض زر تسجيل الدخول
+        userInfoContainer.innerHTML = `
+            <button onclick="loginWithGoogle()" class="flex items-center space-x-2 space-x-reverse bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm font-medium shadow-lg">
+                <i class="fab fa-google text-white"></i>
+                <span>تسجيل الدخول</span>
+            </button>
+        `;
+    }
+}
+
+// ===============================================
+// دوال تسجيل الدخول والخروج
+// ===============================================
+function loginWithGoogle() {
+    // إعادة توجيه المستخدم إلى صفحة تسجيل الدخول بجوجل
+    window.location.href = '/auth/google';
+}
+
+function logout() {
+    // إعادة توجيه المستخدم إلى صفحة تسجيل الخروج
+    window.location.href = '/auth/logout';
+}
+
+// ===============================================
+// دوال أساسية للتطبيق
+// ===============================================
+
 function displayLoginButton() {
     const container = document.getElementById('user-info-container');
     container.innerHTML = `
@@ -2434,14 +2480,12 @@ function displayLoginButton() {
 }
 
 function displayUserInfo() {
-    if (!currentUser) return;
-    
     const container = document.getElementById('user-info-container');
     container.innerHTML = `
         <div class="dropdown">
             <div class="flex items-center space-x-2 space-x-reverse cursor-pointer">
-                <img src="${currentUser.picture || 'https://via.placeholder.com/32'}" 
-                     alt="صورة المستخدم" 
+                <img src="${currentUser.picture || 'https://via.placeholder.com/32'}"
+                     alt="صورة المستخدم"
                      class="w-8 h-8 rounded-full border-2 border-gray-600">
                 <span class="text-white font-medium hidden md:block">${currentUser.name}</span>
                 <i class="fas fa-chevron-down text-gray-400"></i>
@@ -2465,25 +2509,29 @@ function displayUserInfo() {
     `;
 }
 
+
+// ===============================================
+// دوال أساسية للتطبيق
+// ===============================================
 function loginWithGoogle() {
     showNotification('جارٍ توجيهك لتسجيل الدخول بـ Google...', 'info');
-    
+
     // توجيه المستخدم لصفحة تسجيل الدخول بـ Google الحقيقية
     window.location.href = '/auth/google';
 }
 
 function logout() {
     showNotification('جارٍ تسجيل الخروج...', 'info');
-    
+
     // تسجيل الخروج من الخادم
     fetch('/auth/logout')
         .then(() => {
             // مسح بيانات المستخدم المحلية
             currentUser = null;
-            
+
             // إظهار زر تسجيل الدخول مرة أخرى
             displayLoginButton();
-            
+
             showNotification('تم تسجيل الخروج بنجاح', 'success');
         })
         .catch(error => {
