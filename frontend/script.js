@@ -92,6 +92,17 @@ let streamingState = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
+    // ✨ معالجة التوكن عند العودة من صفحة جوجل ✨
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+        console.log("Token found in URL, saving to localStorage.");
+        localStorage.setItem('authToken', token);
+        // تنظيف الرابط من التوكن لأسباب أمنية
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     initializeDarkMode();
     loadData();
     updateCustomProviders(); // تحديث المزودين المخصصين
@@ -2398,17 +2409,26 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
  * يتحقق من حالة تسجيل دخول المستخدم عند تحميل الصفحة.
  */
 async function checkUserStatus() {
-    try {
-        // الرابط الثابت والمباشر للخادم الخلفي على Railway
-        const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.log("No auth token found. User is logged out.");
+        currentUser = null;
+        updateUserDisplay();
+        return;
+    }
 
-        // استدعاء الخادم لجلب بيانات المستخدم مع السماح بإرسال الكوكيز
-        const response = await fetch(`${API_BASE_URL}/api/user`, { credentials: 'include' } );
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
         if (!response.ok) {
-            console.log('User not logged in or session expired.');
-            currentUser = null; // تحديث المتغير العام
-            updateUserDisplay(); // استدعاء الدالة لتعكس التغيير
+            console.log('Token is invalid or expired. Logging out.');
+            localStorage.removeItem('authToken'); // إزالة التوكن غير الصالح
+            currentUser = null;
+            updateUserDisplay();
             return;
         }
 
@@ -2416,18 +2436,17 @@ async function checkUserStatus() {
 
         if (data.loggedIn && data.user) {
             console.log("User is logged in:", data.user);
-            currentUser = data.user; // ✨ هذا هو السطر الأهم: تحديث المتغير العام
+            currentUser = data.user;
         } else {
             console.log("User is not logged in.");
-            currentUser = null; // تحديث المتغير العام
+            currentUser = null;
         }
 
     } catch (error) {
         console.error("Error checking user status:", error);
-        currentUser = null; // في حالة الخطأ، تأكد من أن المستخدم فارغ
+        currentUser = null;
     }
     
-    // ✨ استدعاء الدالة في النهاية لتعكس كل التغييرات
     updateUserDisplay(); 
 }
 
@@ -2483,8 +2502,16 @@ function loginWithGoogle() {
  * تبدأ عملية تسجيل الخروج.
  */
 function logout() {
-    showNotification('جارٍ تسجيل الخروج...', 'info');
-    window.location.href = 'https://chatzeus-production.up.railway.app/auth/logout'; // <--- تم تصحيح الرابط
+    // حذف التوكن من التخزين المحلي
+    localStorage.removeItem('authToken');
+
+    // إعادة تعيين حالة المستخدم في الواجهة
+    currentUser = null;
+
+    // تحديث الواجهة لعرض زر تسجيل الدخول
+    updateUserDisplay();
+
+    showNotification('تم تسجيل الخروج بنجاح', 'success');
 }
 
 // --- Marked.js configuration ---
