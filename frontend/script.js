@@ -2401,16 +2401,12 @@ async function checkUserStatus() {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
         updateUserDisplay();
-        // بما أنه لا يوجد مستخدم، نعرض واجهة فارغة
         chats = {};
-        // يمكنك إعادة تعيين الإعدادات الافتراضية هنا إذا لزم الأمر
-        // settings = { ...defaultSettings }; 
         displayChatHistory();
         return;
     }
 
     try {
-        // الخطوة 1: التحقق من هوية المستخدم (الكود الحالي لديك)
         const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -2423,7 +2419,9 @@ async function checkUserStatus() {
         currentUser = userData.user;
         console.log("User authenticated:", currentUser);
 
-        // ✨ الخطوة 2 (الجديدة): جلب جميع بيانات المستخدم (المحادثات والإعدادات)
+        // ✨✨✨ الخطوة 1: أضف هذا السطر هنا ✨✨✨
+        updateUserDisplay();
+
         const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -2434,25 +2432,20 @@ async function checkUserStatus() {
 
         const data = await dataResponse.json();
         
-        // تحويل مصفوفة المحادثات إلى كائن (object) كما يتوقع الكود الحالي
         chats = data.chats.reduce((acc, chat) => {
-            acc[chat._id] = chat; // نستخدم _id من قاعدة البيانات كمعرف
+            acc[chat._id] = chat;
             return acc;
         }, {});
 
         settings = data.settings;
         console.log("User data loaded from DB:", { chats, settings });
 
-        // تحديث الواجهة بالبيانات الجديدة
         displayChatHistory();
         
-        // اختر أحدث محادثة إن وجدت
         if (Object.keys(chats).length > 0) {
-            // الفرز حسب حقل "order" الذي أضفناه لضمان الترتيب الصحيح
             currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
             switchToChat(currentChatId);
         } else {
-            // لا توجد محادثات، اعرض شاشة الترحيب
             document.getElementById('welcomeScreen').classList.remove('hidden');
             document.getElementById('messagesContainer').classList.add('hidden');
         }
@@ -2463,11 +2456,16 @@ async function checkUserStatus() {
         currentUser = null;
         chats = {};
         settings = {};
-        displayChatHistory(); // عرض القائمة الفارغة
-    } finally {
-        // تحديث واجهة المستخدم (عرض معلومات المستخدم أو زر الدخول) في كل الحالات
+        displayChatHistory();
+        // ✨✨✨ أضف هذا السطر هنا أيضًا (في حالة الخطأ) ✨✨✨
+        updateUserDisplay(); 
+    } 
+    // ✨✨✨ الخطوة 2: احذف كتلة "finally" هذه بالكامل ✨✨✨
+    /*
+    finally {
         updateUserDisplay();
     }
+    */
 }
 
 /**
