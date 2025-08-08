@@ -1083,7 +1083,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     } catch (error) {
         console.error('Error sending request to server:', error);
         // عرض الخطأ في الواجهة
-        appendToStreamingMessage('\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}', true);
+        appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
 }
 
