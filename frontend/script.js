@@ -2395,150 +2395,98 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 // نظام تسجيل الدخول والخروج
 // ===============================================
 
-function checkUserStatus() {
-    console.log("Checking user status...");
+/**
+ * يتحقق من حالة تسجيل دخول المستخدم عند تحميل الصفحة.
+ */
+async function checkUserStatus() {
+    try {
+        // أولاً، نحدد رابط الخادم
+        // في بيئة التطوير المحلية، استخدم http://localhost:3000
+        // في بيئة الإنتاج (Replit)، استخدم الرابط الحالي
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            API_BASE_URL = 'http://localhost:3000';
+        } else {
+            // في Replit، استخدم الرابط الحالي
+            API_BASE_URL = window.location.origin;
+        }
+        console.log(`API Base URL set to: ${API_BASE_URL}`);
 
-    // فحص حالة المستخدم من الخادم
-    fetch('/api/user')
-        .then(response => response.json())
-        .then(data => {
-            if (data.loggedIn && data.user) {
-                currentUser = data.user;
-                console.log("User is logged in:", currentUser);
-                displayUserInfo();
-            } else {
-                currentUser = null;
-                console.log("User is not logged in");
-                displayLoginButton();
-            }
-        })
-        .catch(error => {
-            console.error("Error checking user status:", error);
-            displayLoginButton();
-        });
+        const response = await fetch(`${API_BASE_URL}/api/user`);
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data.loggedIn && data.user) {
+            currentUser = data.user;
+            console.log("User is logged in:", currentUser);
+            updateUserDisplay();
+        } else {
+            currentUser = null;
+            console.log("User is not logged in.");
+            updateUserDisplay();
+        }
+    } catch (error) {
+        console.error("Error checking user status:", error);
+        currentUser = null;
+        updateUserDisplay(); // عرض زر تسجيل الدخول في حالة حدوث خطأ
+    }
 }
 
-// ===============================================
-// تحديث معلومات المستخدم في الواجهة
-// ===============================================
+/**
+ * تحديث واجهة المستخدم لعرض معلومات المستخدم أو زر تسجيل الدخول.
+ */
 function updateUserDisplay() {
     const userInfoContainer = document.getElementById('user-info-container');
+    if (!userInfoContainer) return;
 
     if (currentUser) {
-        // المستخدم مسجل دخول - عرض معلوماته
+        // المستخدم مسجل دخوله - عرض معلوماته مع قائمة منسدلة
         userInfoContainer.innerHTML = `
-            <div class="flex items-center space-x-2 space-x-reverse bg-gray-800/50 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-700">
-                <img src="${currentUser.picture}" alt="User Avatar" class="w-6 h-6 rounded-full">
-                <span class="text-sm text-white font-medium">${currentUser.name}</span>
-                <div class="flex items-center space-x-1 space-x-reverse">
-                    <button onclick="logout()" class="text-xs text-gray-400 hover:text-gray-200 transition-colors p-1 rounded hover:bg-gray-700" title="تسجيل الخروج">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
+            <div class="dropdown">
+                <div class="flex items-center space-x-2 space-x-reverse cursor-pointer p-1 rounded-lg hover:bg-gray-700/50 transition-colors">
+                    <img src="${currentUser.picture}" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-gray-600">
+                    <span class="text-white font-medium hidden md:block">${currentUser.name.split(' ')[0]}</span>
+                    <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </div>
+                <div class="dropdown-content">
+                    <div class="px-4 py-3 text-sm text-gray-200">
+                        <div>${currentUser.name}</div>
+                        <div class="font-medium truncate">${currentUser.email}</div>
+                    </div>
+                    <hr class="border-gray-600">
+                    <a href="#" onclick="logout()" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt fa-fw ml-2"></i>
+                        <span>تسجيل الخروج</span>
+                    </a>
                 </div>
             </div>
         `;
     } else {
         // المستخدم غير مسجل دخول - عرض زر تسجيل الدخول
         userInfoContainer.innerHTML = `
-            <button onclick="loginWithGoogle()" class="flex items-center space-x-2 space-x-reverse bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm font-medium shadow-lg">
-                <i class="fab fa-google text-white"></i>
-                <span>تسجيل الدخول</span>
+            <button onclick="loginWithGoogle()" class="flex items-center space-x-2 space-x-reverse bg-white hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-200 transform hover:scale-105 text-sm font-semibold shadow-md">
+                <svg class="w-5 h-5" viewBox="0 0 18 18"><g fill-rule="evenodd"><path d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9.1818v3.4818h4.7909c-.2045 1.125-.8227 2.0782-1.7773 2.7218v2.2591h2.9091c1.7045-1.5682 2.6864-3.8727 2.6864-6.6218z" fill="#4285F4"></path><path d="M9.1818 18c2.4455 0 4.4955-.8127 5.9955-2.1818l-2.9091-2.2591c-.8127.5455-1.8545.8727-3.0864.8727-2.3364 0-4.3182-1.5682-5.0364-3.6545H1.2727v2.3364C2.9636 16.2 5.7818 18 9.1818 18z" fill="#34A853"></path><path d="M4.1455 10.8818c-.1136-.3273-.1818-.6818-.1818-1.0455s.0682-.7182.1818-1.0455V6.4545H1.2727C.9455 7.1455.7273 7.9091.7273 8.7273c0 .8182.2182 1.5818.5455 2.2727l2.8727-2.1182z" fill="#FBBC05"></path><path d="M9.1818 3.6545c1.3273 0 2.5182.4545 3.4545 1.3636l2.5818-2.5818C13.6773.9818 11.6273 0 9.1818 0 5.7818 0 2.9636 1.8 1.2727 4.1182l2.8727 2.3364c.7182-2.0864 2.7-3.6545 5.0364-3.6545z" fill="#EA4335"></path></g></svg>
+                <span>تسجيل الدخول بـ Google</span>
             </button>
         `;
     }
 }
 
-// ===============================================
-// دوال تسجيل الدخول والخروج
-// ===============================================
+/**
+ * تبدأ عملية تسجيل الدخول.
+ */
 function loginWithGoogle() {
-    // إعادة توجيه المستخدم إلى صفحة تسجيل الدخول بجوجل
-    window.location.href = '/auth/google';
+    showNotification('جارٍ توجيهك لتسجيل الدخول...', 'info');
+    window.location.href = `${API_BASE_URL}/auth/google`;
 }
 
-function logout() {
-    // إعادة توجيه المستخدم إلى صفحة تسجيل الخروج
-    window.location.href = '/auth/logout';
-}
-
-// ===============================================
-// دوال أساسية للتطبيق
-// ===============================================
-
-function displayLoginButton() {
-    const container = document.getElementById('user-info-container');
-    container.innerHTML = `
-        <button onclick="loginWithGoogle()" class="flex items-center space-x-2 space-x-reverse px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-medium">
-            <svg class="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            <span>تسجيل الدخول بـ Google</span>
-        </button>
-    `;
-}
-
-function displayUserInfo() {
-    const container = document.getElementById('user-info-container');
-    container.innerHTML = `
-        <div class="dropdown">
-            <div class="flex items-center space-x-2 space-x-reverse cursor-pointer">
-                <img src="${currentUser.picture || 'https://via.placeholder.com/32'}"
-                     alt="صورة المستخدم"
-                     class="w-8 h-8 rounded-full border-2 border-gray-600">
-                <span class="text-white font-medium hidden md:block">${currentUser.name}</span>
-                <i class="fas fa-chevron-down text-gray-400"></i>
-            </div>
-            <div class="dropdown-content">
-                <a href="#" class="dropdown-item">
-                    <i class="fas fa-user"></i>
-                    ${currentUser.name}
-                </a>
-                <a href="#" class="dropdown-item">
-                    <i class="fas fa-envelope"></i>
-                    ${currentUser.email}
-                </a>
-                <hr style="border-color: #374151; margin: 0.5rem 0;">
-                <a href="#" onclick="logout()" class="dropdown-item">
-                    <i class="fas fa-sign-out-alt"></i>
-                    تسجيل الخروج
-                </a>
-            </div>
-        </div>
-    `;
-}
-
-
-// ===============================================
-// دوال أساسية للتطبيق
-// ===============================================
-function loginWithGoogle() {
-    showNotification('جارٍ توجيهك لتسجيل الدخول بـ Google...', 'info');
-
-    // توجيه المستخدم لصفحة تسجيل الدخول بـ Google الحقيقية
-    window.location.href = '/auth/google';
-}
-
+/**
+ * تبدأ عملية تسجيل الخروج.
+ */
 function logout() {
     showNotification('جارٍ تسجيل الخروج...', 'info');
-
-    // تسجيل الخروج من الخادم
-    fetch('/auth/logout')
-        .then(() => {
-            // مسح بيانات المستخدم المحلية
-            currentUser = null;
-
-            // إظهار زر تسجيل الدخول مرة أخرى
-            displayLoginButton();
-
-            showNotification('تم تسجيل الخروج بنجاح', 'success');
-        })
-        .catch(error => {
-            console.error("Error logging out:", error);
-            showNotification('حدث خطأ أثناء تسجيل الخروج', 'error');
-        });
+    window.location.href = `${API_BASE_URL}/auth/logout`;
 }
 
 // --- Marked.js configuration ---
