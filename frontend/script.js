@@ -2484,7 +2484,7 @@ function loginWithGoogle() {
  */
 function logout() {
     showNotification('جارٍ تسجيل الخروج...', 'info');
-    window.location.href = 'https://chatzeus-production.up.railway.app/auth/google'; // <--- هذا هو السطر الصحيح
+    window.location.href = 'https://chatzeus-production.up.railway.app/auth/logout'; // <--- تم تصحيح الرابط
 }
 
 // --- Marked.js configuration ---
