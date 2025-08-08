@@ -2400,36 +2400,33 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
  */
 async function checkUserStatus() {
     try {
-        // أولاً، نحدد رابط الخادم
-        // في بيئة التطوير المحلية، استخدم http://localhost:3000
-        // في بيئة الإنتاج (Replit)، استخدم الرابط الحالي
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            API_BASE_URL = 'http://localhost:3000';
-        } else {
-            // في Replit، استخدم الرابط الحالي
-            API_BASE_URL = window.location.origin;
-        }
-        console.log(`API Base URL set to: ${API_BASE_URL}`);
+        // الرابط الثابت والمباشر للخادم الخلفي على Railway
+        const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
-        const response = await fetch(`${API_BASE_URL}/api/user`);
+        // استدعاء الخادم لجلب بيانات المستخدم مع السماح بإرسال الكوكيز
+        const response = await fetch(`${API_BASE_URL}/api/user`, { credentials: 'include' } );
+
         if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
+            // إذا كان المستخدم غير مسجل دخوله، الخادم سيرجع خطأ (مثل 401)، وهذا طبيعي
+            // لا نعتبره خطأ فادحًا، بل يعني فقط "لا يوجد مستخدم"
+            console.log('User not logged in or session expired.');
+            updateUserDisplay(null); // تأكد من عرض زر تسجيل الدخول
+            return; // نوقف تنفيذ الدالة هنا
         }
+
         const data = await response.json();
 
         if (data.loggedIn && data.user) {
-            currentUser = data.user;
-            console.log("User is logged in:", currentUser);
-            updateUserDisplay();
+            console.log("User is logged in:", data.user);
+            updateUserDisplay(data.user); // تحديث الواجهة لعرض معلومات المستخدم
         } else {
-            currentUser = null;
             console.log("User is not logged in.");
-            updateUserDisplay();
+            updateUserDisplay(null); // تحديث الواجهة لعرض زر تسجيل الدخول
         }
+
     } catch (error) {
         console.error("Error checking user status:", error);
-        currentUser = null;
-        updateUserDisplay(); // عرض زر تسجيل الدخول في حالة حدوث خطأ
+        updateUserDisplay(null); // في حالة حدوث أي خطأ في الشبكة، اعرض زر تسجيل الدخول
     }
 }
 
