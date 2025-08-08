@@ -921,7 +921,7 @@ function completeStreamingMessage() {
         chats[currentChatId].updatedAt = now;
         chats[currentChatId].order = now; // Bring chat to top on new message
 
-        // Save data to localStorage
+        // Save data to localStorage  <-- هذا التعليق لم يعد له معنى، يمكنك حذفه أيضًا
     }
 
     // Reset streaming state
@@ -930,6 +930,9 @@ function completeStreamingMessage() {
     streamingState.streamingElement = null;
     streamingState.currentText = '';
     streamingState.streamController = null;
+
+    // ✨✨✨ أضف السطر الجديد هنا ✨✨✨
+    saveCurrentChat();
 
     scrollToBottom();
 }
@@ -1674,6 +1677,44 @@ function switchToChat(chatId) {
     displayMessages();
     displayChatHistory();
     closeSidebar();
+}
+
+// دالة جديدة لحفظ المحادثة الحالية في قاعدة البيانات
+async function saveCurrentChat() {
+    if (!currentChatId || !chats[currentChatId]) return;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) return; // لا تحفظ إذا لم يكن المستخدم مسجلاً دخوله
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/chats`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(chats[currentChatId])
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save chat to the database.');
+        }
+
+        const savedChat = await response.json();
+        // تحديث المحادثة المحلية بالبيانات من الخادم (قد تحتوي على _id جديد)
+        chats[savedChat._id] = savedChat;
+        if (currentChatId !== savedChat._id) {
+            delete chats[currentChatId];
+            currentChatId = savedChat._id;
+        }
+        
+        console.log('Chat saved successfully to DB:', savedChat._id);
+        displayChatHistory(); // تحديث القائمة لإظهار أي تغييرات
+
+    } catch (error) {
+        console.error('Error saving chat:', error);
+        showNotification('حدث خطأ أثناء حفظ المحادثة', 'error');
+    }
 }
 
 function deleteChat(chatId, event) {
