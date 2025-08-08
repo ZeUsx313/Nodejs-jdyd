@@ -2406,27 +2406,29 @@ async function checkUserStatus() {
         const response = await fetch(`${API_BASE_URL}/api/user`, { credentials: 'include' } );
 
         if (!response.ok) {
-            // إذا كان المستخدم غير مسجل دخوله، الخادم سيرجع خطأ (مثل 401)، وهذا طبيعي
-            // لا نعتبره خطأ فادحًا، بل يعني فقط "لا يوجد مستخدم"
             console.log('User not logged in or session expired.');
-            updateUserDisplay(null); // تأكد من عرض زر تسجيل الدخول
-            return; // نوقف تنفيذ الدالة هنا
+            currentUser = null; // تحديث المتغير العام
+            updateUserDisplay(); // استدعاء الدالة لتعكس التغيير
+            return;
         }
 
         const data = await response.json();
 
         if (data.loggedIn && data.user) {
             console.log("User is logged in:", data.user);
-            updateUserDisplay(data.user); // تحديث الواجهة لعرض معلومات المستخدم
+            currentUser = data.user; // ✨ هذا هو السطر الأهم: تحديث المتغير العام
         } else {
             console.log("User is not logged in.");
-            updateUserDisplay(null); // تحديث الواجهة لعرض زر تسجيل الدخول
+            currentUser = null; // تحديث المتغير العام
         }
 
     } catch (error) {
         console.error("Error checking user status:", error);
-        updateUserDisplay(null); // في حالة حدوث أي خطأ في الشبكة، اعرض زر تسجيل الدخول
+        currentUser = null; // في حالة الخطأ، تأكد من أن المستخدم فارغ
     }
+    
+    // ✨ استدعاء الدالة في النهاية لتعكس كل التغييرات
+    updateUserDisplay(); 
 }
 
 /**
