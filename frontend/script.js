@@ -1,5 +1,6 @@
-// API Endpoint for the backend
-const API_ENDPOINT = '/api/chat';
+// ✨ تعديل: تحديد رابط الخادم والـ API
+let API_BASE_URL = ''; // سيتم تحديده لاحقًا
+const API_ENDPOINT_CHAT = '/api/chat';
 
 // ===============================================
 // المتغيرات العامة
@@ -1078,7 +1079,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
 async function sendRequestToServer(payload) {
     try {
-        const response = await fetch(API_ENDPOINT, {
+        const response = await fetch(API_BASE_URL + API_ENDPOINT_CHAT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2555,3 +2556,100 @@ function logout() {
 // document.addEventListener('DOMContentLoaded', (event) => {
 //   hljs.highlightAll();
 // });
+// ===============================================
+// ✨ قسم جديد: نظام تسجيل الدخول والخروج
+// ===============================================
+
+/**
+ * يتحقق من حالة تسجيل دخول المستخدم عند تحميل الصفحة.
+ */
+async function checkUserStatus() {
+    try {
+        // أولاً، نحدد رابط الخادم
+        // في بيئة التطوير المحلية، استخدم http://localhost:3000
+        // في بيئة الإنتاج (Replit)، استخدم الرابط الحالي
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            API_BASE_URL = 'http://localhost:3000';
+        } else {
+            // في Replit، استخدم الرابط الحالي
+            API_BASE_URL = window.location.origin;
+        }
+        console.log(`API Base URL set to: ${API_BASE_URL}`);
+
+        const response = await fetch(`${API_BASE_URL}/api/user`);
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data.loggedIn && data.user) {
+            currentUser = data.user;
+            console.log("User is logged in:", currentUser);
+            updateUserDisplay();
+        } else {
+            currentUser = null;
+            console.log("User is not logged in.");
+            updateUserDisplay();
+        }
+    } catch (error) {
+        console.error("Error checking user status:", error);
+        currentUser = null;
+        updateUserDisplay(); // عرض زر تسجيل الدخول في حالة حدوث خطأ
+    }
+}
+
+/**
+ * تحديث واجهة المستخدم لعرض معلومات المستخدم أو زر تسجيل الدخول.
+ */
+function updateUserDisplay() {
+    const userInfoContainer = document.getElementById('user-info-container');
+    if (!userInfoContainer) return;
+
+    if (currentUser) {
+        // المستخدم مسجل دخوله - عرض معلوماته مع قائمة منسدلة
+        userInfoContainer.innerHTML = `
+            <div class="dropdown">
+                <div class="flex items-center space-x-2 space-x-reverse cursor-pointer p-1 rounded-lg hover:bg-gray-700/50 transition-colors">
+                    <img src="${currentUser.picture}" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-gray-600">
+                    <span class="text-white font-medium hidden md:block">${currentUser.name.split(' ')[0]}</span>
+                    <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </div>
+                <div class="dropdown-content">
+                    <div class="px-4 py-3 text-sm text-gray-200">
+                        <div>${currentUser.name}</div>
+                        <div class="font-medium truncate">${currentUser.email}</div>
+                    </div>
+                    <hr class="border-gray-600">
+                    <a href="#" onclick="logout()" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt fa-fw ml-2"></i>
+                        <span>تسجيل الخروج</span>
+                    </a>
+                </div>
+            </div>
+        `;
+    } else {
+        // المستخدم غير مسجل دخول - عرض زر تسجيل الدخول
+        userInfoContainer.innerHTML = `
+            <button onclick="loginWithGoogle()" class="flex items-center space-x-2 space-x-reverse bg-white hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-200 transform hover:scale-105 text-sm font-semibold shadow-md">
+                <svg class="w-5 h-5" viewBox="0 0 18 18"><g fill-rule="evenodd"><path d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9.1818v3.4818h4.7909c-.2045 1.125-.8227 2.0782-1.7773 2.7218v2.2591h2.9091c1.7045-1.5682 2.6864-3.8727 2.6864-6.6218z" fill="#4285F4"></path><path d="M9.1818 18c2.4455 0 4.4955-.8127 5.9955-2.1818l-2.9091-2.2591c-.8127.5455-1.8545.8727-3.0864.8727-2.3364 0-4.3182-1.5682-5.0364-3.6545H1.2727v2.3364C2.9636 16.2 5.7818 18 9.1818 18z" fill="#34A853"></path><path d="M4.1455 10.8818c-.1136-.3273-.1818-.6818-.1818-1.0455s.0682-.7182.1818-1.0455V6.4545H1.2727C.9455 7.1455.7273 7.9091.7273 8.7273c0 .8182.2182 1.5818.5455 2.2727l2.8727-2.1182z" fill="#FBBC05"></path><path d="M9.1818 3.6545c1.3273 0 2.5182.4545 3.4545 1.3636l2.5818-2.5818C13.6773.9818 11.6273 0 9.1818 0 5.7818 0 2.9636 1.8 1.2727 4.1182l2.8727 2.3364c.7182-2.0864 2.7-3.6545 5.0364-3.6545z" fill="#EA4335"></path></g></svg>
+                <span>تسجيل الدخول بـ Google</span>
+            </button>
+        `;
+    }
+}
+
+/**
+ * تبدأ عملية تسجيل الدخول.
+ */
+function loginWithGoogle() {
+    showNotification('جارٍ توجيهك لتسجيل الدخول...', 'info');
+    window.location.href = `${API_BASE_URL}/auth/google`;
+}
+
+/**
+ * تبدأ عملية تسجيل الخروج.
+ */
+function logout() {
+    showNotification('جارٍ تسجيل الخروج...', 'info');
+    window.location.href = `${API_BASE_URL}/auth/logout`;
+}
