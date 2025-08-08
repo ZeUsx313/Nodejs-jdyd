@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initializeDarkMode();
-    loadData();
     updateCustomProviders(); // تحديث المزودين المخصصين
     updateSendButton();
     initializeEventListeners();
@@ -923,7 +922,6 @@ function completeStreamingMessage() {
         chats[currentChatId].order = now; // Bring chat to top on new message
 
         // Save data to localStorage
-        saveData();
     }
 
     // Reset streaming state
@@ -1507,7 +1505,6 @@ async function startNewChat() {
     document.getElementById('messagesArea').innerHTML = '';
 
     displayChatHistory();
-    saveData();
 }
 
 // Drag and drop state
@@ -1656,7 +1653,6 @@ function handleDrop(e) {
     }
 
     chats[sourceChatId].order = newOrder;
-    saveData();
 
     // The dragend handler will remove the indicator and dragging class
     // Re-render to show the final correct order
@@ -1692,7 +1688,6 @@ function deleteChat(chatId, event) {
         }
 
         displayChatHistory();
-        saveData();
     }
 }
 
@@ -1752,7 +1747,6 @@ function updateChatTitle(chatId, newTitle) {
         chats[chatId].title = newTitle.trim();
         chats[chatId].updatedAt = now;
         chats[chatId].order = now; // Bring to top on edit
-        saveData();
     }
     displayChatHistory();
 }
@@ -1949,7 +1943,6 @@ function saveSettings() {
     settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
     settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
-    saveData();
     closeSettings();
     showNotification('تم حفظ الإعدادات بنجاح', 'success');
 }
@@ -2161,53 +2154,6 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Data persistence
-function saveData() {
-    try {
-        localStorage.setItem('zeusChats', JSON.stringify(chats));
-        localStorage.setItem('zeusSettings', JSON.stringify(settings));
-        localStorage.setItem('zeusCurrentChatId', currentChatId || '');
-    } catch (error) {
-        console.error('Error saving data:', error);
-        showNotification('خطأ في حفظ البيانات', 'error');
-    }
-}
-
-function loadData() {
-    try {
-        const savedChats = localStorage.getItem('zeusChats');
-        const savedSettings = localStorage.getItem('zeusSettings');
-        const savedCurrentChatId = localStorage.getItem('zeusCurrentChatId');
-
-        if (savedChats) {
-            chats = JSON.parse(savedChats);
-            // Ensure all chats have an 'order' property for drag-and-drop
-            Object.values(chats).forEach(chat => {
-                if (chat.order === undefined) {
-                    // Use updatedAt for backward compatibility, ensuring newest are on top
-                    chat.order = chat.updatedAt;
-                }
-            });
-        }
-
-        if (savedSettings) {
-            const loadedSettings = JSON.parse(savedSettings);
-            settings = { ...settings, ...loadedSettings };
-            // Apply loaded font size on startup
-            if (settings.fontSize) {
-                updateFontSize(settings.fontSize);
-            }
-        }
-
-        if (savedCurrentChatId && chats[savedCurrentChatId]) {
-            currentChatId = savedCurrentChatId;
-        }
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showNotification('خطأ في تحميل البيانات', 'error');
-    }
-}
-
 // Legacy functions for backward compatibility (these may not be used with new file card system)
 async function sendToCustomProvider(messages, attachments, providerId) {
     const customProvider = settings.customProviders.find(p => p.id === providerId);
@@ -2414,40 +2360,73 @@ async function checkUserStatus() {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
         updateUserDisplay();
+        // بما أنه لا يوجد مستخدم، نعرض واجهة فارغة
+        chats = {};
+        // يمكنك إعادة تعيين الإعدادات الافتراضية هنا إذا لزم الأمر
+        // settings = { ...defaultSettings }; 
+        displayChatHistory();
         return;
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/user`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        // الخطوة 1: التحقق من هوية المستخدم (الكود الحالي لديك)
+        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!response.ok) {
-            console.log('Token is invalid or expired. Logging out.');
-            localStorage.removeItem('authToken'); // إزالة التوكن غير الصالح
-            currentUser = null;
-            updateUserDisplay();
-            return;
+        if (!userResponse.ok) {
+            throw new Error('Invalid or expired token');
         }
 
-        const data = await response.json();
+        const userData = await userResponse.json();
+        currentUser = userData.user;
+        console.log("User authenticated:", currentUser);
 
-        if (data.loggedIn && data.user) {
-            console.log("User is logged in:", data.user);
-            currentUser = data.user;
+        // ✨ الخطوة 2 (الجديدة): جلب جميع بيانات المستخدم (المحادثات والإعدادات)
+        const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!dataResponse.ok) {
+            throw new Error('Failed to fetch user data from the server');
+        }
+
+        const data = await dataResponse.json();
+        
+        // تحويل مصفوفة المحادثات إلى كائن (object) كما يتوقع الكود الحالي
+        chats = data.chats.reduce((acc, chat) => {
+            acc[chat._id] = chat; // نستخدم _id من قاعدة البيانات كمعرف
+            return acc;
+        }, {});
+
+        settings = data.settings;
+        console.log("User data loaded from DB:", { chats, settings });
+
+        // تحديث الواجهة بالبيانات الجديدة
+        displayChatHistory();
+        
+        // اختر أحدث محادثة إن وجدت
+        if (Object.keys(chats).length > 0) {
+            // الفرز حسب حقل "order" الذي أضفناه لضمان الترتيب الصحيح
+            currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
+            switchToChat(currentChatId);
         } else {
-            console.log("User is not logged in.");
-            currentUser = null;
+            // لا توجد محادثات، اعرض شاشة الترحيب
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('messagesContainer').classList.add('hidden');
         }
 
     } catch (error) {
-        console.error("Error checking user status:", error);
+        console.error("Authentication or data fetch error:", error.message);
+        localStorage.removeItem('authToken');
         currentUser = null;
+        chats = {};
+        settings = {};
+        displayChatHistory(); // عرض القائمة الفارغة
+    } finally {
+        // تحديث واجهة المستخدم (عرض معلومات المستخدم أو زر الدخول) في كل الحالات
+        updateUserDisplay();
     }
-    
-    updateUserDisplay(); 
 }
 
 /**
@@ -2507,9 +2486,21 @@ function logout() {
 
     // إعادة تعيين حالة المستخدم في الواجهة
     currentUser = null;
-
+    
+    // ✨ إعادة تعيين البيانات المحلية بالكامل
+    chats = {};
+    currentChatId = null;
+    // يمكنك إعادة تعيين الإعدادات إلى الافتراضية هنا إذا أردت
+    
     // تحديث الواجهة لعرض زر تسجيل الدخول
     updateUserDisplay();
+    
+    // عرض شاشة الترحيب وإخفاء المحادثات
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('messagesContainer').classList.add('hidden');
+    
+    // تحديث قائمة المحادثات (ستكون فارغة)
+    displayChatHistory();
 
     showNotification('تم تسجيل الخروج بنجاح', 'success');
 }
