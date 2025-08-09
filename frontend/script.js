@@ -1088,10 +1088,13 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
 async function sendRequestToServer(payload) {
     try {
+        const token = localStorage.getItem('authToken'); // ✨ جلب التوكن
         const response = await fetch(`${API_BASE_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                // ✨ إضافة هيدر التوكن إذا كان موجودًا ✨
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             body: JSON.stringify(payload)
         });
@@ -1102,25 +1105,22 @@ async function sendRequestToServer(payload) {
             throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
         }
 
-        // معالجة الرد المتدفق
+        // ... (باقي الدالة يبقى كما هو)
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
 
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
+            if (done) break;
             const chunk = decoder.decode(value, { stream: true });
             appendToStreamingMessage(chunk);
         }
 
-        // إنهاء البث
         appendToStreamingMessage('', true);
 
     } catch (error) {
         console.error('Fetch error:', error);
-        throw error; // إعادة رمي الخطأ ليتم التعامل معه في دالة sendMessage
+        throw error;
     }
 }
 
@@ -2462,14 +2462,22 @@ async function checkUserStatus() {
         }, {});
         
         // ✨✨✨ السطر المصحح: ابدأ دائمًا بالافتراضيات وادمج معها إعدادات المستخدم ✨✨✨
-        settings = { ...defaultSettings, ...data.settings };
+        // ...
+settings = { ...defaultSettings, ...data.settings };
 
-        console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
+console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
 
-        // الخطوة 3: تحديث الواجهة بالكامل مرة واحدة فقط
-        updateUserDisplay(); 
-        displayChatHistory();
-        loadSettingsUI(); // مهم: تحميل الإعدادات في الواجهة لتعكس حالة المستخدم
+// ✨✨✨ الترتيب الصحيح والحاسم لرسم الواجهة ✨✨✨
+// 1. قم بتحديث قائمة المزودين الداخلية بالبيانات الجديدة
+updateCustomProviders();
+// 2. قم بتحديث القائمة المنسدلة للمزودين في واجهة الإعدادات
+updateProviderSelect();
+
+// 3. الآن قم برسم باقي الواجهة
+updateUserDisplay(); 
+displayChatHistory();
+loadSettingsUI(); // هذه الدالة ستعمل الآن بشكل صحيح لأن القوائم تم بناؤها
+
         
         // اختر أحدث محادثة إن وجدت
         if (Object.keys(chats).length > 0) {
