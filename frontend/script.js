@@ -1054,30 +1054,24 @@ function displayUserMessage(message) {
 // ----------------------------------------------------------------------------------
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
-    // 1. تجميع البيانات المطلوبة في كائن payload
+    // ✨ الحل النهائي: بناء حمولة (payload) سليمة دائمًا ✨
     const payload = {
         chatHistory: chatHistory,
-        attachments: attachments.map(file => {
-            // نرسل فقط البيانات الضرورية للخادم
-            return {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                content: file.content, // Base64 for images, text for others
-                dataType: file.dataType,
-                mimeType: file.mimeType
-            };
-        }),
-        settings: {
-            provider: settings.provider,
-            model: settings.model,
-            temperature: settings.temperature,
-            customPrompt: settings.customPrompt,
-            // لا نرسل مفاتيح API، الخادم هو من سيتعامل معها
-        }
+        attachments: attachments.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: file.content,
+            dataType: file.dataType,
+            mimeType: file.mimeType
+        })),
+        // نستخدم كائن الإعدادات "settings" العام بالكامل
+        // هذا يضمن أن كل الخصائص (مثل customProviders) تُرسل دائمًا، حتى لو كانت مصفوفات فارغة
+        // وهذا يمنع حدوث خطأ 'undefined' في الخادم.
+        settings: settings 
     };
 
-    // 2. استدعاء الدالة الجديدة التي تتصل بالخادم
+    // 2. استدعاء الدالة التي تتصل بالخادم
     try {
         await sendRequestToServer(payload);
     } catch (error) {
@@ -1086,7 +1080,6 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
         appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
 }
-
 
 async function sendRequestToServer(payload) {
     try {
@@ -1717,6 +1710,37 @@ async function saveCurrentChat() {
     }
 }
 
+// دالة جديدة لحفظ الإعدادات في قاعدة البيانات
+async function saveSettingsToDB() {
+    if (!currentUser) return; // لا تحفظ إذا لم يكن المستخدم مسجلاً دخوله
+
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/settings`, {
+            method: 'PUT', // نستخدم PUT لتحديث الإعدادات
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(settings) // نرسل كائن الإعدادات الكامل
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save settings to the database.');
+        }
+
+        const savedSettings = await response.json();
+        settings = savedSettings; // تحديث الإعدادات المحلية بالرد من الخادم
+        console.log('Settings saved successfully to DB.');
+
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification('حدث خطأ أثناء حفظ الإعدادات', 'error');
+    }
+}
+
 function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
     if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
@@ -1976,13 +2000,16 @@ function loadSettingsUI() {
 }
 
 function saveSettings() {
-    // Save basic settings
+    // تحديث كائن الإعدادات المحلي من واجهة المستخدم
     settings.provider = document.getElementById('providerSelect').value;
     settings.model = document.getElementById('modelSelect').value;
     settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
     settings.customPrompt = document.getElementById('customPromptInput').value;
     settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
     settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
+
+    // ✨ استدعاء الدالة الجديدة لحفظ الإعدادات في قاعدة البيانات ✨
+    saveSettingsToDB();
 
     closeSettings();
     showNotification('تم حفظ الإعدادات بنجاح', 'success');
@@ -2392,60 +2419,58 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 // نظام تسجيل الدخول والخروج
 // ===============================================
 
-/**
- * يتحقق من حالة تسجيل دخول المستخدم عند تحميل الصفحة.
- */
+
 async function checkUserStatus() {
     const token = localStorage.getItem('authToken');
     if (!token) {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
-        updateUserDisplay();
+        updateUserDisplay(); // آمن هنا لأنه لا يوجد مستخدم
         chats = {};
+        // استخدم كائن إعدادات فارغًا عند عدم وجود مستخدم
+        settings = { provider: 'gemini', model: 'gemini-1.5-flash', temperature: 0.7, geminiApiKeys: [], openrouterApiKeys: [], customProviders: [], customModels: [], customPrompt: '', apiKeyRetryStrategy: 'sequential', fontSize: 18 };
         displayChatHistory();
         return;
     }
 
     try {
+        // الخطوة 1: التحقق من هوية المستخدم
         const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!userResponse.ok) {
-            throw new Error('Invalid or expired token');
-        }
-
+        if (!userResponse.ok) throw new Error('Invalid or expired token');
         const userData = await userResponse.json();
-        currentUser = userData.user;
-        console.log("User authenticated:", currentUser);
-
-        // ✨✨✨ الخطوة 1: أضف هذا السطر هنا ✨✨✨
-        updateUserDisplay();
-
+        
+        // الخطوة 2: جلب جميع بيانات المستخدم (المحادثات والإعدادات)
         const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!dataResponse.ok) {
-            throw new Error('Failed to fetch user data from the server');
-        }
-
+        if (!dataResponse.ok) throw new Error('Failed to fetch user data from the server');
         const data = await dataResponse.json();
-        
+
+        // ✨✨✨ النجاح! ✨✨✨
+        // الآن فقط، بعد التأكد من نجاح كل شيء، نقوم بتعيين المتغيرات
+        currentUser = userData.user;
         chats = data.chats.reduce((acc, chat) => {
             acc[chat._id] = chat;
             return acc;
         }, {});
+        // دمج الإعدادات المحملة مع الافتراضية لضمان وجود كل الخصائص
+        settings = { ...settings, ...data.settings };
 
-        settings = data.settings;
-        console.log("User data loaded from DB:", { chats, settings });
+        console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
 
+        // الخطوة 3: تحديث الواجهة بالكامل مرة واحدة فقط
+        updateUserDisplay(); // <--- المكان الصحيح والنهائي
         displayChatHistory();
+        loadSettingsUI(); // ✨ مهم: تحميل الإعدادات في الواجهة لتعكس حالة المستخدم
         
+        // اختر أحدث محادثة إن وجدت
         if (Object.keys(chats).length > 0) {
             currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
             switchToChat(currentChatId);
         } else {
+            // إذا لم تكن هناك محادثات، أظهر شاشة الترحيب
             document.getElementById('welcomeScreen').classList.remove('hidden');
             document.getElementById('messagesContainer').classList.add('hidden');
         }
@@ -2455,17 +2480,10 @@ async function checkUserStatus() {
         localStorage.removeItem('authToken');
         currentUser = null;
         chats = {};
-        settings = {};
+        settings = { provider: 'gemini', model: 'gemini-1.5-flash', temperature: 0.7, geminiApiKeys: [], openrouterApiKeys: [], customProviders: [], customModels: [], customPrompt: '', apiKeyRetryStrategy: 'sequential', fontSize: 18 };
         displayChatHistory();
-        // ✨✨✨ أضف هذا السطر هنا أيضًا (في حالة الخطأ) ✨✨✨
-        updateUserDisplay(); 
-    } 
-    // ✨✨✨ الخطوة 2: احذف كتلة "finally" هذه بالكامل ✨✨✨
-    /*
-    finally {
-        updateUserDisplay();
+        updateUserDisplay(); // تحديث الواجهة لإظهار زر الدخول بعد الفشل
     }
-    */
 }
 
 /**
