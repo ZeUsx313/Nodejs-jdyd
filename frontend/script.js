@@ -1087,41 +1087,108 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 }
 
 async function sendRequestToServer(payload) {
-    try {
-        const token = localStorage.getItem('authToken'); // ✨ جلب التوكن
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // ✨ إضافة هيدر التوكن إذا كان موجودًا ✨
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify(payload)
-        });
+  // 1) تحقّق أساسي قبل الإرسال
+  const token = localStorage.getItem('authToken');
+  if (!payload || typeof payload !== 'object') {
+    showNotification('الطلب غير صالح.', 'error');
+    return;
+  }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server Error:', response.status, errorText);
-            throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
-        }
+  // يمكن (اختياريًا) حقن الإعدادات الحالية إذا كان الخادم يتوقعها
+  // payload.settings = payload.settings ?? settings;
 
-        // ... (باقي الدالة يبقى كما هو)
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
+  // 2) مهلة قصوى للاحتواء على التعليقات (لا تترك الواجهة “معلقة”)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90 ثانية
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            appendToStreamingMessage(chunk);
-        }
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+  } catch (netErr) {
+    clearTimeout(timeoutId);
+    console.error('Network error:', netErr);
+    showNotification('تعذّر الاتصال بالخادم. تحقّق من الشبكة ثم أعد المحاولة.', 'error');
+    return;
+  }
+  clearTimeout(timeoutId);
 
-        appendToStreamingMessage('', true);
-
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
+  // 3) معالجة أخطاء الحالة HTTP مبكّرًا
+  if (!response.ok) {
+    // حالة انتهاء الجلسة/توكن غير صالح
+    if (response.status === 401) {
+      showNotification('انتهت الجلسة. يرجى تسجيل الدخول مجددًا.', 'error');
+      localStorage.removeItem('authToken');
+      currentUser = null;
+      updateUserDisplay();
+      return;
     }
+
+    // حاول قراءة رسالة الخطأ من النصّ الخام لتشخيص أفضل
+    let serverText = '';
+    try { serverText = await response.text(); } catch {}
+    console.error(`Server error ${response.status}:`, serverText);
+    showNotification(`خطأ من الخادم (${response.status}).`, 'error');
+    return;
+  }
+
+  // 4) تمييز نوع الاستجابة: بثّ نصّي أم JSON عادي
+  const ctype = response.headers.get('content-type') || '';
+
+  // ——— حالة البثّ (text/event-stream أو text/plain مع تدفّق) ———
+  if (ctype.includes('text/event-stream') || (response.body && !ctype.includes('application/json'))) {
+    try {
+      // مؤشّر “يكتب الآن…”
+      showStreamingIndicator?.(true);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      // اجمع البتّات تدريجيًا وحدّث الرسالة الظاهرة للمستخدم
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // إذا كان الخادم يرسل أسطرًا متتالية، عالجها تدريجيًا
+        // يمكنك تخصيص طريقة العرض: appendAssistantDelta(buffer) مثلاً
+        appendAssistantDelta?.(buffer);
+      }
+
+      // إنهاء البثّ وتثبيت النص النهائي (إن كنت تستخدم دوال تفريق)
+      finalizeAssistantMessage?.();
+    } catch (streamErr) {
+      console.error('Streaming error:', streamErr);
+      showNotification('انقطع البث من الخادم.', 'error');
+    } finally {
+      showStreamingIndicator?.(false);
+    }
+    return;
+  }
+
+  // ——— حالة JSON العادي ———
+  try {
+    const data = await response.json();
+    // توقّع بنية مثل: { reply: "...", usage: {...}, ... }
+    if (data && typeof data.reply === 'string') {
+      appendAssistantMessage(data.reply);
+    } else {
+      // إن لم تكن هناك خاصية reply، اطبع كل شيء للتشخيص
+      console.warn('Unexpected JSON shape:', data);
+      appendAssistantMessage('تمت المعالجة بنجاح، لكن لم يرسل الخادم نصًا للعرض.');
+    }
+  } catch (jsonErr) {
+    console.error('JSON parse error:', jsonErr);
+    showNotification('استجابة غير مفهومة من الخادم.', 'error');
+  }
 }
 
 
@@ -2437,55 +2504,57 @@ async function checkUserStatus() {
     }
 
     try {
-        // ✨ الخطوة 1: التحقق من هوية المستخدم
-        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!userResponse.ok) throw new Error('Invalid or expired token');
-        const userData = await userResponse.json();
+  // ✨ الخطوة 1: التحقق من هوية المستخدم
+  const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!userResponse.ok) throw new Error('Invalid or expired token');
+  const userData = await userResponse.json();
 
-        // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
-        currentUser = userData.user;
-        updateUserDisplay(); // <--- هذا سيُظهر الصورة والاسم فورًا!
+  // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
+  currentUser = userData.user;
+  updateUserDisplay(); // ← يُظهر الصورة والاسم فورًا
 
-        // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
-        const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!dataResponse.ok) {
-            // حتى لو فشل هذا الطلب، سيبقى المستخدم مسجلاً دخوله
-            showNotification('تم تسجيل الدخول، لكن فشل جلب البيانات.', 'error');
-            throw new Error('Failed to fetch user data');
-        }
-        const data = await dataResponse.json();
+  // ✨ الخطوة 3: جلب باقي البيانات بدون إسقاط حالة الدخول لو فشل
+  let data;
+  try {
+    const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!dataResponse.ok) throw new Error('Failed to fetch user data');
+    data = await dataResponse.json();
+  } catch (e) {
+    // ⚠️ نبقى مسجّلين دخول — فقط نبلغ المستخدم ونخرج بهدوء
+    showNotification('تم تسجيل الدخول، لكن فشل جلب البيانات. يمكنك المحاولة لاحقًا من الإعدادات.', 'error');
+    return;
+  }
 
-        // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
-        chats = data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {});
-        settings = { ...defaultSettings, ...data.settings };
+  // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
+  chats = Array.isArray(data.chats)
+    ? data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {})
+    : {};
 
-        // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
-        updateCustomProviders();
-        updateProviderSelect();
-        displayChatHistory();
-        loadSettingsUI();
+  settings = { ...defaultSettings, ...(data.settings || {}) };
 
-        if (Object.keys(chats).length > 0) {
-            currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
-            switchToChat(currentChatId);
-        }
+  updateCustomProviders();
+  updateProviderSelect();
+  displayChatHistory();
+  loadSettingsUI();
 
-    } catch (error) {
-        console.error("Check user status process failed:", error.message);
-        // إذا فشلت أي خطوة، قم بتسجيل الخروج بالكامل لضمان عدم وجود حالة غير متوقعة
-        if (currentUser) { // لا تسجل الخروج إلا إذا كان قد تم تعيين المستخدم بالفعل
-             localStorage.removeItem('authToken');
-             currentUser = null;
-             chats = {};
-             settings = { ...defaultSettings };
-             updateUserDisplay();
-             displayChatHistory();
-        }
-    }
+  if (Object.keys(chats).length > 0) {
+    currentChatId = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0))[0]._id;
+    switchToChat(currentChatId);
+  }
+
+} catch (error) {
+  console.error("Check user status process failed:", error.message);
+  // هذا الـ catch الآن يمسك فقط فشل /api/user الحقيقي ⇒ نسجّل خروج
+  localStorage.removeItem('authToken');
+  currentUser = null;
+  chats = {};
+  settings = { ...defaultSettings };
+  updateUserDisplay();
+  displayChatHistory();
 }
 
 /**
