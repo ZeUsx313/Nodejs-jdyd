@@ -1088,12 +1088,12 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
 async function sendRequestToServer(payload) {
     try {
-        const token = localStorage.getItem('authToken'); // جلب التوكن
+        const token = localStorage.getItem('authToken'); // ✨ جلب التوكن
         const response = await fetch(`${API_BASE_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // إضافة هيدر التوكن إذا كان موجودًا
+                // ✨ إضافة هيدر التوكن إذا كان موجودًا ✨
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             body: JSON.stringify(payload)
@@ -1105,7 +1105,7 @@ async function sendRequestToServer(payload) {
             throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
         }
 
-        // منطق البث الأصلي والبسيط الذي يعمل مع الكود الحالي
+        // ... (باقي الدالة يبقى كما هو)
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
 
@@ -1120,36 +1120,8 @@ async function sendRequestToServer(payload) {
 
     } catch (error) {
         console.error('Fetch error:', error);
-        throw error; // إعادة رمي الخطأ ليتم التعامل معه في دالة sendMessage
+        throw error;
     }
-}
-
-      // إنهاء البثّ وتثبيت النص النهائي (إن كنت تستخدم دوال تفريق)
-      finalizeAssistantMessage?.();
-    } catch (streamErr) {
-      console.error('Streaming error:', streamErr);
-      showNotification('انقطع البث من الخادم.', 'error');
-    } finally {
-      showStreamingIndicator?.(false);
-    }
-    return;
-  }
-
-  // ——— حالة JSON العادي ———
-  try {
-    const data = await response.json();
-    // توقّع بنية مثل: { reply: "...", usage: {...}, ... }
-    if (data && typeof data.reply === 'string') {
-      appendAssistantMessage(data.reply);
-    } else {
-      // إن لم تكن هناك خاصية reply، اطبع كل شيء للتشخيص
-      console.warn('Unexpected JSON shape:', data);
-      appendAssistantMessage('تمت المعالجة بنجاح، لكن لم يرسل الخادم نصًا للعرض.');
-    }
-  } catch (jsonErr) {
-    console.error('JSON parse error:', jsonErr);
-    showNotification('استجابة غير مفهومة من الخادم.', 'error');
-  }
 }
 
 
@@ -2458,70 +2430,78 @@ async function checkUserStatus() {
     if (!token) {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
-        settings = { ...defaultSettings };
         updateUserDisplay();
+        chats = {};
+        // عند تسجيل الخروج، أعد الإعدادات إلى الافتراضية
+        settings = { ...defaultSettings }; 
         displayChatHistory();
         return;
     }
 
     try {
-  // ✨ الخطوة 1: التحقق من هوية المستخدم
-  const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!userResponse.ok) throw new Error('Invalid or expired token');
-  const userData = await userResponse.json();
+        // الخطوة 1: التحقق من هوية المستخدم
+        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!userResponse.ok) throw new Error('Invalid or expired token');
+        const userData = await userResponse.json();
+        
+        // الخطوة 2: جلب جميع بيانات المستخدم (المحادثات والإعدادات)
+        const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!dataResponse.ok) throw new Error('Failed to fetch user data from the server');
+        const data = await dataResponse.json();
 
-  // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
-  currentUser = userData.user;
-  updateUserDisplay(); // ← يُظهر الصورة والاسم فورًا
+        // ✨✨✨ النجاح! ✨✨✨
+        // الآن فقط، بعد التأكد من نجاح كل شيء، نقوم بتعيين المتغيرات
+        currentUser = userData.user;
+        chats = data.chats.reduce((acc, chat) => {
+            acc[chat._id] = chat;
+            return acc;
+        }, {});
+        
+        // ✨✨✨ السطر المصحح: ابدأ دائمًا بالافتراضيات وادمج معها إعدادات المستخدم ✨✨✨
+        // ...
+settings = { ...defaultSettings, ...data.settings };
 
-  // ✨ الخطوة 3: جلب باقي البيانات بدون إسقاط حالة الدخول لو فشل
-  let data;
-  try {
-    const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!dataResponse.ok) throw new Error('Failed to fetch user data');
-    data = await dataResponse.json();
-  } catch (e) {
-    // ⚠️ نبقى مسجّلين دخول — فقط نبلغ المستخدم ونخرج بهدوء
-    showNotification('تم تسجيل الدخول، لكن فشل جلب البيانات. يمكنك المحاولة لاحقًا من الإعدادات.', 'error');
-    return;
-  }
+console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
 
-  // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
-  chats = Array.isArray(data.chats)
-    ? data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {})
-    : {};
+// ✨✨✨ الترتيب الصحيح والحاسم لرسم الواجهة ✨✨✨
+// 1. قم بتحديث قائمة المزودين الداخلية بالبيانات الجديدة
+updateCustomProviders();
+// 2. قم بتحديث القائمة المنسدلة للمزودين في واجهة الإعدادات
+updateProviderSelect();
 
-  settings = { ...defaultSettings, ...(data.settings || {}) };
+// 3. الآن قم برسم باقي الواجهة
+updateUserDisplay(); 
+displayChatHistory();
+loadSettingsUI(); // هذه الدالة ستعمل الآن بشكل صحيح لأن القوائم تم بناؤها
 
-  updateCustomProviders();
-  updateProviderSelect();
-  displayChatHistory();
-  loadSettingsUI();
+        
+        // اختر أحدث محادثة إن وجدت
+        if (Object.keys(chats).length > 0) {
+            currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
+            switchToChat(currentChatId);
+        } else {
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('messagesContainer').classList.add('hidden');
+        }
 
-  if (Object.keys(chats).length > 0) {
-    currentChatId = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0))[0]._id;
-    switchToChat(currentChatId);
-  }
-
-} catch (error) {
-  console.error("Check user status process failed:", error.message);
-  // هذا الـ catch الآن يمسك فقط فشل /api/user الحقيقي ⇒ نسجّل خروج
-  localStorage.removeItem('authToken');
-  currentUser = null;
-  chats = {};
-  settings = { ...defaultSettings };
-  updateUserDisplay();
-  displayChatHistory();
-} // ⬅️ هذا القوس كان مفقودًا ويغلق دالة checkUserStatus
+    } catch (error) {
+        console.error("Authentication or data fetch error:", error.message);
+        localStorage.removeItem('authToken');
+        currentUser = null;
+        chats = {};
+        settings = { ...defaultSettings }; // أعدها للافتراضية عند الخطأ أيضًا
+        displayChatHistory();
+        updateUserDisplay(); 
+    }
+}
 
 /**
  * تحديث واجهة المستخدم لعرض معلومات المستخدم أو زر تسجيل الدخول.
  */
-function updateUserDisplay() {
 function updateUserDisplay() {
     const userInfoContainer = document.getElementById('user-info-container');
     if (!userInfoContainer) return;
