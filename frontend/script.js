@@ -7,18 +7,23 @@ const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 let currentUser = null;
 let currentChatId = null;
 let chats = {};
-let settings = {
+
+// ✨ 1. الإعدادات الافتراضية الثابتة (لا تتغير أبدًا) ✨
+const defaultSettings = {
     provider: 'gemini',
     model: 'gemini-1.5-flash',
     temperature: 0.7,
     geminiApiKeys: [],
     openrouterApiKeys: [],
-    customProviders: [], // قائمة المزودين المخصصين مع مفاتيح API متعددة لكل مزود
-    customModels: [], // النماذج المخصصة الجديدة
+    customProviders: [],
+    customModels: [],
     customPrompt: '',
     apiKeyRetryStrategy: 'sequential',
-    fontSize: 18 // Default font size in pixels
+    fontSize: 18
 };
+
+// ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
+let settings = { ...defaultSettings };
 
 // Provider configurations
 const providers = {
@@ -2425,10 +2430,10 @@ async function checkUserStatus() {
     if (!token) {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
-        updateUserDisplay(); // آمن هنا لأنه لا يوجد مستخدم
+        updateUserDisplay();
         chats = {};
-        // استخدم كائن إعدادات فارغًا عند عدم وجود مستخدم
-        settings = { provider: 'gemini', model: 'gemini-1.5-flash', temperature: 0.7, geminiApiKeys: [], openrouterApiKeys: [], customProviders: [], customModels: [], customPrompt: '', apiKeyRetryStrategy: 'sequential', fontSize: 18 };
+        // عند تسجيل الخروج، أعد الإعدادات إلى الافتراضية
+        settings = { ...defaultSettings }; 
         displayChatHistory();
         return;
     }
@@ -2455,22 +2460,22 @@ async function checkUserStatus() {
             acc[chat._id] = chat;
             return acc;
         }, {});
-        // دمج الإعدادات المحملة مع الافتراضية لضمان وجود كل الخصائص
-        settings = { ...settings, ...data.settings };
+        
+        // ✨✨✨ السطر المصحح: ابدأ دائمًا بالافتراضيات وادمج معها إعدادات المستخدم ✨✨✨
+        settings = { ...defaultSettings, ...data.settings };
 
         console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
 
         // الخطوة 3: تحديث الواجهة بالكامل مرة واحدة فقط
-        updateUserDisplay(); // <--- المكان الصحيح والنهائي
+        updateUserDisplay(); 
         displayChatHistory();
-        loadSettingsUI(); // ✨ مهم: تحميل الإعدادات في الواجهة لتعكس حالة المستخدم
+        loadSettingsUI(); // مهم: تحميل الإعدادات في الواجهة لتعكس حالة المستخدم
         
         // اختر أحدث محادثة إن وجدت
         if (Object.keys(chats).length > 0) {
             currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
             switchToChat(currentChatId);
         } else {
-            // إذا لم تكن هناك محادثات، أظهر شاشة الترحيب
             document.getElementById('welcomeScreen').classList.remove('hidden');
             document.getElementById('messagesContainer').classList.add('hidden');
         }
@@ -2480,9 +2485,9 @@ async function checkUserStatus() {
         localStorage.removeItem('authToken');
         currentUser = null;
         chats = {};
-        settings = { provider: 'gemini', model: 'gemini-1.5-flash', temperature: 0.7, geminiApiKeys: [], openrouterApiKeys: [], customProviders: [], customModels: [], customPrompt: '', apiKeyRetryStrategy: 'sequential', fontSize: 18 };
+        settings = { ...defaultSettings }; // أعدها للافتراضية عند الخطأ أيضًا
         displayChatHistory();
-        updateUserDisplay(); // تحديث الواجهة لإظهار زر الدخول بعد الفشل
+        updateUserDisplay(); 
     }
 }
 
