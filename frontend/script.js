@@ -2430,72 +2430,61 @@ async function checkUserStatus() {
     if (!token) {
         console.log("No auth token found. User is logged out.");
         currentUser = null;
+        settings = { ...defaultSettings };
         updateUserDisplay();
-        chats = {};
-        // عند تسجيل الخروج، أعد الإعدادات إلى الافتراضية
-        settings = { ...defaultSettings }; 
         displayChatHistory();
         return;
     }
 
     try {
-        // الخطوة 1: التحقق من هوية المستخدم
+        // ✨ الخطوة 1: التحقق من هوية المستخدم
         const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!userResponse.ok) throw new Error('Invalid or expired token');
         const userData = await userResponse.json();
-        
-        // الخطوة 2: جلب جميع بيانات المستخدم (المحادثات والإعدادات)
+
+        // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
+        currentUser = userData.user;
+        updateUserDisplay(); // <--- هذا هو السحر! سيُظهر الصورة والاسم فورًا!
+
+        // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
         const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!dataResponse.ok) throw new Error('Failed to fetch user data from the server');
+        if (!dataResponse.ok) {
+            // حتى لو فشل هذا الطلب، سيبقى المستخدم مسجلاً دخوله
+            showNotification('تم تسجيل الدخول، لكن فشل جلب البيانات.', 'error');
+            throw new Error('Failed to fetch user data');
+        }
         const data = await dataResponse.json();
 
-        // ✨✨✨ النجاح! ✨✨✨
-        // الآن فقط، بعد التأكد من نجاح كل شيء، نقوم بتعيين المتغيرات
-        currentUser = userData.user;
-        chats = data.chats.reduce((acc, chat) => {
-            acc[chat._id] = chat;
-            return acc;
-        }, {});
-        
-        // ✨✨✨ السطر المصحح: ابدأ دائمًا بالافتراضيات وادمج معها إعدادات المستخدم ✨✨✨
-        // ...
-settings = { ...defaultSettings, ...data.settings };
+        // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
+        chats = data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {});
+        settings = { ...defaultSettings, ...data.settings };
 
-console.log("Authentication and data fetch successful. Updating UI.", { currentUser, chats, settings });
+        // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
+        updateCustomProviders();
+        updateProviderSelect();
+        displayChatHistory();
+        loadSettingsUI();
 
-// ✨✨✨ الترتيب الصحيح والحاسم لرسم الواجهة ✨✨✨
-// 1. قم بتحديث قائمة المزودين الداخلية بالبيانات الجديدة
-updateCustomProviders();
-// 2. قم بتحديث القائمة المنسدلة للمزودين في واجهة الإعدادات
-updateProviderSelect();
-
-// 3. الآن قم برسم باقي الواجهة
-updateUserDisplay(); 
-displayChatHistory();
-loadSettingsUI(); // هذه الدالة ستعمل الآن بشكل صحيح لأن القوائم تم بناؤها
-
-        
-        // اختر أحدث محادثة إن وجدت
         if (Object.keys(chats).length > 0) {
-            currentChatId = Object.values(chats).sort((a, b) => b.order - a.order)[0]._id;
+            currentChatId = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0))[0]._id;
             switchToChat(currentChatId);
-        } else {
-            document.getElementById('welcomeScreen').classList.remove('hidden');
-            document.getElementById('messagesContainer').classList.add('hidden');
         }
 
     } catch (error) {
-        console.error("Authentication or data fetch error:", error.message);
-        localStorage.removeItem('authToken');
-        currentUser = null;
-        chats = {};
-        settings = { ...defaultSettings }; // أعدها للافتراضية عند الخطأ أيضًا
-        displayChatHistory();
-        updateUserDisplay(); 
+        console.error("Check user status process failed:", error.message);
+        // إذا فشلت أي خطوة بعد تعيين المستخدم، لا تسجل خروجه بالكامل
+        // هذا يضمن بقاء الصورة والاسم ظاهرين حتى لو فشل جلب البيانات
+        if (!currentUser) {
+             localStorage.removeItem('authToken');
+             chats = {};
+             settings = { ...defaultSettings };
+             updateUserDisplay();
+             displayChatHistory();
+        }
     }
 }
 
