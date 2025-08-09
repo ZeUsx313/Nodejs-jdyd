@@ -1087,81 +1087,42 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 }
 
 async function sendRequestToServer(payload) {
-  // 1) تحقّق أساسي قبل الإرسال
-  const token = localStorage.getItem('authToken');
-  if (!payload || typeof payload !== 'object') {
-    showNotification('الطلب غير صالح.', 'error');
-    return;
-  }
-
-  // يمكن (اختياريًا) حقن الإعدادات الحالية إذا كان الخادم يتوقعها
-  // payload.settings = payload.settings ?? settings;
-
-  // 2) مهلة قصوى للاحتواء على التعليقات (لا تترك الواجهة “معلقة”)
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90 ثانية
-
-  let response;
-  try {
-    response = await fetch(`${API_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-  } catch (netErr) {
-    clearTimeout(timeoutId);
-    console.error('Network error:', netErr);
-    showNotification('تعذّر الاتصال بالخادم. تحقّق من الشبكة ثم أعد المحاولة.', 'error');
-    return;
-  }
-  clearTimeout(timeoutId);
-
-  // 3) معالجة أخطاء الحالة HTTP مبكّرًا
-  if (!response.ok) {
-    // حالة انتهاء الجلسة/توكن غير صالح
-    if (response.status === 401) {
-      showNotification('انتهت الجلسة. يرجى تسجيل الدخول مجددًا.', 'error');
-      localStorage.removeItem('authToken');
-      currentUser = null;
-      updateUserDisplay();
-      return;
-    }
-
-    // حاول قراءة رسالة الخطأ من النصّ الخام لتشخيص أفضل
-    let serverText = '';
-    try { serverText = await response.text(); } catch {}
-    console.error(`Server error ${response.status}:`, serverText);
-    showNotification(`خطأ من الخادم (${response.status}).`, 'error');
-    return;
-  }
-
-  // 4) تمييز نوع الاستجابة: بثّ نصّي أم JSON عادي
-  const ctype = response.headers.get('content-type') || '';
-
-  // ——— حالة البثّ (text/event-stream أو text/plain مع تدفّق) ———
-  if (ctype.includes('text/event-stream') || (response.body && !ctype.includes('application/json'))) {
     try {
-      // مؤشّر “يكتب الآن…”
-      showStreamingIndicator?.(true);
+        const token = localStorage.getItem('authToken'); // جلب التوكن
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // إضافة هيدر التوكن إذا كان موجودًا
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(payload)
+        });
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server Error:', response.status, errorText);
+            throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
+        }
 
-      // اجمع البتّات تدريجيًا وحدّث الرسالة الظاهرة للمستخدم
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        // منطق البث الأصلي والبسيط الذي يعمل مع الكود الحالي
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
 
-        // إذا كان الخادم يرسل أسطرًا متتالية، عالجها تدريجيًا
-        // يمكنك تخصيص طريقة العرض: appendAssistantDelta(buffer) مثلاً
-        appendAssistantDelta?.(buffer);
-      }
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            appendToStreamingMessage(chunk);
+        }
+
+        appendToStreamingMessage('', true);
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error; // إعادة رمي الخطأ ليتم التعامل معه في دالة sendMessage
+    }
+}
 
       // إنهاء البثّ وتثبيت النص النهائي (إن كنت تستخدم دوال تفريق)
       finalizeAssistantMessage?.();
@@ -2553,13 +2514,14 @@ async function checkUserStatus() {
   currentUser = null;
   chats = {};
   settings = { ...defaultSettings };
-    updateUserDisplay();
+  updateUserDisplay();
   displayChatHistory();
 } // ⬅️ هذا القوس كان مفقودًا ويغلق دالة checkUserStatus
 
 /**
  * تحديث واجهة المستخدم لعرض معلومات المستخدم أو زر تسجيل الدخول.
  */
+function updateUserDisplay() {
 function updateUserDisplay() {
     const userInfoContainer = document.getElementById('user-info-container');
     if (!userInfoContainer) return;
