@@ -2553,9 +2553,9 @@ async function checkUserStatus() {
   currentUser = null;
   chats = {};
   settings = { ...defaultSettings };
-  updateUserDisplay();
+    updateUserDisplay();
   displayChatHistory();
-}
+} // ⬅️ هذا القوس كان مفقودًا ويغلق دالة checkUserStatus
 
 /**
  * تحديث واجهة المستخدم لعرض معلومات المستخدم أو زر تسجيل الدخول.
