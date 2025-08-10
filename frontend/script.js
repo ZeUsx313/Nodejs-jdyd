@@ -950,7 +950,6 @@ function smoothScrollToBottom() {
     });
 }
 
-// Enhanced message sending with streaming
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
@@ -975,6 +974,16 @@ async function sendMessage() {
         if (!currentChatId) {
             await startNewChat();
         }
+
+        // ✨✨✨ الميزة الجديدة تبدأ هنا ✨✨✨
+        // 1. تحقق إذا كانت هذه هي الرسالة الأولى في المحادثة الحالية
+        if (chats[currentChatId] && chats[currentChatId].messages.length === 0 && message) {
+            // 2. إذا كانت كذلك، قم بتحديث عنوان المحادثة
+            chats[currentChatId].title = message;
+            // 3. قم بتحديث قائمة المحادثات فورًا لإظهار الاسم الجديد
+            displayChatHistory();
+        }
+        // ✨✨✨ الميزة الجديدة تنتهي هنا ✨✨✨
 
         // Process files if any
         let attachments = [];
