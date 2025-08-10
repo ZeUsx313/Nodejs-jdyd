@@ -759,9 +759,12 @@ function readFileAsText(file) {
 // دالة جديدة لقراءة الملفات كـ Base64
 function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
+        // ✨✨✨ التحقق من حجم الملف (5 ميجابايت) ✨✨✨
+        if (file.size > 5 * 1024 * 1024) {
+            return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.'));
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
-            // نزيل الجزء الأول من السلسلة "data:image/jpeg;base64,"
             const base64String = reader.result.split(',')[1];
             resolve(base64String);
         };
@@ -2010,8 +2013,9 @@ function loadSettingsUI() {
     updateModelOptions();
 }
 
-async function saveSettings() { // <-- ✨✨✨ الإصلاح الحاسم: إضافة async هنا ✨✨✨
-    // تحديث كائن الإعدادات المحلي من واجهة المستخدم
+// ✨✨✨ الدالة المفقودة التي تصلح زر الحفظ ✨✨✨
+async function saveSettings() {
+    // 1. جمع كل الإعدادات من واجهة المستخدم
     settings.provider = document.getElementById('providerSelect').value;
     settings.model = document.getElementById('modelSelect').value;
     settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
@@ -2019,11 +2023,43 @@ async function saveSettings() { // <-- ✨✨✨ الإصلاح الحاسم: إ
     settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
     settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
-    // استدعاء الدالة الجديدة لحفظ الإعدادات في قاعدة البيانات
-    await saveSettingsToDB(); // <-- إضافة await هنا اختيارية ولكنها ممارسة جيدة
+    // 2. استدعاء الدالة لحفظ هذه الإعدادات في قاعدة البيانات
+    await saveSettingsToDB();
 
+    // 3. أغلق نافذة الإعدادات
     closeSettings();
-    showNotification('تم حفظ الإعدادات بنجاح', 'success');
+}
+
+async function saveSettingsToDB() {
+    if (!currentUser) return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(settings)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            // استخدم رسالة الخطأ من الخادم إذا كانت موجودة
+            throw new Error(errorData.message || `فشل الحفظ: ${response.statusText}`);
+        }
+
+        const savedSettings = await response.json();
+        settings = savedSettings;
+        console.log('Settings saved successfully to DB.');
+        showNotification('تم حفظ الإعدادات بنجاح', 'success'); // <-- انقل الإشعار إلى هنا
+
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification(`خطأ: ${error.message}`, 'error');
+    }
 }
 
 // API Keys management
