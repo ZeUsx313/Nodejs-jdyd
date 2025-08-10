@@ -1516,7 +1516,7 @@ function displayChatHistory() {
     chatHistory.innerHTML = '';
 
     // Sort by the 'order' property, descending (higher order value = higher on the list)
-    const sortedChats = Object.values(chats).sort((a, b) => b.order - a.order);
+    const sortedChats = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0));
 
     if (sortedChats.length === 0) {
         chatHistory.innerHTML = `
@@ -1531,26 +1531,29 @@ function displayChatHistory() {
 
     sortedChats.forEach(chat => {
         const chatItem = document.createElement('div');
-        chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${chat.id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'}`;
+        // ✨✨✨ الإصلاح الأول: استخدام chat._id للمقارنة ✨✨✨
+        chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${chat._id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'}`;
 
         // Make item draggable
         chatItem.setAttribute('draggable', true);
-        chatItem.setAttribute('data-chat-id', chat.id);
+        // ✨✨✨ الإصلاح الثاني: استخدام chat._id كمعرّف للبيانات ✨✨✨
+        chatItem.setAttribute('data-chat-id', chat._id);
 
         const lastMessage = chat.messages[chat.messages.length - 1];
         const preview = lastMessage ? (lastMessage.content.substring(0, 50) + (lastMessage.content.length > 50 ? '...' : '')) : 'محادثة فارغة';
 
         chatItem.innerHTML = `
             <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0" id="chat-title-container-${chat.id}">
+                <div class="flex-1 min-w-0" id="chat-title-container-${chat._id}">
                     <h4 class="font-medium truncate">${escapeHtml(chat.title)}</h4>
                     <p class="text-sm opacity-70 truncate">${escapeHtml(preview)}</p>
                 </div>
                 <div class="flex items-center ml-2 space-x-1 space-x-reverse">
-                    <button onclick="toggleEditChatTitle('${chat.id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
+                    {/* ✨✨✨ الإصلاح الثالث: استخدام chat._id في الأزرار ✨✨✨ */}
+                    <button onclick="toggleEditChatTitle('${chat._id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
                         <i class="fas fa-pen text-xs"></i>
                     </button>
-                    <button onclick="deleteChat('${chat.id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف المحادثة">
+                    <button onclick="deleteChat('${chat._id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف المحادثة">
                         <i class="fas fa-trash text-xs"></i>
                     </button>
                 </div>
@@ -1559,7 +1562,8 @@ function displayChatHistory() {
 
         chatItem.onclick = (e) => {
             if (e.target.closest('button')) return;
-            switchToChat(chat.id);
+            // ✨✨✨ الإصلاح الرابع: استخدام chat._id للتبديل ✨✨✨
+            switchToChat(chat._id);
         };
 
         // Add drag and drop event listeners
