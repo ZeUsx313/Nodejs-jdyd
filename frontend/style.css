@@ -50,6 +50,7 @@ body {
     width: fit-content; /* فقاعات تلتف حول النص */
     max-width: 85%; /* حد أقصى للعرض 85% من عرض الشاشة */
     word-wrap: break-word; /* كسر الكلمات الطويلة */
+    overflow-x: hidden; /* يمنع التمدد الأفقي أو ظهور التمرير الأفقي */
 }
 
 .message-content {
@@ -71,10 +72,12 @@ body {
     border: none;
     /* زوايا دائرية محسنة مثل ChatGPT - غير متماثلة */
     border-radius: 1.125rem 1.125rem 0.25rem 1.125rem;
-    margin-left: 0; /* عرض كامل للرسائل */
+    margin-left: 0;
     margin-right: 0;
-    max-width: 100% !important; /* عرض كامل للشاشة */
-    width: 100%; /* استخدام العرض الكامل */
+    max-width: 100%; /* يحد العرض بحد أقصى 100% من الحاوية */
+    width: fit-content; /* يتكيف مع طول النص */
+    word-wrap: break-word; /* يكسر الكلمات الطويلة */
+    overflow-x: hidden; /* يمنع التمدد الأفقي أو التمرير */
 }
 
 /* File Card Styles - New Addition */
