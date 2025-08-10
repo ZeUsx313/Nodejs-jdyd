@@ -1725,49 +1725,45 @@ async function saveCurrentChat() {
     }
 }
 
-// دالة جديدة لحفظ الإعدادات في قاعدة البيانات
-async function saveSettingsToDB() {
-    if (!currentUser) return; // لا تحفظ إذا لم يكن المستخدم مسجلاً دخوله
-
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/settings`, {
-            method: 'PUT', // نستخدم PUT لتحديث الإعدادات
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(settings) // نرسل كائن الإعدادات الكامل
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to save settings to the database.');
-        }
-
-        const savedSettings = await response.json();
-        settings = savedSettings; // تحديث الإعدادات المحلية بالرد من الخادم
-        console.log('Settings saved successfully to DB.');
-
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        showNotification('حدث خطأ أثناء حفظ الإعدادات', 'error');
-    }
-}
-
-function deleteChat(chatId, event) {
+async function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
+    
     if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
-        delete chats[chatId];
-
-        if (currentChatId === chatId) {
-            currentChatId = null;
-            document.getElementById('welcomeScreen').classList.remove('hidden');
-            document.getElementById('messagesContainer').classList.add('hidden');
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            showNotification('يجب تسجيل الدخول لحذف المحادثات.', 'error');
+            return;
         }
 
-        displayChatHistory();
+        try {
+            // ✨✨✨ الإصلاح هنا: إرسال طلب حذف إلى الخادم ✨✨✨
+            const response = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('فشل حذف المحادثة من الخادم.');
+            }
+
+            // إذا نجح الحذف من الخادم، قم بالحذف من الواجهة
+            delete chats[chatId];
+
+            if (currentChatId === chatId) {
+                currentChatId = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('messagesContainer').classList.add('hidden');
+            }
+
+            displayChatHistory();
+            showNotification('تم حذف المحادثة بنجاح.', 'success');
+
+        } catch (error) {
+            console.error('Error deleting chat:', error);
+            showNotification(error.message, 'error');
+        }
     }
 }
 
@@ -2015,14 +2011,16 @@ function loadSettingsUI() {
 }
 
 function saveSettings() {
+    // تحديث كائن الإعدادات المحلي من واجهة المستخدم
     settings.provider = document.getElementById('providerSelect').value;
     settings.model = document.getElementById('modelSelect').value;
     settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
     settings.customPrompt = document.getElementById('customPromptInput').value;
-    // ✨✨✨ السطر الجديد والمهم هنا ✨✨✨
     settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
+    // ✨✨✨ الإصلاح هنا: إضافة حجم الخط للحفظ ✨✨✨
     settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
+    // استدعاء الدالة الجديدة لحفظ الإعدادات في قاعدة البيانات
     saveSettingsToDB();
 
     closeSettings();
