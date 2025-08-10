@@ -2010,18 +2010,17 @@ function loadSettingsUI() {
     updateModelOptions();
 }
 
-function saveSettings() {
+async function saveSettings() { // <-- ✨✨✨ الإصلاح الحاسم: إضافة async هنا ✨✨✨
     // تحديث كائن الإعدادات المحلي من واجهة المستخدم
     settings.provider = document.getElementById('providerSelect').value;
     settings.model = document.getElementById('modelSelect').value;
     settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
     settings.customPrompt = document.getElementById('customPromptInput').value;
     settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
-    // ✨✨✨ الإصلاح هنا: إضافة حجم الخط للحفظ ✨✨✨
     settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
     // استدعاء الدالة الجديدة لحفظ الإعدادات في قاعدة البيانات
-    saveSettingsToDB();
+    await saveSettingsToDB(); // <-- إضافة await هنا اختيارية ولكنها ممارسة جيدة
 
     closeSettings();
     showNotification('تم حفظ الإعدادات بنجاح', 'success');
