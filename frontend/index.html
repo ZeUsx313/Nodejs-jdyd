@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>شات زيوس - إله الرعد</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -60,25 +60,29 @@
         <div class="p-6 border-b border-white/20">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">المحادثات</h2>
-                <button onclick="closeSidebar()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <button onclick="closeSidebar()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق الشريط الجانبي" aria-controls="sidebar" aria-expanded="true" title="إغلاق الشريط الجانبي">
+  <i class="fas fa-times text-xl" aria-hidden="true"></i>
+</button>
             </div>
-            <button onclick="startNewChat()" class="w-full mt-4 bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105">
-                <i class="fas fa-plus ml-2"></i>محادثة جديدة
-            </button>
+            <button onclick="startNewChat()" class="w-full mt-4 bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105"
+        aria-label="إنشاء محادثة جديدة" title="إنشاء محادثة جديدة">
+  <i class="fas fa-plus ml-2" aria-hidden="true"></i>محادثة جديدة
+</button>
         </div>
         <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-2">
             </div>
     </div>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden"role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+
         <div class="settings-modal glass-effect p-6 rounded-xl shadow-2xl max-w-lg w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
-                <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3 id="settingsTitle" class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
+                <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق الإعدادات" title="إغلاق الإعدادات">
+  <i class="fas fa-times" aria-hidden="true"></i>
+</button>
             </div>
             <div id="settingsContent" class="settings-scrollable-content">
                 <div class="space-y-4">
@@ -197,13 +201,14 @@
     </div>
 
     <!-- نافذة إدارة النماذج المخصصة -->
-    <div id="customModelsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div id="customModelsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden"role="dialog" aria-modal="true" aria-labelledby="customModelsTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">إدارة النماذج المخصصة</h3>
-                <button onclick="closeCustomModelsManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3 id="customModelsTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة النماذج المخصصة</h3>
+                <button onclick="closeCustomModelsManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق نافذة النماذج المخصصة" title="إغلاق نافذة النماذج المخصصة">
+  <i class="fas fa-times" aria-hidden="true"></i>
+</button>
             </div>
 
             <div class="mb-6">
@@ -225,13 +230,14 @@
     </div>
 
     <!-- نافذة إدارة المزودين المخصصين -->
-    <div id="customProvidersModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div id="customProvidersModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden"role="dialog" aria-modal="true" aria-labelledby="customProvidersTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">إدارة المزودين المخصصين</h3>
-                <button onclick="closeCustomProvidersManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3 id="customProvidersTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة المزودين المخصصين</h3>
+                <button onclick="closeCustomProvidersManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق نافذة المزوّدين المخصصين" title="إغلاق نافذة المزوّدين المخصصين">
+  <i class="fas fa-times" aria-hidden="true"></i>
+</button>
             </div>
 
             <div class="mb-6">
@@ -252,14 +258,15 @@
         </div>
     </div>
 
-    <div class="flex h-screen">
+    <div class="flex h-[100dvh]">
         <div class="flex-1 flex flex-col bg-black">
             <header class="flex-shrink-0 bg-black border-b border-gray-800 px-6 py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4 space-x-reverse">
-                        <button onclick="openSidebar()" class="text-gray-400 hover:text-gray-200 p-2 rounded-lg hover:bg-gray-800 transition-colors">
-                            <i class="fas fa-bars text-xl"></i>
-                        </button>
+                        <button onclick="openSidebar()" aria-label="فتح الشريط الجانبي" aria-controls="sidebar" aria-expanded="false"
+        class="text-gray-400 hover:text-gray-200 p-2 rounded-lg hover:bg-gray-800 transition-colors" title="فتح الشريط الجانبي">
+  <i class="fas fa-bars text-xl" aria-hidden="true"></i>
+</button>
                         <div class="flex items-center space-x-3 space-x-reverse">
                             <div class="zeus-logo w-8 h-8 rounded-full"></div>
                             <div>
@@ -274,12 +281,14 @@
                             <!-- سيتم ملء هذا الجزء بواسطة JavaScript -->
                         </div>
 
-                        <button onclick="toggleDarkMode()" class="p-2 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors" title="تبديل النمط">
-                            <i id="themeIcon" class="fas fa-moon text-lg"></i>
-                        </button>
-                        <button onclick="openSettings()" class="p-2 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors" title="الإعدادات">
-                            <i class="fas fa-cog text-lg"></i>
-                        </button>
+                        <button onclick="toggleDarkMode()" class="p-2 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+        aria-label="تبديل النمط" title="تبديل النمط"aria-pressed="false">
+  <i id="themeIcon" class="fas fa-moon text-lg" aria-hidden="true"></i>
+</button>
+                        <button onclick="openSettings()" class="p-2 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+        aria-label="فتح الإعدادات" title="فتح الإعدادات">
+  <i class="fas fa-cog text-lg" aria-hidden="true"></i>
+</button>
                     </div>
                 </div>
             </header>
@@ -317,12 +326,12 @@
                 </div>
 
                 <div id="messagesContainer" class="hidden flex-1 flex flex-col overflow-hidden">
-                    <div id="messagesArea" class="flex-1 overflow-y-auto p-6 space-y-4">
-                        <!-- Messages will be dynamically added here -->
-                    </div>
+                    <div id="messagesArea" class="flex-1 overflow-y-auto p-6 space-y-4"
+     aria-live="polite" aria-atomic="false">
+</div>
                 </div>
 
-                <div class="flex-shrink-0 border-t border-gray-800 bg-black p-6">
+               <div class="flex-shrink-0 border-t border-gray-800 bg-black p-6 footer-input">
                     <div class="max-w-4xl mx-auto">
                         <div class="relative">
                             <div id="filePreviewContainer" class="hidden mb-4">
@@ -341,10 +350,11 @@
 
                             <div class="flex items-end space-x-3 space-x-reverse">
     <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
-    <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700">
-        <i class="fas fa-paperclip text-2xl"></i>
-        <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)">
-    </label>
+    <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700"
+       aria-label="إرفاق ملف" title="إرفاق ملف">
+  <i class="fas fa-paperclip text-2xl" aria-hidden="true"></i>
+  <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)" aria-label="اختيار ملف">
+</label>
 
     <!-- الخطوة 2: مربع النص يأتي بعده -->
     <div class="flex-1 relative">
@@ -359,13 +369,13 @@
 
     <!-- الخطوة 3: زر الإرسال يبقى في النهاية (أقصى اليسار) -->
     <button
-        id="sendButton"
-        onclick="sendMessage()"
-        disabled
-        class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
-    >
-        <i class="fas fa-paper-plane"></i>
-    </button>
+  id="sendButton"
+  onclick="sendMessage()"
+  disabled
+  class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+  aria-label="إرسال الرسالة" title="إرسال الرسالة">
+  <i class="fas fa-paper-plane" aria-hidden="true"></i>
+</button>
 </div>
 
 
