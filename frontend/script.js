@@ -1826,6 +1826,31 @@ function isValidObjectId(id) {
     return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 }
 
+// تنظيف المحادثة قبل الإرسال للخادم
+function sanitizeChatForSave(chat) {
+  // لا نرسل إلا الحقول المعروفة والخفيفة
+  const safeMessages = (chat.messages || []).map(m => ({
+    role: m.role,
+    content: typeof m.content === 'string' ? m.content : '',
+    timestamp: m.timestamp || Date.now(),
+    // attachments: اسم/نوع/حجم فقط — بلا محتوى أو base64 أو كائن File
+    attachments: (m.attachments || []).map(a => ({
+      name: a.name,
+      type: a.type,
+      size: a.size
+    }))
+  }));
+
+  return {
+    _id: chat._id,
+    title: chat.title || 'محادثة',
+    messages: safeMessages,
+    createdAt: chat.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    order: chat.order || Date.now()
+  };
+}
+
 async function saveCurrentChat(chatIdParam = currentChatId) {
     if (!chatIdParam || !chats[chatIdParam]) return;
 
@@ -1833,16 +1858,27 @@ async function saveCurrentChat(chatIdParam = currentChatId) {
     if (!token) return;
 
     try {
+        // ✨ تنظيف قبل الحفظ
+        const payload = sanitizeChatForSave(chats[chatIdParam]);
+
         const response = await fetch(`${API_BASE_URL}/api/chats`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(chats[chatIdParam])
+            body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Failed to save chat to the database.');
+        if (!response.ok) {
+            // ✨ التقط رسالة الخادم الحقيقية (JSON أو نص)
+            let serverMsg = 'Failed to save chat to the database.';
+            try {
+                const txt = await response.text();
+                serverMsg = txt || serverMsg;
+            } catch (_) {}
+            throw new Error(serverMsg);
+        }
 
         const savedChat = await response.json();
 
@@ -1855,21 +1891,17 @@ async function saveCurrentChat(chatIdParam = currentChatId) {
             delete chats[chatIdParam];
         }
 
-        // إذا كان المستخدم ما يزال يشاهد نفس المحادثة التي حُفظت الآن،
-        // حدث المعرّف الحالي مؤقت → حقيقي؛ وحافظ على استمرار البث إن وجد.
-        if (currentChatId === chatIdParam) {
-            currentChatId = savedChat._id;
-        }
-        if (streamingState.chatId === chatIdParam) {
-            streamingState.chatId = savedChat._id;
-        }
+        // تحديث المعرّفات إن كنا على نفس المحادثة/نبثّ فيها
+        if (currentChatId === chatIdParam) currentChatId = savedChat._id;
+        if (streamingState.chatId === chatIdParam) streamingState.chatId = savedChat._id;
 
         console.log('Chat saved successfully to DB:', savedChat._id);
         displayChatHistory();
 
     } catch (error) {
         console.error('Error saving chat:', error);
-        showNotification('حدث خطأ أثناء حفظ المحادثة', 'error');
+        // ✨ أظهر رسالة الخادم بدل النص العام
+        showNotification(`حدث خطأ أثناء حفظ المحادثة: ${error.message}`, 'error');
     }
 }
 
