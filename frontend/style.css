@@ -1046,6 +1046,16 @@ pre code .hljs-title {
     display: block;
 }
 
+/* تمرير ناعم داخل قائمة المحادثات في الشريط الجانبي */
+#chatHistory {
+  -webkit-overflow-scrolling: touch; /* iOS */
+}
+
+/* احتياطي: لو لديك أي أب يقطع التمرير، أبقه بدون scroll داخلي */
+#sidebar {
+  overflow: hidden;
+}
+
 .dropdown-item {
     color: #d1d5db;
     padding: 0.75rem 1rem;
