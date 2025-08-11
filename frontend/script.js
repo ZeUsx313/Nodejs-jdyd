@@ -699,48 +699,68 @@ function createFileCard(file) {
 
 // CRITICAL MODIFICATION: processAttachedFiles now collects metadata and content for API
 async function processAttachedFiles(files) {
+    const token = localStorage.getItem('authToken');
     const fileData = [];
 
     for (const file of files) {
-        // جمع البيانات الوصفية للملف
-        const fileInfo = {
+        // 1) نجمع معلومات أساسية
+        const info = {
             name: file.name,
             size: file.size,
             type: file.type,
-            lastModified: file.lastModified,
-            fileObject: file // Keep reference for actual processing when needed
+            lastModified: file.lastModified
         };
 
-        // تحديد امتدادات الملفات النصية والصور
-        const textExtensions = ['txt', 'js', 'html', 'css', 'json', 'xml', 'md', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'sql', 'yaml', 'yml', 'csv', 'log'];
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-        const extension = file.name.split('.').pop()?.toLowerCase();
+        // 2) نحدد النوع لتمرير المحتوى إلى /api/chat فقط
+        const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
+        const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
 
-        // التحقق إذا كان الملف نصيًا
-        if (textExtensions.includes(extension)) {
-            try {
-                const content = await readFileAsText(file);
-                fileInfo.content = content; // تخزين المحتوى للاستخدام في الـ API
-                fileInfo.dataType = 'text'; // ✨ إضافة: تحديد نوع البيانات كنص
-            } catch (error) {
-                console.error('Error reading file:', error);
-                fileInfo.content = `خطأ في قراءة الملف: ${file.name}`;
+        try {
+            if (textExt.includes(ext)) {
+                info.dataType = 'text';
+                info.content  = await readFileAsText(file);
+            } else if (imgExt.includes(ext) || file.type.startsWith('image/')) {
+                info.dataType = 'image';
+                info.mimeType = file.type;
+                info.content  = await readFileAsBase64(file);
+            } else {
+                // أنواع أخرى: نرسلها كما هي للذكاء كنص فارغ فقط
+                info.dataType = 'binary';
             }
-        }
-        // ✨ إضافة: التحقق إذا كان الملف صورة
-        else if (imageExtensions.includes(extension) || file.type.startsWith('image/')) {
-            try {
-                const content = await readFileAsBase64(file); // استخدام الدالة الجديدة للصور
-                fileInfo.content = content; // تخزين محتوى الصورة كـ Base64
-                fileInfo.dataType = 'image'; // تحديد نوع البيانات كصورة
-                fileInfo.mimeType = file.type; // حفظ نوع MIME (مهم جدًا للـ API)
-            } catch (error) {
-                console.error('Error reading image file:', error);
-                fileInfo.content = `خطأ في قراءة الصورة: ${file.name}`;
-            }
+        } catch (e) {
+            console.error('Error reading file for AI:', e);
         }
 
-        fileData.push(fileInfo);
+        // 3) نرفع النسخة الأصلية إلى الخادم للحفظ الدائم (FormData)
+        try {
+            const form = new FormData();
+            form.append('file', file, file.name);
+
+            const uploadRes = await fetch(`${API_BASE_URL}/api/files`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: form
+            });
+
+            if (!uploadRes.ok) {
+                const errText = await uploadRes.text();
+                throw new Error(`فشل رفع الملف: ${uploadRes.status} - ${errText}`);
+            }
+
+            const uploaded = await uploadRes.json();
+            // المتوقع من الخادم: { fileId, fileUrl, originalName, mimeType, size }
+            info.fileId  = uploaded.fileId || uploaded._id || null;
+            info.fileUrl = uploaded.fileUrl || null;
+
+        } catch (e) {
+            console.error('Upload error:', e);
+            showNotification(`تعذر رفع "${file.name}" للحفظ الدائم`, 'error');
+        }
+
+        fileData.push(info);
     }
 
     return fileData;
@@ -1052,15 +1072,17 @@ async function sendMessage() {
 
         // Create user message
         const userMessage = {
-            role: 'user',
-            content: message,
-            attachments: attachments.map(file => ({
-                name: file.name,
-                size: file.size,
-                type: file.type
-            })),
-            timestamp: Date.now()
-        };
+    role: 'user',
+    content: message,
+    attachments: attachments.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        fileId: file.fileId || null,
+        fileUrl: file.fileUrl || null
+    })),
+    timestamp: Date.now()
+};
 
         // Add user message to chat
         chats[currentChatId].messages.push(userMessage);
@@ -1828,16 +1850,17 @@ function isValidObjectId(id) {
 
 // تنظيف المحادثة قبل الإرسال للخادم
 function sanitizeChatForSave(chat) {
-  // لا نرسل إلا الحقول المعروفة والخفيفة
   const safeMessages = (chat.messages || []).map(m => ({
     role: m.role,
     content: typeof m.content === 'string' ? m.content : '',
     timestamp: m.timestamp || Date.now(),
-    // attachments: اسم/نوع/حجم فقط — بلا محتوى أو base64 أو كائن File
+    // نحفظ المراجع فقط (بدون content/base64)
     attachments: (m.attachments || []).map(a => ({
       name: a.name,
       type: a.type,
-      size: a.size
+      size: a.size,
+      fileId: a.fileId || null,
+      fileUrl: a.fileUrl || null
     }))
   }));
 
