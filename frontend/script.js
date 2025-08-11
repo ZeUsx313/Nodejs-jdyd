@@ -1004,6 +1004,12 @@ async function sendMessage() {
         return; 
     }
 
+    // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
+    if (currentChatId && !chats[currentChatId]) {
+        const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
+        currentChatId = latest ? latest._id : null;
+    }
+
     const input = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
     const fileInput = document.getElementById('fileInput');
@@ -1625,17 +1631,17 @@ document.addEventListener('keydown', (e) => {
 
 // Chat management functions
 async function startNewChat() {
-    // ✨✨✨ الإصلاح هنا: نستخدم _id بدلاً من id ✨✨✨
     const chatId = Date.now().toString();
     currentChatId = chatId;
     const now = Date.now();
     chats[chatId] = {
-        _id: chatId, // الأهم: إنشاء الخاصية _id للمحادثة الجديدة
+        _id: chatId,
         title: 'محادثة جديدة',
         messages: [],
         createdAt: now,
         updatedAt: now,
-        order: now 
+        order: now,
+        isTemporary: true         // ✨ تمييزها كمحادثة غير محفوظة بعد
     };
 
     document.getElementById('welcomeScreen').classList.remove('hidden');
@@ -1815,6 +1821,11 @@ function switchToChat(chatId) {
     closeSidebar();
 }
 
+// مساعد بسيط للتحقق من ObjectId
+function isValidObjectId(id) {
+    return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+}
+
 async function saveCurrentChat(chatIdParam = currentChatId) {
     if (!chatIdParam || !chats[chatIdParam]) return;
 
@@ -1834,11 +1845,23 @@ async function saveCurrentChat(chatIdParam = currentChatId) {
         if (!response.ok) throw new Error('Failed to save chat to the database.');
 
         const savedChat = await response.json();
-        chats[savedChat._id] = savedChat;
 
-        // لا تغيّر currentChatId إن كنت في محادثة أخرى
-        if (chatIdParam !== savedChat._id) {
+        // خزّن النسخة العائدة من الخادم تحت الـ _id الحقيقي
+        chats[savedChat._id] = { ...savedChat, isTemporary: false };
+
+        // إن كان الـ chatIdParam مؤقّتًا (ليس ObjectId) احذفه
+        const wasTemp = !isValidObjectId(chatIdParam);
+        if (wasTemp && chatIdParam !== savedChat._id) {
             delete chats[chatIdParam];
+        }
+
+        // إذا كان المستخدم ما يزال يشاهد نفس المحادثة التي حُفظت الآن،
+        // حدث المعرّف الحالي مؤقت → حقيقي؛ وحافظ على استمرار البث إن وجد.
+        if (currentChatId === chatIdParam) {
+            currentChatId = savedChat._id;
+        }
+        if (streamingState.chatId === chatIdParam) {
+            streamingState.chatId = savedChat._id;
         }
 
         console.log('Chat saved successfully to DB:', savedChat._id);
@@ -1852,28 +1875,35 @@ async function saveCurrentChat(chatIdParam = currentChatId) {
 
 async function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
-    
+
+    if (!chats[chatId]) return;
+
     if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
         const token = localStorage.getItem('authToken');
-        if (!token) {
-            showNotification('يجب تسجيل الدخول لحذف المحادثات.', 'error');
+
+        // 1) إذا كانت المحادثة مؤقتة محليًا (أو المعرّف ليس ObjectId) نحذفها محليًا فقط
+        const temp = chats[chatId].isTemporary === true || !isValidObjectId(chatId);
+        if (temp || !token) {
+            delete chats[chatId];
+            if (currentChatId === chatId) {
+                currentChatId = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('messagesContainer').classList.add('hidden');
+            }
+            displayChatHistory();
+            showNotification('تم حذف المحادثة محليًا.', 'success');
             return;
         }
 
+        // 2) محادثة محفوظة فعلًا → احذف من الخادم أولًا
         try {
-            // ✨✨✨ الإصلاح هنا: إرسال طلب حذف إلى الخادم ✨✨✨
             const response = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!response.ok) {
-                throw new Error('فشل حذف المحادثة من الخادم.');
-            }
+            if (!response.ok) throw new Error('فشل حذف المحادثة من الخادم.');
 
-            // إذا نجح الحذف من الخادم، قم بالحذف من الواجهة
             delete chats[chatId];
 
             if (currentChatId === chatId) {
