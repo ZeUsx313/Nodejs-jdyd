@@ -864,6 +864,8 @@ function createStreamingMessage(sender = 'assistant') {
     streamingState.streamingElement = document.getElementById(`content-${messageId}`);
     streamingState.currentText = '';
     streamingState.isStreaming = true;
+// ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
+    streamingState.chatId = currentChatId;
 
 // زر الإرسال يتحول فوراً إلى "إيقاف"
     updateSendButton();
@@ -872,32 +874,69 @@ function createStreamingMessage(sender = 'assistant') {
 }
 
 function appendToStreamingMessage(text, isComplete = false) {
-    if (!streamingState.isStreaming || !streamingState.streamingElement) return;
+    if (!streamingState.isStreaming) return;
 
+    // نجمع النص دائمًا
     streamingState.currentText += text;
 
-    // Remove cursor temporarily
+    // إذا لم يكن لدينا عنصر DOM (مثلاً لأننا بدّلنا المحادثة)
+    // ونعود الآن إلى نفس المحادثة التي يجري فيها البث،
+    // نعيد إنشاء الفقاعة وربط العنصر مرة أخرى.
+    if (!streamingState.streamingElement) {
+        const weAreOnTheStreamingChat =
+            currentChatId && streamingState.chatId && currentChatId === streamingState.chatId;
+
+        if (weAreOnTheStreamingChat) {
+            // إعادة إرفاق فقاعة البث في هذه المحادثة
+            const messageId = streamingState.currentMessageId;
+            const messagesArea = document.getElementById('messagesArea');
+
+            // أنشئ غلاف الرسالة يدويًا (نسخة مبسطة من createStreamingMessage بدون إعادة ضبط الحالة)
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-bubble message-assistant streaming-message`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
+              </div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+        }
+    }
+
+    // إن لم يتوفر عنصر بعد (لأننا في محادثة أخرى)، نكتفي بتجميع النص ونؤجل العرض
+    if (!streamingState.streamingElement) {
+        if (isComplete) completeStreamingMessage();
+        return;
+    }
+
+    // الآن نحدّث الـ DOM كالمعتاد
     const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
     if (cursor) cursor.remove();
-
-    // Update content with markdown rendering
     const renderedContent = marked.parse(streamingState.currentText);
     streamingState.streamingElement.innerHTML = renderedContent;
 
-    // Add cursor back if not complete
     if (!isComplete) {
         const newCursor = document.createElement('span');
         newCursor.className = 'streaming-cursor';
         streamingState.streamingElement.appendChild(newCursor);
     }
 
-    // Highlight code blocks
     streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
         addCodeHeader(block.parentElement);
     });
 
-    // Smooth scroll to bottom
     smoothScrollToBottom();
 
     if (isComplete) {
@@ -922,30 +961,32 @@ function completeStreamingMessage() {
     }
 
     // Save assistant message to chat
-    if (currentChatId && streamingState.currentText) {
-        const now = Date.now();
-        chats[currentChatId].messages.push({
-            role: 'assistant',
-            content: streamingState.currentText,
-            timestamp: now
-        });
-        chats[currentChatId].updatedAt = now;
-        chats[currentChatId].order = now; // Bring chat to top on new message
+// احفظ الرسالة داخل المحادثة التي بدأ فيها البث
+const targetChatId = streamingState.chatId; // 👈 هذا هو الأهم
+if (targetChatId && chats[targetChatId] && streamingState.currentText) {
+    const now = Date.now();
+    chats[targetChatId].messages.push({
+        role: 'assistant',
+        content: streamingState.currentText,
+        timestamp: now
+    });
+    chats[targetChatId].updatedAt = now;
+    chats[targetChatId].order = now;
+}
 
-        // Save data to localStorage  <-- هذا التعليق لم يعد له معنى، يمكنك حذفه أيضًا
-    }
+// إعادة ضبط حالة البث
+streamingState.isStreaming = false;
+streamingState.currentMessageId = null;
+streamingState.streamingElement = null;
+streamingState.currentText = '';
+streamingState.streamController = null;
+streamingState.chatId = null;
 
-    // Reset streaming state
-    streamingState.isStreaming = false;
-    streamingState.currentMessageId = null;
-    streamingState.streamingElement = null;
-    streamingState.currentText = '';
-    streamingState.streamController = null;
+// احفظ المحادثة الصحيحة في الخادم (تمرير المعرّف)
+saveCurrentChat(targetChatId);
 
-    // ✨✨✨ أضف السطر الجديد هنا ✨✨✨
-    saveCurrentChat();
+scrollToBottom();
 
-    scrollToBottom();
 }
 
 function smoothScrollToBottom() {
@@ -1763,7 +1804,8 @@ function handleDragEnd(e) {
 
 function switchToChat(chatId) {
     if (!chats[chatId]) return;
-    if (streamingState.isStreaming) cancelStreaming('switch-chat');
+
+    // 👈 لا نُلغي البث هنا، نسمح له بالعمل في الخلفية
     currentChatId = chatId;
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('messagesContainer').classList.remove('hidden');
@@ -1773,12 +1815,11 @@ function switchToChat(chatId) {
     closeSidebar();
 }
 
-// دالة جديدة لحفظ المحادثة الحالية في قاعدة البيانات
-async function saveCurrentChat() {
-    if (!currentChatId || !chats[currentChatId]) return;
+async function saveCurrentChat(chatIdParam = currentChatId) {
+    if (!chatIdParam || !chats[chatIdParam]) return;
 
     const token = localStorage.getItem('authToken');
-    if (!token) return; // لا تحفظ إذا لم يكن المستخدم مسجلاً دخوله
+    if (!token) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/chats`, {
@@ -1787,23 +1828,21 @@ async function saveCurrentChat() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(chats[currentChatId])
+            body: JSON.stringify(chats[chatIdParam])
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to save chat to the database.');
-        }
+        if (!response.ok) throw new Error('Failed to save chat to the database.');
 
         const savedChat = await response.json();
-        // تحديث المحادثة المحلية بالبيانات من الخادم (قد تحتوي على _id جديد)
         chats[savedChat._id] = savedChat;
-        if (currentChatId !== savedChat._id) {
-            delete chats[currentChatId];
-            currentChatId = savedChat._id;
+
+        // لا تغيّر currentChatId إن كنت في محادثة أخرى
+        if (chatIdParam !== savedChat._id) {
+            delete chats[chatIdParam];
         }
-        
+
         console.log('Chat saved successfully to DB:', savedChat._id);
-        displayChatHistory(); // تحديث القائمة لإظهار أي تغييرات
+        displayChatHistory();
 
     } catch (error) {
         console.error('Error saving chat:', error);
@@ -1924,6 +1963,50 @@ function displayMessages() {
     });
 
     scrollToBottom();
+
+    // 👇 هنا نضع الكود الجديد من الخطوة 6
+    if (streamingState.isStreaming && streamingState.chatId === currentChatId) {
+        // اربط عنصر العرض مرة أخرى إن لم يكن موجودًا
+        if (!document.getElementById(`message-${streamingState.currentMessageId}`)) {
+            const messageId = streamingState.currentMessageId;
+            const messagesArea = document.getElementById('messagesArea');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-bubble message-assistant streaming-message`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
+              </div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+
+            // أعرض ما جمعناه حتى الآن
+            const rendered = marked.parse(streamingState.currentText || '');
+            streamingState.streamingElement.innerHTML = rendered;
+            const cursor = document.createElement('span');
+            cursor.className = 'streaming-cursor';
+            streamingState.streamingElement.appendChild(cursor);
+
+            // تمييز الأكواد
+            streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+                addCodeHeader(block.parentElement);
+            });
+
+            smoothScrollToBottom();
+        }
+    }
 }
 
 function displayMessage(message) {
