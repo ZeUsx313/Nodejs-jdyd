@@ -1,8 +1,10 @@
 /* Custom Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
 
-:root {
-    --message-font-size: 18px; /* Default value, updated by JS */
+:root{
+  --message-font-size: 18px;
+  --ui-base: clamp(15px, 0.9vw + 12px, 18px); /* نص الواجهة */
+  --bubble-max: 85%; /* سنضبطها بالأسفل لسطوح كبيرة */
 }
 
 /* Body & Background Styles */
@@ -10,7 +12,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Tajawal", "Cairo", sans-serif;
     background: #000000; /* Full black background */
     transition: background 0.3s ease-in-out;
-    font-size: 1.125rem; /* Base font size for UI elements (18px) */
+    font-size: var(--ui-base); /* Base font size for UI elements (18px) */
 }
 
 .dark body {
@@ -48,7 +50,7 @@ body {
     font-weight: 400; /* Consistent font weight */
     line-height: 1.5; /* Consistent line height */
     width: fit-content; /* فقاعات تلتف حول النص */
-    max-width: 85%; /* حد أقصى للعرض 85% من عرض الشاشة */
+    max-width: var(--bubble-max); /* دام المتغيّر المرن */
     word-wrap: break-word; /* كسر الكلمات الطويلة */
     overflow-x: hidden; /* يمنع التمدد الأفقي أو ظهور التمرير الأفقي */
 }
@@ -300,6 +302,18 @@ pre {
     transform: scale(0.95);
 }
 
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+label[for]:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 /* Code content styling */
 pre code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
@@ -365,6 +379,11 @@ pre code .hljs-title {
     gap: 4px;
 }
 
+#messagesArea{
+  scroll-behavior: smooth;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 96px); /* ارتفاع آمن أسفل */
+}
+
 .chat-bubble:hover .message-actions {
     opacity: 1;
 }
@@ -426,24 +445,40 @@ pre code .hljs-title {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-    .sidebar-width { width: 85vw; max-width: 320px; }
-    .welcome-grid { grid-template-columns: 1fr; }
-    .header-title { font-size: 1.125rem; }
-    .header-subtitle { font-size: 0.75rem; }
-    .chat-input { font-size: 16px; }
-    .settings-modal { margin: 1rem; max-width: calc(100vw - 2rem); }
-    .message-actions {
-        opacity: 1;
-        position: relative;
-        top: auto;
-        left: auto;
-        margin-top: 8px;
-        justify-content: flex-end;
-    }
+  .sidebar-width { width: 85vw; max-width: 320px; }
+  .welcome-grid { grid-template-columns: 1fr; }
+  .header-title { font-size: 1.125rem; }
+  .header-subtitle { font-size: 0.75rem; }
+  .chat-input { font-size: 16px; }
+  .settings-modal { margin: 1rem; max-width: calc(100vw - 2rem); }
+  .message-actions {
+      opacity: 1;
+      position: relative;
+      top: auto; left: auto;
+      margin-top: 8px;
+      justify-content: flex-end;
+  }
+  /* شريط الإدخال ثابت */
+  .footer-input {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #000;
+    z-index: 20;
+  }
+  .file-card { max-width: 250px; }
+} /* 👈 أغلق الموبايل هنا */
 
-    .file-card {
-        max-width: 250px;
-    }
+/* شاشات ≥ 1024px (لابتوب) */
+@media (min-width: 1024px){
+  :root{ --bubble-max: 65%; }
+  .message-assistant{ max-width: 65%; }
+}
+
+/* شاشات ≥ 1536px (ديسكتوب عريض) */
+@media (min-width: 1536px){
+  :root{ --bubble-max: 55%; }
+  .message-assistant{ max-width: 55%; }
 }
 
 /* Custom Scrollbar */
@@ -462,6 +497,12 @@ pre code .hljs-title {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(16, 163, 127, 0.7);
+}
+
+/* Firefox scrollbar */
+*{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16,163,127,0.5) rgba(0,0,0,0.1);
 }
 
 /* Additions for Settings Modal Scrolling */
@@ -936,6 +977,22 @@ pre code .hljs-title {
     }
 }
 
+/* رندرة أوضح للنص */
+html, body{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* احترام تفضيل تقليل الحركة */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Drag and Drop Styles */
 .dragging {
     opacity: 0.4;
@@ -1048,7 +1105,8 @@ pre code .hljs-title {
 
 /* تمرير ناعم داخل قائمة المحادثات في الشريط الجانبي */
 #chatHistory {
-  -webkit-overflow-scrolling: touch; /* iOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* احتياطي: لو لديك أي أب يقطع التمرير، أبقه بدون scroll داخلي */
