@@ -865,6 +865,9 @@ function createStreamingMessage(sender = 'assistant') {
     streamingState.currentText = '';
     streamingState.isStreaming = true;
 
+// زر الإرسال يتحول فوراً إلى "إيقاف"
+    updateSendButton();
+
     return messageId;
 }
 
@@ -954,6 +957,12 @@ function smoothScrollToBottom() {
 }
 
 async function sendMessage() {
+
+    if (streamingState.isStreaming) { 
+        cancelStreaming('new-send'); 
+        return; 
+    }
+
     const input = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
     const fileInput = document.getElementById('fileInput');
@@ -1099,41 +1108,65 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 }
 
 async function sendRequestToServer(payload) {
+  try {
+    const token = localStorage.getItem('authToken');
+
+    // 1) إنشاء المتحكّم وربطه بحالة البث
+    const controller = new AbortController();
+    streamingState.streamController = controller;
+
+    // 2) الطلب مع signal للإلغاء الفوري
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server Error:', response.status, errorText);
+      throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
     try {
-        const token = localStorage.getItem('authToken'); // ✨ جلب التوكن
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // ✨ إضافة هيدر التوكن إذا كان موجودًا ✨
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify(payload)
-        });
+      while (true) {
+        const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        appendToStreamingMessage(chunk);
+      }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server Error:', response.status, errorText);
-            throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
-        }
-
-        // ... (باقي الدالة يبقى كما هو)
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            appendToStreamingMessage(chunk);
-        }
-
-        appendToStreamingMessage('', true);
+      // اكتمال طبيعي
+      appendToStreamingMessage('', true);
 
     } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
+      if (error.name === 'AbortError') {
+        // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
+        console.debug('Streaming aborted by user.');
+        return;
+      }
+      throw error;
+
+    } finally {
+      // تنظيف المقبض - لا تغيّر isStreaming هنا (تُدار في append/cancel)
+      streamingState.streamController = null;
     }
+
+  } catch (error) {
+    // أخطاء شبكة/خادم
+    console.error('Fetch error:', error);
+    if (error.name !== 'AbortError') {
+      appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+    }
+    throw error;
+  }
 }
 
 
@@ -1489,15 +1522,65 @@ function scrollToBottom() {
 }
 
 function updateSendButton() {
-    const input = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const fileInput = document.getElementById('fileInput');
+  const input = document.getElementById('messageInput');
+  const sendButton = document.getElementById('sendButton');
+  const fileInput = document.getElementById('fileInput');
 
-    const hasText = input.value.trim().length > 0;
-    const hasFiles = fileInput.files.length > 0;
+  const hasText = input.value.trim().length > 0;
+  const hasFiles = fileInput.files.length > 0;
 
+  if (streamingState.isStreaming) {
+    // أثناء البث: الزر يصبح "إيقاف"
+    sendButton.disabled = false;                       // يجب أن يبقى قابلاً للنقر لإيقاف البث
+    sendButton.onclick = () => cancelStreaming('button');
+    sendButton.innerHTML = '<i class="fas fa-stop"></i>';
+    sendButton.classList.remove('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+    sendButton.classList.add('bg-red-600', 'hover:bg-red-700');
+  } else {
+    // وضع عادي: الزر يعود "إرسال"
     sendButton.disabled = !hasText && !hasFiles;
+    sendButton.onclick = () => sendMessage();
+    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    sendButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+    sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+  }
 }
+
+// ==== إلغاء البث الحالي ====
+function cancelStreaming(reason = 'user') {
+  if (!streamingState.isStreaming) return;
+
+  try {
+    if (streamingState.streamController) {
+      streamingState.streamController.abort(); // يقطع fetch فوراً
+    }
+  } catch (_) {}
+
+  // إنهاء بصري أنيق مع حفظ ما وصلنا إليه
+  appendToStreamingMessage('\n\n⏹️ تم إيقاف التوليد.', true);
+
+  // تحديث الحالة والزر
+  streamingState.isStreaming = false;
+  streamingState.streamController = null;
+  updateSendButton();
+
+  // إشعار اختياري
+  showNotification('تم إيقاف التوليد', 'info');
+}
+
+// إلغاء عند إغلاق/تحديث الصفحة
+window.addEventListener('beforeunload', () => {
+  if (streamingState.isStreaming && streamingState.streamController) {
+    streamingState.streamController.abort();
+  }
+});
+
+// اختصار لوحة المفاتيح: Escape يوقف البث
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && streamingState.isStreaming) {
+    cancelStreaming('escape');
+  }
+});
 
 // Chat management functions
 async function startNewChat() {
@@ -1680,7 +1763,7 @@ function handleDragEnd(e) {
 
 function switchToChat(chatId) {
     if (!chats[chatId]) return;
-
+    if (streamingState.isStreaming) cancelStreaming('switch-chat');
     currentChatId = chatId;
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('messagesContainer').classList.remove('hidden');
