@@ -1197,3 +1197,64 @@ body {
 
 /* الحروف >=16px لمنع تكبير iOS */
 #messageInput { font-size: 16px; }
+
+/* ===== خلفيات زيوس ===== */
+:root { --storm-speed: 60s; }
+
+#bgCanvas { transition: filter .3s ease, opacity .3s ease; }
+
+/* الوضع الهادئ: تدرّج سماوي نجمي خفيف */
+.bg-calm {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, rgba(45,156,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(30,127,224,.10), transparent 60%),
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.15), transparent 60%),
+    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,.12), transparent 60%),
+    #000; /* أساس OLED */
+  background-blend-mode: screen, screen, normal, normal, normal;
+}
+
+/* وضع العاصفة: غيوم متحركة + برق متقطع */
+.bg-storm {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, rgba(45,156,255,.12), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(30,127,224,.12), transparent 60%),
+    /* طبقتا غيوم */
+    radial-gradient(1200px 800px at 50% 20%, rgba(255,255,255,.045), transparent 60%),
+    radial-gradient(1200px 800px at 60% 80%, rgba(255,255,255,.035), transparent 60%),
+    #000;
+  animation: stormClouds var(--storm-speed) linear infinite;
+  background-size: auto, auto, 160% 160%, 180% 180%, auto;
+}
+
+/* وميض البرق: يشتغل عبر إضافة .flash مؤقتاً */
+.bg-storm.flash::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(400px 300px at 70% 20%, rgba(255,255,255,.35), transparent 70%),
+    radial-gradient(300px 250px at 30% 60%, rgba(255,255,255,.25), transparent 70%);
+  mix-blend-mode: screen;
+  animation: lightningFlash 1.8s ease-out 1;
+  pointer-events: none;
+}
+
+/* حركة الغيوم */
+@keyframes stormClouds {
+  0%   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  100% { background-position: 0 0, 0 0, -20% -10%, 25% 15%, 0 0; }
+}
+
+/* فلاش البرق */
+@keyframes lightningFlash {
+  0%, 100% { opacity: 0; filter: brightness(1); }
+  5%       { opacity: .9; filter: brightness(1.7); }
+  12%      { opacity: .2; filter: brightness(1); }
+  18%      { opacity: .8; filter: brightness(1.5); }
+  28%      { opacity: 0;  filter: brightness(1); }
+}
+
+/* احترام تفضيل تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  .bg-storm { animation: none; }
+}
