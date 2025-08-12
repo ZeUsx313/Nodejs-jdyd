@@ -1128,3 +1128,49 @@ html, body{
     background-color: #374151;
     color: #ffffff;
 }
+
+/* ===== Zeus Blue Theme Enhancements ===== */
+body {
+  background: radial-gradient(1200px 800px at 100% -10%, rgba(45,156,255,.08), transparent 60%),
+              radial-gradient(800px 600px at -10% 100%, rgba(30,127,224,.06), transparent 55%),
+              #0a0f1a;
+  color: #e6f0ff;
+}
+
+.header-title, .header-subtitle {
+  animation: lightning 2.2s linear infinite;
+}
+
+.zeus-logo {
+  background: conic-gradient(from 180deg at 50% 50%, #2d9cff, #1e7fe0, #6fb7ff, #2d9cff);
+  box-shadow: 0 0 24px rgba(45,156,255,.45), inset 0 0 18px rgba(111,183,255,.25);
+}
+
+.btn-primary, .bg-zeus-accent {
+  background-color: #2d9cff !important;
+}
+.btn-primary:hover, .hover\:bg-zeus-accent-hover:hover {
+  background-color: #1e7fe0 !important;
+}
+
+/* زر الإرسال الدائري */
+#sendButton {
+  box-shadow: 0 6px 20px rgba(45,156,255,.35);
+}
+
+/* خلفية منطقة الرسائل */
+#messagesContainer, #messagesArea {
+  background:
+    radial-gradient(800px 500px at 80% 0%, rgba(45,156,255,.06), transparent 60%),
+    #0a0f1a;
+}
+
+/* إخفاء زر الإرفاق في PWA (اختياري) */
+@media (display-mode: standalone) {
+  #attachButton, .attach-button {
+    display: none !important;
+  }
+}
+
+/* الحروف >=16px لمنع تكبير iOS */
+#messageInput { font-size: 16px; }
