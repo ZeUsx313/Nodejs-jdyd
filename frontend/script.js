@@ -2558,29 +2558,31 @@ function closeSidebar() {
 
 function toggleDarkMode() {
     const body = document.body;
-    const themeIcon = document.getElementById('themeIcon');
+    const themeIcon = document.getElementById('themeIcon'); // قد يكون غير موجود الآن
 
     body.classList.toggle('dark');
 
-    if (body.classList.contains('dark')) {
-        themeIcon.className = 'fas fa-sun text-lg';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        themeIcon.className = 'fas fa-moon text-lg';
-        localStorage.setItem('theme', 'light');
+    const isDark = body.classList.contains('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+    // تحمّل عدم وجود أيقونة في الرأس (لأننا نقلنا التحكم داخل منيو الحساب)
+    if (themeIcon) {
+        themeIcon.className = isDark ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
     }
 }
 
 function initializeDarkMode() {
     const savedTheme = localStorage.getItem('theme');
-    const themeIcon = document.getElementById('themeIcon');
+    const themeIcon = document.getElementById('themeIcon'); // قد لا يوجد
 
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (savedTheme === 'dark') {
         document.body.classList.add('dark');
-        themeIcon.className = 'fas fa-sun text-lg';
-    } else {
+        if (themeIcon) themeIcon.className = 'fas fa-sun text-lg';
+    } else if (savedTheme === 'light') {
         document.body.classList.remove('dark');
-        themeIcon.className = 'fas fa-moon text-lg';
+        if (themeIcon) themeIcon.className = 'fas fa-moon text-lg';
+    } else {
+        // الوضع الافتراضي: دع المتصفح يقرر، ولا تلمس الأيقونة إن لم تكن موجودة
     }
 }
 
