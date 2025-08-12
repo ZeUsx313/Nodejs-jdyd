@@ -133,16 +133,26 @@
       <section id="settingsPanels" class="flex-1 overflow-y-auto p-6 space-y-6">
 
         <!-- الحساب -->
-        <div class="settings-panel" data-tab="account">
-          <div class="settings-section">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
-            <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-              <option value="calm">ليلي هادئ</option>
-              <option value="storm">عاصفة برق</option>
-            </select>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
-          </div>
-        </div>
+<div class="settings-panel" data-tab="account">
+  <!-- معلومات الحساب الفعلية -->
+  <div class="settings-section" id="accountInfoSection">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <div class="text-sm text-gray-400">الاسم</div>
+        <div class="text-base font-medium text-white" id="accName">—</div>
+      </div>
+      <div>
+        <div class="text-sm text-gray-400">البريد</div>
+        <div class="text-base font-medium text-white" id="accEmail">—</div>
+      </div>
+      <div>
+        <div class="text-sm text-gray-400">تاريخ التسجيل</div>
+        <div class="text-base font-medium text-white" id="accCreatedAt">—</div>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">تُجلب هذه البيانات عند تسجيل الدخول.</p>
+  </div>
+</div>
 
         <!-- النماذج والمزوّد -->
         <div class="settings-panel hidden" data-tab="models">
@@ -253,6 +263,26 @@
             <span id="fontSizeValue" class="text-sm text-gray-600 dark:text-gray-400 block text-center mt-1">18px</span>
           </div>
         </div>
+
+<!-- اختيار الثيم العام -->
+<div class="settings-section">
+  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
+  <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+    <option value="blue">أزرق داكن (الحالي)</option>
+    <option value="black">أسود كامل (OLED)</option>
+    <option value="light">نهاري أبيض</option>
+  </select>
+</div>
+
+<!-- خلفية زيوس (calm/storm) انتقلت من تبويب الحساب -->
+<div class="settings-section">
+  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
+  <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+    <option value="calm">ليلي هادئ</option>
+    <option value="storm">عاصفة برق</option>
+  </select>
+  <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
+</div>
 
         <!-- البيانات والخصوصية -->
         <div class="settings-panel hidden" data-tab="data">
