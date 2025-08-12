@@ -7,6 +7,25 @@
   --bubble-max: 85%; /* سنضبطها بالأسفل لسطوح كبيرة */
 }
 
+/* شاشة ثابتة بلا تمرير */
+html, body {
+  height: 100%;
+  overflow: hidden;            /* يمنع أي تمرير للصفحة */
+}
+
+/* نستخدم قيمة iOS من script.js (visualViewport) إن وُجدت */
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: var(--vhpx, 100svh); /* يسقط إلى 100svh إذا لم تُحتسب --vhpx */
+  overflow: hidden;
+}
+
+/* تأكد أن الحاويات الداخلية تملأ المساحة بلا تمرير داخلي */
+main, #messagesContainer, #welcomeScreen { height: 100%; }
+#messagesArea, #chatHistory { overflow: hidden !important; }
+
 /* Body & Background Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Tajawal", "Cairo", sans-serif;
@@ -416,7 +435,7 @@ pre code .hljs-title {
 
 /* Zeus Logo */
 .zeus-logo {
-    background-image: url("https://pfst.cf2.poecdn.net/base/image/e866fe6201b4f734a00254f62783f9a54506786325f2bd47fcba21c97943e597?w=413&h=478");
+    background-image: url("/icons/icon-192x192.png");
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
