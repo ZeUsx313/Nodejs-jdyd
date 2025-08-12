@@ -1258,3 +1258,42 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bg-storm { animation: none; }
 }
+
+/* ======== قائمة حساب المستخدم (أفاتار) ======== */
+.user-menu-trigger { background: transparent; }
+.user-menu-panel {
+  min-width: 16rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0.75rem;
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(8px);
+}
+.user-menu-panel .menu-item {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .925rem; color: #e5e7eb;
+}
+.user-menu-panel .menu-item i { width: 1rem; text-align: center; }
+
+/* ===== تبويبات نافذة الإعدادات (أسلوب GPT) ===== */
+.settings-tab {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding: .6rem .8rem;
+  border-radius: .6rem;
+  color: #e5e7eb;
+  transition: background .2s ease;
+}
+.settings-tab:hover,
+.settings-tab.active {
+  background: rgba(255,255,255,.06);
+}
+.settings-panel.hidden { display: none; }
+
+/* تحسين شكل المربعات داخل اللوحة */
+.settings-section {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: .8rem;
+  padding: 1rem;
+}
