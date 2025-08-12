@@ -10,16 +10,17 @@ let chats = {};
 
 // ✨ 1. الإعدادات الافتراضية الثابتة (لا تتغير أبدًا) ✨
 const defaultSettings = {
-    provider: 'gemini',
-    model: 'gemini-1.5-flash',
-    temperature: 0.7,
-    geminiApiKeys: [],
-    openrouterApiKeys: [],
-    customProviders: [],
-    customModels: [],
-    customPrompt: '',
-    apiKeyRetryStrategy: 'sequential',
-    fontSize: 18
+  provider: 'gemini',
+  model: 'gemini-1.5-flash',
+  temperature: 0.7,
+  geminiApiKeys: [],
+  openrouterApiKeys: [],
+  customProviders: [],
+  customModels: [],
+  customPrompt: '',
+  apiKeyRetryStrategy: 'sequential',
+  fontSize: 18,
+  theme: 'blue' // 👈 ثيم الواجهة: blue | black | light
 };
 
 // ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
@@ -108,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    initializeDarkMode();
+    initializeTheme();
     updateCustomProviders(); // تحديث المزودين المخصصين
     updateSendButton();
     initializeEventListeners();
@@ -2326,11 +2327,16 @@ function loadSettingsUI() {
     document.getElementById('providerSelect').value = settings.provider;
 
     // Load temperature
-    document.getElementById('temperatureSlider').value = settings.temperature;
-    document.getElementById('temperatureValue').textContent = settings.temperature;
+document.getElementById('temperatureSlider').value = settings.temperature;
+document.getElementById('temperatureValue').textContent = settings.temperature;
 
-    // Load custom prompt
-    document.getElementById('customPromptInput').value = settings.customPrompt;
+// Load theme
+const themeSel = document.getElementById('themeSelect');
+if (themeSel) themeSel.value = settings.theme || 'blue';
+
+// Load custom prompt (قد لا يكون موجوداً في HTML)
+const cpi = document.getElementById('customPromptInput');
+if (cpi) cpi.value = settings.customPrompt || '';
 
     // Load API key retry strategy
     document.getElementById('apiKeyRetryStrategySelect').value = settings.apiKeyRetryStrategy;
@@ -2349,19 +2355,24 @@ function loadSettingsUI() {
 
 // ✨✨✨ الدالة المفقودة التي تصلح زر الحفظ ✨✨✨
 async function saveSettings() {
-    // 1. جمع كل الإعدادات من واجهة المستخدم
-    settings.provider = document.getElementById('providerSelect').value;
-    settings.model = document.getElementById('modelSelect').value;
-    settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
-    settings.customPrompt = document.getElementById('customPromptInput').value;
-    settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
-    settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
+  settings.provider = document.getElementById('providerSelect').value;
+  settings.model = document.getElementById('modelSelect').value;
+  settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
+  // عنصر قد لا يكون موجودًا:
+  const cpi = document.getElementById('customPromptInput');
+  settings.customPrompt = cpi ? cpi.value : (settings.customPrompt || '');
+  settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
+  settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
-    // 2. استدعاء الدالة لحفظ هذه الإعدادات في قاعدة البيانات
-    await saveSettingsToDB();
+  // الثيم:
+  const themeSel = document.getElementById('themeSelect');
+  if (themeSel) {
+    settings.theme = themeSel.value;
+    setTheme(settings.theme); // طبّقه فورًا
+  }
 
-    // 3. أغلق نافذة الإعدادات
-    closeSettings();
+  await saveSettingsToDB();
+  closeSettings();
 }
 
 async function saveSettingsToDB() {
@@ -2554,6 +2565,25 @@ function openSidebar() {
 
 function closeSidebar() {
     document.getElementById('sidebar').classList.add('translate-x-full');
+}
+
+function setTheme(theme) {
+  const body = document.body;
+  body.classList.remove('theme-blue', 'theme-black', 'theme-light');
+  if (theme === 'light') {
+    body.classList.remove('dark');
+  } else {
+    body.classList.add('dark'); // لاستفادة dark: من Tailwind
+  }
+  body.classList.add(`theme-${theme}`);
+  localStorage.setItem('themeV2', theme);
+}
+
+function initializeTheme() {
+  const saved = (settings && settings.theme) || localStorage.getItem('themeV2') || 'blue';
+  setTheme(saved);
+  const sel = document.getElementById('themeSelect');
+  if (sel) sel.value = saved;
 }
 
 function toggleDarkMode() {
@@ -2824,7 +2854,8 @@ async function checkUserStatus() {
 
         // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
         currentUser = userData.user;
-        updateUserDisplay(); // <--- هذا هو السحر! سيُظهر الصورة والاسم فورًا!
+updateUserDisplay();
+renderAccountInfo(); // 👈 تحديث تبويب "الحساب" // <--- هذا هو السحر! سيُظهر الصورة والاسم فورًا!
 
         // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
         const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
@@ -2904,6 +2935,25 @@ function logout() {
     displayChatHistory();
 
     showNotification('تم تسجيل الخروج بنجاح', 'success');
+}
+
+function renderAccountInfo() {
+  const n = document.getElementById('accName');
+  const e = document.getElementById('accEmail');
+  const c = document.getElementById('accCreatedAt');
+
+  if (!n || !e || !c) return;
+
+  if (!currentUser) {
+    n.textContent = 'غير مسجّل';
+    e.textContent = '—';
+    c.textContent = '—';
+    return;
+  }
+  n.textContent = currentUser.name || '—';
+  e.textContent = currentUser.email || '—';
+  const d = currentUser.createdAt ? new Date(currentUser.createdAt) : null;
+  c.textContent = d ? d.toLocaleString() : '—';
 }
 
 // ====================== واجهة حساب المستخدم (مثل GPT) ======================
