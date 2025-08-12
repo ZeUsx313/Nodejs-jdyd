@@ -179,6 +179,32 @@ if (window.visualViewport) {
 }
 } catch (_) {}
 
+// ===== خلفية زيوس =====
+const bgCanvas = document.getElementById('bgCanvas');
+const bgSelect = document.getElementById('bgStyleSelect');
+
+function applyBg(style) {
+  if (!bgCanvas) return;
+  bgCanvas.classList.remove('bg-calm','bg-storm','flash');
+  bgCanvas.classList.add(style === 'storm' ? 'bg-storm' : 'bg-calm');
+  localStorage.setItem('bgStyle', style);
+}
+
+// تحميل الخيار المحفوظ
+applyBg(localStorage.getItem('bgStyle') || 'calm');
+
+// من الإعدادات
+if (bgSelect) {
+  bgSelect.value = localStorage.getItem('bgStyle') || 'calm';
+  bgSelect.addEventListener('change', e => applyBg(e.target.value));
+}
+
+// ومضات برق خفيفة عند وصول رسالة جديدة من المساعد
+function zeusFlash() {
+  if (!bgCanvas || !bgCanvas.classList.contains('bg-storm')) return;
+  bgCanvas.classList.add('flash');
+  setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
+}
 });  // نهاية DOMContentLoaded
 
 // تحديث المزودين المخصصين في كائن providers
