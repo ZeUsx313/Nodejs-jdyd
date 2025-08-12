@@ -1160,11 +1160,6 @@ body {
   animation: lightning 2.2s linear infinite;
 }
 
-.zeus-logo {
-  background: conic-gradient(from 180deg at 50% 50%, #2d9cff, #1e7fe0, #6fb7ff, #2d9cff);
-  box-shadow: 0 0 24px rgba(45,156,255,.45), inset 0 0 18px rgba(111,183,255,.25);
-}
-
 .btn-primary, .bg-zeus-accent {
   background-color: #2d9cff !important;
 }
