@@ -140,21 +140,43 @@ try {
     window.visualViewport.addEventListener('scroll', applyViewportFix);
   }
 
-  const input = document.getElementById('messageInput');
-  if (input) {
-    input.addEventListener('focus', () => {
-      // امنع “قفزة” الصفحة واجعل التمرير لأسفل الرسائل
-      setTimeout(() => {
-        const area = document.getElementById('messagesArea');
-        if (area) area.scrollTo({ top: area.scrollHeight, behavior: 'auto' });
-        window.scrollTo(0, 0);
-      }, 50);
-    });
-    input.addEventListener('blur', () => {
-      // أعد الوضع الطبيعي
-      setTimeout(() => window.scrollTo(0, 0), 50);
-    });
+const input = document.getElementById('messageInput');
+const area  = document.getElementById('messagesArea');
+
+function scrollToBottom(force = false) {
+  if (!area) return;
+  const nearBottom = (area.scrollHeight - area.scrollTop - area.clientHeight) < 60;
+  if (force || nearBottom) {
+    area.scrollTop = area.scrollHeight;
   }
+}
+
+if (input && area) {
+  // عند التركيز: انزل لآخر الرسائل، وثبّت الشاشة (لا تُحرّك window)
+  input.addEventListener('focus', () => {
+    setTimeout(() => scrollToBottom(true), 50);
+  });
+
+  // أثناء الكتابة أو تمدد الـ textarea
+  input.addEventListener('input', () => {
+    // إعادة ضبط ارتفاع الـ textarea لديك موجودة؛ بعدها ننزل لأسفل
+    setTimeout(() => scrollToBottom(), 0);
+  });
+}
+
+// تحدّث ارتفاع الشاشة ديناميكياً مع الكيبورد (موجود لديك، نضيف عليه تمرير للأسفل)
+function applyViewportFix() {
+  if (window.visualViewport) {
+    const vh = window.visualViewport.height;
+    document.documentElement.style.setProperty('--vhpx', `${vh}px`);
+    scrollToBottom(); // حافظ على الرؤية أسفل عند تغيّر الارتفاع
+  }
+}
+applyViewportFix();
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', applyViewportFix);
+  window.visualViewport.addEventListener('scroll', applyViewportFix);
+}
 } catch (_) {}
 
 });  // نهاية DOMContentLoaded
