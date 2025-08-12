@@ -123,6 +123,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ✨ التحقق من حالة المستخدم ✨
     checkUserStatus();
+// ===== ثبات الشاشة على iOS عند فتح الكيبورد =====
+try {
+  const root = document.documentElement;
+  const mainShell = document.querySelector('main') || document.body;
+  function applyViewportFix() {
+    if (window.visualViewport) {
+      const vh = window.visualViewport.height;
+      root.style.setProperty('--vhpx', `${vh}px`);
+      // إن أردت استخدامه في CSS: height: var(--vhpx);
+    }
+  }
+  applyViewportFix();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyViewportFix);
+    window.visualViewport.addEventListener('scroll', applyViewportFix);
+  }
+
+  const input = document.getElementById('messageInput');
+  if (input) {
+    input.addEventListener('focus', () => {
+      // امنع “قفزة” الصفحة واجعل التمرير لأسفل الرسائل
+      setTimeout(() => {
+        const area = document.getElementById('messagesArea');
+        if (area) area.scrollTo({ top: area.scrollHeight, behavior: 'auto' });
+        window.scrollTo(0, 0);
+      }, 50);
+    });
+    input.addEventListener('blur', () => {
+      // أعد الوضع الطبيعي
+      setTimeout(() => window.scrollTo(0, 0), 50);
+    });
+  }
+} catch (_) {}
+
 });  // نهاية DOMContentLoaded
 
 // تحديث المزودين المخصصين في كائن providers
