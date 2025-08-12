@@ -23,8 +23,17 @@ html, body {
 }
 
 /* تأكد أن الحاويات الداخلية تملأ المساحة بلا تمرير داخلي */
+/* اترك الصفحة ثابتة، لكن اجعل الرسائل والسجل قابلين للتمرير */
 main, #messagesContainer, #welcomeScreen { height: 100%; }
-#messagesArea, #chatHistory { overflow: hidden !important; }
+
+/* ✅ الرسائل: تمرير عمودي ناعم مثل ChatGPT */
+#messagesArea {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;   /* سلاسة على iOS */
+}
+
+/* السجل الجانبي */
+#chatHistory { overflow-y: auto !important; }
 
 /* Body & Background Styles */
 body {
