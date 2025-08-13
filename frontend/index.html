@@ -81,6 +81,36 @@
                     });
             });
         }
+
+<script>
+  // Bootstrap early theme (runs before paint)
+  (() => {
+    const KEY = 'zeus-theme';
+    const VALID = ['theme-black','theme-blue','theme-light'];
+    let theme = localStorage.getItem(KEY);
+    if (!VALID.includes(theme)) theme = 'theme-black';            // جعل الداكن الافتراضي
+    const apply = () => {
+      const b = document.body;
+      if (!b) return document.addEventListener('DOMContentLoaded', apply, {once:true});
+      b.classList.remove('theme-black','theme-blue','theme-light');
+      b.classList.add(theme);
+      // مزامنة select لو وُجد لاحقًا
+      const sel = document.getElementById('themeSelect');
+      if (sel && sel.value !== theme) sel.value = theme;
+    };
+    // طبّق فورًا، ولو فشل انتظر DOMContentLoaded
+    apply();
+    // في حال تغيّر من تبويب آخر/نافذة أخرى
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY && VALID.includes(e.newValue)) {
+        localStorage.setItem(KEY, e.newValue);
+        theme = e.newValue;
+        apply();
+      }
+    });
+  })();
+</script>
+
     </script>
 <div id="app" class="fixed inset-0 w-screen h-[100svh] overflow-hidden">
 
@@ -269,10 +299,10 @@
   <div class="settings-section">
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
     <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-      <option value="blue">أزرق داكن (الحالي)</option>
-      <option value="black">أسود كامل (OLED)</option>
-      <option value="light">نهاري أبيض</option>
-    </select>
+  <option value="theme-blue">أزرق داكن</option>
+  <option value="theme-black">أسود كامل (OLED)</option>
+  <option value="theme-light">نهاري أبيض</option>
+</select>
   </div>
 
   <!-- خلفية زيوس (داخل تبويب المظهر) -->
