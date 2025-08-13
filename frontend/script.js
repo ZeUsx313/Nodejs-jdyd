@@ -230,6 +230,7 @@ function initializeEventListeners() {
     const messageInput = document.getElementById('messageInput');
     const temperatureSlider = document.getElementById('temperatureSlider');
     const providerSelect = document.getElementById('providerSelect');
+document.getElementById('fileInput').addEventListener('change', updateSendButton);
 
     if (messageInput) {
         messageInput.addEventListener('input', function() {
@@ -1681,20 +1682,29 @@ function updateSendButton() {
   const hasText = input.value.trim().length > 0;
   const hasFiles = fileInput.files.length > 0;
 
+  // إزالة أي ألوان سابقة
+  sendButton.classList.remove(
+    'bg-red-600', 'hover:bg-red-700',
+    'bg-zeus-accent', 'hover:bg-zeus-accent-hover',
+    'bg-gray-600', 'cursor-not-allowed', 'opacity-60'
+  );
+
   if (streamingState.isStreaming) {
-    // أثناء البث: الزر يصبح "إيقاف"
-    sendButton.disabled = false;                       // يجب أن يبقى قابلاً للنقر لإيقاف البث
+    sendButton.disabled = false;
     sendButton.onclick = () => cancelStreaming('button');
     sendButton.innerHTML = '<i class="fas fa-stop"></i>';
-    sendButton.classList.remove('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
     sendButton.classList.add('bg-red-600', 'hover:bg-red-700');
   } else {
-    // وضع عادي: الزر يعود "إرسال"
-    sendButton.disabled = !hasText && !hasFiles;
+    const enabled = hasText || hasFiles;
+    sendButton.disabled = !enabled;
     sendButton.onclick = () => sendMessage();
     sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    sendButton.classList.remove('bg-red-600', 'hover:bg-red-700');
-    sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+
+    if (enabled) {
+      sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+    } else {
+      sendButton.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-60');
+    }
   }
 }
 
