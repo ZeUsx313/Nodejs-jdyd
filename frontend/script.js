@@ -20,7 +20,7 @@ const defaultSettings = {
   customPrompt: '',
   apiKeyRetryStrategy: 'sequential',
   fontSize: 18,
-  theme: 'blue' // 👈 ثيم الواجهة: blue | black | light
+  theme: 'theme-black' // 👈 ثيم الواجهة: blue | black | light
 };
 
 // ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
@@ -2359,9 +2359,12 @@ function loadSettingsUI() {
 document.getElementById('temperatureSlider').value = settings.temperature;
 document.getElementById('temperatureValue').textContent = settings.temperature;
 
-// Load theme
+// Load theme (قيَم موحّدة theme-*)
 const themeSel = document.getElementById('themeSelect');
-if (themeSel) themeSel.value = settings.theme || 'blue';
+if (themeSel) {
+  const v = normalizeThemeValue(settings.theme || localStorage.getItem('zeus-theme') || 'theme-black');
+  themeSel.value = v;
+}
 
 // Load custom prompt (قد لا يكون موجوداً في HTML)
 const cpi = document.getElementById('customPromptInput');
@@ -2387,18 +2390,39 @@ async function saveSettings() {
   settings.provider = document.getElementById('providerSelect').value;
   settings.model = document.getElementById('modelSelect').value;
   settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
-  // عنصر قد لا يكون موجودًا:
+
   const cpi = document.getElementById('customPromptInput');
   settings.customPrompt = cpi ? cpi.value : (settings.customPrompt || '');
+
   settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
   settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
-  // الثيم:
+  // الثيم (قيَم موحَّدة theme-*)
+  const THEME_KEY = 'zeus-theme';
+  const VALID = ['theme-black','theme-blue','theme-light'];
   const themeSel = document.getElementById('themeSelect');
-  if (themeSel) {
-    settings.theme = themeSel.value;
-    setTheme(settings.theme); // طبّقه فورًا
+  let chosen = themeSel ? themeSel.value : 'theme-black';
+  if (!VALID.includes(chosen)) chosen = 'theme-black';
+
+  // خزّن في localStorage + في الإعدادات + طبِّق فوراً
+  localStorage.setItem(THEME_KEY, chosen);
+  settings.theme = chosen;
+  setTheme(chosen);
+
+  // خلفية زيوس (إن وُجدت)
+  const bgSel = document.getElementById('bgStyleSelect');
+  if (bgSel) {
+    localStorage.setItem('bgStyle', bgSel.value);
+    const bgCanvas = document.getElementById('bgCanvas');
+    if (bgCanvas) {
+      bgCanvas.classList.toggle('bg-storm', bgSel.value === 'storm');
+      bgCanvas.classList.toggle('bg-calm',  bgSel.value !== 'storm');
+    }
   }
+
+  // حجم الخط (تخزين وتطبيق فوري)
+  document.documentElement.style.setProperty('--chat-font-size', `${settings.fontSize}px`);
+  localStorage.setItem('zeus-font-size', String(settings.fontSize));
 
   await saveSettingsToDB();
   closeSettings();
@@ -2597,20 +2621,43 @@ function closeSidebar() {
 }
 
 function setTheme(theme) {
-  const body = document.body;
-  body.classList.remove('theme-blue', 'theme-black', 'theme-light');
-  if (theme === 'light') {
-    body.classList.remove('dark');
-  } else {
-    body.classList.add('dark'); // لاستفادة dark: من Tailwind
-  }
-  body.classList.add(`theme-${theme}`);
-  localStorage.setItem('themeV2', theme);
+  const VALID = ['theme-black','theme-blue','theme-light'];
+  if (!VALID.includes(theme)) theme = 'theme-black';
+
+  document.body.classList.remove('theme-black','theme-blue','theme-light');
+  document.body.classList.add(theme);
+
+  // مزامنة القائمة إن كانت مفتوحة
+  const sel = document.getElementById('themeSelect');
+  if (sel && sel.value !== theme) sel.value = theme;
+}
+
+function normalizeThemeValue(v) {
+  if (!v) return 'theme-black';
+  // ترقية قيَم قديمة إلى القيَم الجديدة
+  if (v === 'blue')  return 'theme-blue';
+  if (v === 'black') return 'theme-black';
+  if (v === 'light') return 'theme-light';
+  // إن كانت بالفعل بصيغة theme-*
+  return v;
 }
 
 function initializeTheme() {
-  const saved = (settings && settings.theme) || localStorage.getItem('themeV2') || 'blue';
+  const KEY = 'zeus-theme';
+  const VALID = ['theme-black','theme-blue','theme-light'];
+
+  // 1) خذ من localStorage إن وُجد، وإلا من settings، وإلا الافتراضي الأسود
+  let saved = localStorage.getItem(KEY) || (settings && settings.theme) || 'theme-black';
+
+  // 2) ترقية قيم قديمة مثل "blue/black/light" إلى القيَم الجديدة
+  saved = normalizeThemeValue(saved);
+  if (!VALID.includes(saved)) saved = 'theme-black';
+
+  // 3) طبّق وخزّن كي يبقى بعد التحديث
+  localStorage.setItem(KEY, saved);
   setTheme(saved);
+
+  // 4) مزامنة قائمة الثيم إن كانت مفتوحة
   const sel = document.getElementById('themeSelect');
   if (sel) sel.value = saved;
 }
@@ -2900,6 +2947,10 @@ renderAccountInfo(); // 👈 تحديث تبويب "الحساب" // <--- هذا
         // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
         chats = data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {});
         settings = { ...defaultSettings, ...data.settings };
+// توحيد قيمة الثيم القادمة من الخادم (قديمة أو جديدة)
+settings.theme = normalizeThemeValue(settings.theme);
+// خزِّن الثيم الموحّد محلياً لتقليل الوميض بعد التحديث
+localStorage.setItem('zeus-theme', settings.theme);
 
         // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
         updateCustomProviders();
