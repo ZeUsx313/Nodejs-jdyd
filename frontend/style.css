@@ -408,10 +408,17 @@ pre code .hljs-title {
     justify-content: flex-start; /* يسار */
 }
 
+/* حشوة افتراضية بسيطة لأسفل – بلا اعتماد على ارتفاع الفوتر */
 #messagesArea{
   scroll-behavior: smooth;
-  /* اجعل الحشوة مساوية لارتفاع الشريط السفلي الفعلي */
-  padding-bottom: calc(env(safe-area-inset-bottom) + var(--footer-h, 88px));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* عند الشاشات الصغيرة فقط (حيث الفوتر position: sticky) نضيف الحشوة المكافئة لارتفاعه */
+@media (max-width: 768px){
+  #messagesArea{
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--footer-h, 88px));
+  }
 }
 
 .chat-bubble:hover .message-actions {
