@@ -20,7 +20,12 @@ const defaultSettings = {
   customPrompt: '',
   apiKeyRetryStrategy: 'sequential',
   fontSize: 18,
-  theme: 'theme-black' // 👈 ثيم الواجهة: blue | black | light
+  theme: 'theme-black',
+  // 🔎 إعدادات التصفح الجديدة
+  enableWebBrowsing: false,
+  browsingMode: 'gemini',      // 'gemini' | 'proxy'
+  showSources: true,
+  dynamicThreshold: 0.6        // 0..1 — كلما زادت كان النموذج أقل ميلاً للبحث
 };
 
 // ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
@@ -250,6 +255,20 @@ function initializeEventListeners() {
     const temperatureSlider = document.getElementById('temperatureSlider');
     const providerSelect = document.getElementById('providerSelect');
 document.getElementById('fileInput').addEventListener('change', updateSendButton);
+
+const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
+const selBrowsingMode   = document.getElementById('browsingMode');
+const chkShowSources    = document.getElementById('showSources');
+
+// تحميل الحالة الحالية في الواجهة
+if (chkEnableBrowsing) chkEnableBrowsing.checked = !!settings.enableWebBrowsing;
+if (selBrowsingMode)   selBrowsingMode.value    = settings.browsingMode || 'gemini';
+if (chkShowSources)    chkShowSources.checked   = !!settings.showSources;
+
+// استماع للتغييرات وتحديث settings
+chkEnableBrowsing?.addEventListener('change', e => settings.enableWebBrowsing = e.target.checked);
+selBrowsingMode?.addEventListener('change',   e => settings.browsingMode     = e.target.value);
+chkShowSources?.addEventListener('change',    e => settings.showSources      = e.target.checked);
 
     if (messageInput) {
         messageInput.addEventListener('input', function() {
@@ -1204,11 +1223,17 @@ async function sendMessage() {
         document.getElementById('welcomeScreen').classList.add('hidden');
         document.getElementById('messagesContainer').classList.remove('hidden');
 
-        // Create streaming message for assistant response
-        createStreamingMessage();
+// ... بعد إنشاء userMessage وعرضه
+createStreamingMessage();
 
-        // Send to AI with streaming
-        await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
+// (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
+if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
+  // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
+  settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
+}
+
+// Send to AI with streaming
+await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
 
     } catch (error) {
         console.error('Error sending message:', error);
