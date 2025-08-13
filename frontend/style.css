@@ -398,13 +398,13 @@ pre code .hljs-title {
 
 /* Message Actions and Tooltips */
 .message-actions {
-    opacity: 0;
+    opacity: 1; /* أو 0 إذا تريدها تظهر فقط عند المرور */
     transition: opacity 0.2s ease-in-out;
-    position: absolute;
-    top: 8px;
-    left: 8px;
+    position: static; /* يلغي التثبيت في الأعلى */
     display: flex;
     gap: 4px;
+    margin-top: 8px; /* أسفل النص */
+    justify-content: flex-start; /* يسار */
 }
 
 #messagesArea{
@@ -1335,4 +1335,14 @@ body.theme-light .message-user {
 body.theme-light .glass-effect {
   background: rgba(255,255,255,0.65) !important;
   border-color: rgba(0,0,0,0.08) !important;
+}
+
+#user-info-container { position: relative; z-index: 60; }
+
+.user-menu-panel {
+  position: absolute;
+  top: calc(100% + .5rem);
+  inset-inline-start: 0 !important; /* يسار في الـ LTR ويمين في RTL تلقائي */
+  inset-inline-end: auto !important;
+  z-index: 1000; /* فوق الرسائل */
 }
