@@ -1387,7 +1387,7 @@ body.theme-black #messagesArea {
   background-color: #000000;
 }
 body.theme-black .message-user {
-  background-color: rgba(255,255,255,.06) !important;
+  background-color: #444654 !important; /* نفس الرمادي */
   color: #f3f4f6 !important;
 }
 body.theme-black .message-assistant {
