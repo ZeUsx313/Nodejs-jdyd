@@ -190,7 +190,10 @@ const footerEl = document.querySelector('.footer-input');
 
 function updateFooterHeightVar(){
   const h = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 88;
-  document.documentElement.style.setProperty('--footer-h', h + 'px');
+  // الفوتر يعتبر لاصقاً على الشاشات الصغيرة فقط (حسب CSS)
+  const isStickyViewport = window.matchMedia('(max-width: 768px)').matches;
+  const value = isStickyViewport ? h : 0;
+  document.documentElement.style.setProperty('--footer-h', value + 'px');
 }
 
 // أول تحديث ثم عند تغيّر القياسات
