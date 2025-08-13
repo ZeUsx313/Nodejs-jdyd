@@ -1349,27 +1349,35 @@ body.theme-light .glass-effect {
   z-index: 1000; /* فوق الرسائل */
 }
 
-/* ====== Theme Variants ====== */
+/* ====== Theme Variants (FIXED) ====== */
+/* ضع هذا القسم في أسفل style.css ليغلب كل ما قبله */
 
-/* تعميم مناطق الواجهة */
+/* انتقالات لطيفة */
 body { transition: background-color .2s ease, color .2s ease; }
 #app, #messagesContainer, #messagesArea { transition: background-color .2s ease, color .2s ease; }
 
-/* أزرق داكن (الوضع الحالي لديك) */
+/* ========== BLUE (أزرق داكن) ========== */
 body.theme-blue {
-  background-color: #0b1220;       /* خلفية الصفحة */
-  color: #e5e7eb;                  /* نص */
+  background-color: #0b1220;
+  color: #e5e7eb;
 }
 body.theme-blue #messagesContainer,
 body.theme-blue #messagesArea {
-  background-color: #0b1220;       /* خلفية مساحة الرسائل */
+  background-color: #0b1220;
 }
-body.theme-blue .chat-bubble {
-  background-color: rgba(255,255,255,.06);
-  color: #e5e7eb;
+/* المستخدم فقط */
+body.theme-blue .message-user {
+  background-color: rgba(255,255,255,.06) !important;
+  color: #e5e7eb !important;
+}
+/* المساعد يبقى شفافاً كما عرّفته بالأعلى */
+body.theme-blue .message-assistant {
+  background: transparent !important;
+  color: #e6f0ff !important; /* نص مريح على الأزرق الداكن */
+  border: none !important;
 }
 
-/* أسود غامق (True Black مناسب للأجهزة OLED) */
+/* ========== BLACK (أسود كامل) ========== */
 body.theme-black {
   background-color: #000000;
   color: #e5e7eb;
@@ -1378,12 +1386,17 @@ body.theme-black #messagesContainer,
 body.theme-black #messagesArea {
   background-color: #000000;
 }
-body.theme-black .chat-bubble {
-  background-color: rgba(255,255,255,.06);
-  color: #f3f4f6;
+body.theme-black .message-user {
+  background-color: rgba(255,255,255,.06) !important;
+  color: #f3f4f6 !important;
+}
+body.theme-black .message-assistant {
+  background: transparent !important;
+  color: #f3f4f6 !important;
+  border: none !important;
 }
 
-/* أبيض (وضع النهار) — اجعل كل شيء فعلاً أبيض بما فيه خلفية المحادثة */
+/* ========== LIGHT (نهاري أبيض) ========== */
 body.theme-light {
   background-color: #ffffff;
   color: #111827; /* Slate-900 */
@@ -1392,9 +1405,15 @@ body.theme-light #messagesContainer,
 body.theme-light #messagesArea {
   background-color: #ffffff;
 }
-body.theme-light .chat-bubble {
-  background-color: #f3f4f6;  /* فقاعات أفتح على الأبيض */
-  color: #111827;
+/* المستخدم على الأبيض: فقاعة رمادية فاتحة */
+body.theme-light .message-user {
+  background-color: #e5e7eb !important;
+  color: #111827 !important;
+}
+body.theme-light .message-assistant {
+  background: transparent !important; /* يظل شفافاً */
+  color: #111827 !important;
+  border: none !important;
 }
 
 /* إدخال الرسائل/الفوتر ليتناغم مع كل ثيم */
