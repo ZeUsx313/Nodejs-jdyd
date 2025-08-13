@@ -819,82 +819,87 @@ function createFileCard(file) {
     return cardHtml;
 }
 
-// CRITICAL MODIFICATION: processAttachedFiles now collects metadata and content for API
+// ✅ إصلاح جذري: جمع المرفقات بشكل صحيح + رفع مرة واحدة فقط + التعامل مع عدم وجود توكن
 async function processAttachedFiles(files) {
-    const token = localStorage.getItem('authToken');
-    const fileData = [];
+  const token = localStorage.getItem('authToken');
+  const fileData = [];
 
-    for (const file of files) {
-        // 1) نجمع معلومات أساسية
-        const info = {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-        };
+  // 1) اجمع معلومات كل ملف واقرأ محتواه (للاستخدام مع الذكاء حتى لو لم نحفظ على الخادم)
+  const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
+  const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
 
-        // 2) نحدد النوع لتمرير المحتوى إلى /api/chat فقط
-        const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
-        const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
-        const ext = (file.name.split('.').pop() || '').toLowerCase();
+  for (const file of files) {
+    const info = {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    };
 
-        try {
-            if (textExt.includes(ext)) {
-                info.dataType = 'text';
-                info.content  = await readFileAsText(file);
-            } else if (imgExt.includes(ext) || file.type.startsWith('image/')) {
-                info.dataType = 'image';
-                info.mimeType = file.type;
-                info.content  = await readFileAsBase64(file);
-            } else {
-                // أنواع أخرى: نرسلها كما هي للذكاء كنص فارغ فقط
-                info.dataType = 'binary';
-            }
-        } catch (e) {
-            console.error('Error reading file for AI:', e);
-        }
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    try {
+      if (textExt.includes(ext)) {
+        info.dataType = 'text';
+        info.content  = await readFileAsText(file);
+      } else if (imgExt.includes(ext) || (file.type && file.type.startsWith('image/'))) {
+        info.dataType = 'image';
+        info.mimeType = file.type || 'image/*';
+        info.content  = await readFileAsBase64(file);
+      } else {
+        info.dataType = 'binary';
+        // لا حاجة لقراءة المحتوى الثنائي هنا
+      }
+    } catch (e) {
+      console.error('Error reading file:', e);
+    }
 
-// 3) نرفع النسخ الأصلية إلى الخادم للحفظ الدائم (FormData) — دفعة واحدة
-try {
+    // 👈 المهم: أضف المعلومات للمصفوفة
+    fileData.push(info);
+  }
+
+  // 2) لو لا يوجد توكن، لا تحاول الرفع — اكتفِ بالمحتوى المحلي (ستظهر البطاقات وتُرسل للذكاء)
+  if (!token) {
+    showNotification('لا يمكنك حفظ الملفات على الخادم قبل تسجيل الدخول. سَأستخدم المرفقات مؤقتًا فقط داخل هذه الرسالة.', 'warning');
+    return fileData;
+  }
+
+  // 3) ارفع جميع الملفات دفعة واحدة (طلب واحد فقط) ثم اربط نتائج الرفع بكل عنصر
+  try {
     const form = new FormData();
     for (const f of files) {
-        form.append('files', f, f.name); // 👈 الخادم يتوقع field اسمه files (مصفوفة)
+      form.append('files', f, f.name); // الخادم يتوقع الحقل "files"
     }
 
     const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
-        method: 'POST',
-        headers: {
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: form
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
     });
 
     if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`فشل رفع الملفات: ${uploadRes.status} - ${errText}`);
+      const errText = await uploadRes.text();
+      throw new Error(`فشل رفع الملفات: ${uploadRes.status} - ${errText}`);
     }
 
-    const uploaded = await uploadRes.json(); // شكلها: { files: [...] }
-    const byName = Object.fromEntries((uploaded.files || []).map(u => [u.originalName, u]));
+    const uploaded = await uploadRes.json();           // { files: [...] }
+    const byName = Object.fromEntries(
+      (uploaded.files || []).map(u => [u.originalName || u.filename, u])
+    );
 
-    // اربط كل عنصر info بالنتيجة المقابلة من الخادم
-    for (const file of files) {
-        const info = fileData.find(x => x.name === file.name && x.size === file.size);
-        const rec = byName[file.name];
-        if (info && rec) {
-            info.fileId  = rec.id || rec._id || rec.filename || null;
-            info.fileUrl = rec.url || null; // مثل /uploads/xxxx
-        }
+    for (const info of fileData) {
+      const rec = byName[info.name];
+      if (rec) {
+        info.fileId  = rec.id || rec._id || rec.filename || null;
+        info.fileUrl = rec.url || null;               // مثال: /uploads/xxxx
+      }
     }
-} catch (e) {
+  } catch (e) {
     console.error('Upload error:', e);
-    showNotification(`تعذر رفع الملفات للحفظ الدائم`, 'error');
-}
+    showNotification('تعذر رفع الملفات للحفظ الدائم', 'error');
+    // نُرجع على أي حال الـ fileData حتى تظهر البطاقات ويُستخدم المحتوى مع الذكاء
+  }
 
-// سندفع info لكل ملف لاحقًا (يحدث بالفعل أسفل الدالة)
-    }
-
-    return fileData;
+  return fileData;
 }
 
 
