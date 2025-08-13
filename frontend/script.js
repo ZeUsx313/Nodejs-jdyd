@@ -1286,46 +1286,50 @@ function displayUserMessage(message) {
 // ----------------------------------------------------------------------------------
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
-    // ✨ الحل النهائي: بناء حمولة (payload) سليمة دائمًا ✨
-    // 1) التعرّف على عبارات تفعيل التصفح (AR/EN)
-const browseTriggers = [
-    'ابحث', 'ابحث لي', 'بحث عبر الانترنت', 'البحث عبر الانترنت',
-    'تصفح الإنترنت', 'قم بالبحث', 'ابحث في الويب',
-    'search the web', 'browse the web', 'web search', 'do a web search'
-];
+  const browseTriggers = [
+    'ابحث','ابحث لي','بحث عبر الانترنت','البحث عبر الانترنت',
+    'تصفح الإنترنت','قم بالبحث','ابحث في الويب',
+    'search the web','browse the web','web search','do a web search'
+  ];
 
-// آخر رسالة كتبها المستخدم
-const lastUserMsg = (chatHistory || [])
+  const lastUserMsg = (chatHistory || [])
     .slice().reverse().find(m => m.role === 'user')?.content || '';
 
-// إذا احتوت الرسالة على عبارة التفعيل، فعِّل العلم المؤقت
-const forceWebBrowsing = browseTriggers.some(t =>
+  const forceWebBrowsing = browseTriggers.some(t =>
     lastUserMsg.toLowerCase().includes(t.toLowerCase())
-);
+  );
 
-// 2) أبنِ الحمولة وأضف meta.forceWebBrowsing
-const payload = {
-    chatHistory: chatHistory,
+  function extractQuery(text) {
+    const t = (text || '').trim();
+    let m = t.match(/^ابحث\s+عن\s+(.+)/i); if (m && m[1]) return m[1].trim();
+    m = t.match(/^ابحث\s+(.+)/i);          if (m && m[1]) return m[1].trim();
+    m = t.match(/^search (the )?web\s+for\s+(.+)/i); if (m && m[2]) return m[2].trim();
+    m = t.match(/^(search|browse)\s+(.+)/i); if (m && m[2]) return m[2].trim();
+    return '';
+  }
+  const searchQuery = forceWebBrowsing ? extractQuery(lastUserMsg) : '';
+
+  if (forceWebBrowsing && !searchQuery) {
+    appendToStreamingMessage('يرجى تحديد موضوع البحث، مثال: **ابحث عن شات زيوس**.', true);
+    return;
+  }
+
+  const payload = {
+    chatHistory,
     attachments: attachments.map(file => ({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        content: file.content,
-        dataType: file.dataType,
-        mimeType: file.mimeType
+      name: file.name, type: file.type, size: file.size,
+      content: file.content, dataType: file.dataType, mimeType: file.mimeType
     })),
-    settings: settings,
-    meta: { forceWebBrowsing } // 👈 الجديد المهم
-};
+    settings,
+    meta: { forceWebBrowsing, searchQuery }
+  };
 
-    // 2. استدعاء الدالة التي تتصل بالخادم
-    try {
-        await sendRequestToServer(payload);
-    } catch (error) {
-        console.error('Error sending request to server:', error);
-        // عرض الخطأ في الواجهة
-        appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
-    }
+  try {
+    await sendRequestToServer(payload);
+  } catch (error) {
+    console.error('Error sending request to server:', error);
+    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+  }
 }
 
 async function sendRequestToServer(payload) {
