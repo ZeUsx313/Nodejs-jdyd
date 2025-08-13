@@ -5,6 +5,7 @@
   --message-font-size: 18px;
   --ui-base: clamp(15px, 0.9vw + 12px, 18px); /* نص الواجهة */
   --bubble-max: 85%; /* سنضبطها بالأسفل لسطوح كبيرة */
+  --footer-h: 88px; /* ارتفاع افتراضي لحاوية الإدخال */
 }
 
 /* شاشة ثابتة بلا تمرير */
@@ -409,7 +410,8 @@ pre code .hljs-title {
 
 #messagesArea{
   scroll-behavior: smooth;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 96px); /* ارتفاع آمن أسفل */
+  /* اجعل الحشوة مساوية لارتفاع الشريط السفلي الفعلي */
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--footer-h, 88px));
 }
 
 .chat-bubble:hover .message-actions {
@@ -1346,3 +1348,59 @@ body.theme-light .glass-effect {
   inset-inline-end: auto !important;
   z-index: 1000; /* فوق الرسائل */
 }
+
+/* ====== Theme Variants ====== */
+
+/* تعميم مناطق الواجهة */
+body { transition: background-color .2s ease, color .2s ease; }
+#app, #messagesContainer, #messagesArea { transition: background-color .2s ease, color .2s ease; }
+
+/* أزرق داكن (الوضع الحالي لديك) */
+body.theme-blue {
+  background-color: #0b1220;       /* خلفية الصفحة */
+  color: #e5e7eb;                  /* نص */
+}
+body.theme-blue #messagesContainer,
+body.theme-blue #messagesArea {
+  background-color: #0b1220;       /* خلفية مساحة الرسائل */
+}
+body.theme-blue .chat-bubble {
+  background-color: rgba(255,255,255,.06);
+  color: #e5e7eb;
+}
+
+/* أسود غامق (True Black مناسب للأجهزة OLED) */
+body.theme-black {
+  background-color: #000000;
+  color: #e5e7eb;
+}
+body.theme-black #messagesContainer,
+body.theme-black #messagesArea {
+  background-color: #000000;
+}
+body.theme-black .chat-bubble {
+  background-color: rgba(255,255,255,.06);
+  color: #f3f4f6;
+}
+
+/* أبيض (وضع النهار) — اجعل كل شيء فعلاً أبيض بما فيه خلفية المحادثة */
+body.theme-light {
+  background-color: #ffffff;
+  color: #111827; /* Slate-900 */
+}
+body.theme-light #messagesContainer,
+body.theme-light #messagesArea {
+  background-color: #ffffff;
+}
+body.theme-light .chat-bubble {
+  background-color: #f3f4f6;  /* فقاعات أفتح على الأبيض */
+  color: #111827;
+}
+
+/* إدخال الرسائل/الفوتر ليتناغم مع كل ثيم */
+.footer-input {
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+body.theme-blue .footer-input { background-color: rgba(17,24,39,.6); color:#e5e7eb; border-color: #1f2937; }
+body.theme-black .footer-input { background-color: rgba(17,24,39,.7); color:#e5e7eb; border-color: #111827; }
+body.theme-light .footer-input { background-color: #ffffff; color:#111827; border-color: #e5e7eb; }
