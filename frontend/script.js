@@ -854,35 +854,44 @@ async function processAttachedFiles(files) {
             console.error('Error reading file for AI:', e);
         }
 
-        // 3) نرفع النسخة الأصلية إلى الخادم للحفظ الدائم (FormData)
-        try {
-            const form = new FormData();
-            form.append('file', file, file.name);
+// 3) نرفع النسخ الأصلية إلى الخادم للحفظ الدائم (FormData) — دفعة واحدة
+try {
+    const form = new FormData();
+    for (const f of files) {
+        form.append('files', f, f.name); // 👈 الخادم يتوقع field اسمه files (مصفوفة)
+    }
 
-            const uploadRes = await fetch(`${API_BASE_URL}/api/files`, {
-                method: 'POST',
-                headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: form
-            });
+    const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
+        method: 'POST',
+        headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: form
+    });
 
-            if (!uploadRes.ok) {
-                const errText = await uploadRes.text();
-                throw new Error(`فشل رفع الملف: ${uploadRes.status} - ${errText}`);
-            }
+    if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`فشل رفع الملفات: ${uploadRes.status} - ${errText}`);
+    }
 
-            const uploaded = await uploadRes.json();
-            // المتوقع من الخادم: { fileId, fileUrl, originalName, mimeType, size }
-            info.fileId  = uploaded.fileId || uploaded._id || null;
-            info.fileUrl = uploaded.fileUrl || null;
+    const uploaded = await uploadRes.json(); // شكلها: { files: [...] }
+    const byName = Object.fromEntries((uploaded.files || []).map(u => [u.originalName, u]));
 
-        } catch (e) {
-            console.error('Upload error:', e);
-            showNotification(`تعذر رفع "${file.name}" للحفظ الدائم`, 'error');
+    // اربط كل عنصر info بالنتيجة المقابلة من الخادم
+    for (const file of files) {
+        const info = fileData.find(x => x.name === file.name && x.size === file.size);
+        const rec = byName[file.name];
+        if (info && rec) {
+            info.fileId  = rec.id || rec._id || rec.filename || null;
+            info.fileUrl = rec.url || null; // مثل /uploads/xxxx
         }
+    }
+} catch (e) {
+    console.error('Upload error:', e);
+    showNotification(`تعذر رفع الملفات للحفظ الدائم`, 'error');
+}
 
-        fileData.push(info);
+// سندفع info لكل ملف لاحقًا (يحدث بالفعل أسفل الدالة)
     }
 
     return fileData;
@@ -1278,21 +1287,36 @@ function displayUserMessage(message) {
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
     // ✨ الحل النهائي: بناء حمولة (payload) سليمة دائمًا ✨
-    const payload = {
-        chatHistory: chatHistory,
-        attachments: attachments.map(file => ({
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            content: file.content,
-            dataType: file.dataType,
-            mimeType: file.mimeType
-        })),
-        // نستخدم كائن الإعدادات "settings" العام بالكامل
-        // هذا يضمن أن كل الخصائص (مثل customProviders) تُرسل دائمًا، حتى لو كانت مصفوفات فارغة
-        // وهذا يمنع حدوث خطأ 'undefined' في الخادم.
-        settings: settings 
-    };
+    // 1) التعرّف على عبارات تفعيل التصفح (AR/EN)
+const browseTriggers = [
+    'ابحث', 'ابحث لي', 'بحث عبر الانترنت', 'البحث عبر الانترنت',
+    'تصفح الإنترنت', 'قم بالبحث', 'ابحث في الويب',
+    'search the web', 'browse the web', 'web search', 'do a web search'
+];
+
+// آخر رسالة كتبها المستخدم
+const lastUserMsg = (chatHistory || [])
+    .slice().reverse().find(m => m.role === 'user')?.content || '';
+
+// إذا احتوت الرسالة على عبارة التفعيل، فعِّل العلم المؤقت
+const forceWebBrowsing = browseTriggers.some(t =>
+    lastUserMsg.toLowerCase().includes(t.toLowerCase())
+);
+
+// 2) أبنِ الحمولة وأضف meta.forceWebBrowsing
+const payload = {
+    chatHistory: chatHistory,
+    attachments: attachments.map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        content: file.content,
+        dataType: file.dataType,
+        mimeType: file.mimeType
+    })),
+    settings: settings,
+    meta: { forceWebBrowsing } // 👈 الجديد المهم
+};
 
     // 2. استدعاء الدالة التي تتصل بالخادم
     try {
