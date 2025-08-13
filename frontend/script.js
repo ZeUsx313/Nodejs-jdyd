@@ -1,6 +1,10 @@
 // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
+const CLOUDINARY_CLOUD_NAME = "djuhxdjij";
+const CLOUDINARY_UPLOAD_PRESET = "of1ahiug";
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
+
 // ===============================================
 // المتغيرات العامة
 // ===============================================
@@ -822,116 +826,60 @@ function createFileCard(file) {
     return cardHtml;
 }
 
-// ✅ إصلاح جذري: جمع المرفقات بشكل صحيح + رفع مرة واحدة فقط + التعامل مع عدم وجود توكن
+// الدالة الجديدة ترفع الملفات مباشرة إلى Cloudinary ✨✨✨
 async function processAttachedFiles(files) {
-  const token = localStorage.getItem('authToken');
-  const fileData = [];
+    const attachments = [];
+    const uploadPromises = [];
 
-  // 1) اجمع معلومات كل ملف واقرأ محتواه (للاستخدام مع الذكاء حتى لو لم نحفظ على الخادم)
-  const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
-  const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
+    // أظهر إشعارًا بأن الرفع قد بدأ
+    showNotification(`جاري رفع ${files.length} ملف...`, 'info');
 
-  for (const file of files) {
-    const info = {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    };
+    for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    try {
-      if (textExt.includes(ext)) {
-        info.dataType = 'text';
-        info.content  = await readFileAsText(file);
-      } else if (imgExt.includes(ext) || (file.type && file.type.startsWith('image/'))) {
-        info.dataType = 'image';
-        info.mimeType = file.type || 'image/*';
-        info.content  = await readFileAsBase64(file);
-      } else {
-        info.dataType = 'binary';
-        // لا حاجة لقراءة المحتوى الثنائي هنا
-      }
-    } catch (e) {
-      console.error('Error reading file:', e);
+        // إنشاء وعد (Promise) لكل عملية رفع
+        const uploadPromise = fetch(CLOUDINARY_URL, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                // إذا حدث خطأ من Cloudinary، ارمِ الخطأ
+                throw new Error(data.error.message);
+            }
+            
+            // أضف معلومات الملف بعد نجاح الرفع إلى مصفوفتنا
+            attachments.push({
+                name: file.name,
+                size: data.bytes,
+                type: data.resource_type, // 'image', 'video', or 'raw' for other files
+                fileUrl: data.secure_url, // ✨ الرابط الدائم والآمن للملف
+                fileId: data.public_id,   // المعرف الفريد في Cloudinary
+            });
+        })
+        .catch(error => {
+            // إذا فشل الرفع، أظهر إشعارًا للمستخدم
+            console.error('Cloudinary upload error:', error);
+            showNotification(`فشل رفع الملف: ${file.name}`, 'error');
+        });
+
+        uploadPromises.push(uploadPromise);
     }
 
-    // 👈 المهم: أضف المعلومات للمصفوفة
-    fileData.push(info);
-  }
+    // انتظر حتى تكتمل جميع عمليات الرفع (الناجحة والفاشلة)
+    await Promise.all(uploadPromises);
 
-  // 2) لو لا يوجد توكن، لا تحاول الرفع — اكتفِ بالمحتوى المحلي (ستظهر البطاقات وتُرسل للذكاء)
-  if (!token) {
-    showNotification('لا يمكنك حفظ الملفات على الخادم قبل تسجيل الدخول. سَأستخدم المرفقات مؤقتًا فقط داخل هذه الرسالة.', 'warning');
-    return fileData;
-  }
-
-  // 3) ارفع جميع الملفات دفعة واحدة (طلب واحد فقط) ثم اربط نتائج الرفع بكل عنصر
-  try {
-    const form = new FormData();
-    for (const f of files) {
-      form.append('files', f, f.name); // الخادم يتوقع الحقل "files"
+    // أظهر إشعارًا باكتمال الرفع
+    if (attachments.length > 0) {
+        showNotification(`تم رفع ${attachments.length} ملف بنجاح.`, 'success');
     }
 
-    const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: form
-    });
-
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      throw new Error(`فشل رفع الملفات: ${uploadRes.status} - ${errText}`);
-    }
-
-    const uploaded = await uploadRes.json();           // { files: [...] }
-    const byName = Object.fromEntries(
-      (uploaded.files || []).map(u => [u.originalName || u.filename, u])
-    );
-
-    for (const info of fileData) {
-      const rec = byName[info.name];
-      if (rec) {
-        info.fileId  = rec.id || rec._id || rec.filename || null;
-        info.fileUrl = rec.url || null;               // مثال: /uploads/xxxx
-      }
-    }
-  } catch (e) {
-    console.error('Upload error:', e);
-    showNotification('تعذر رفع الملفات للحفظ الدائم', 'error');
-    // نُرجع على أي حال الـ fileData حتى تظهر البطاقات ويُستخدم المحتوى مع الذكاء
-  }
-
-  return fileData;
+    // أرجع مصفوفة المرفقات التي نجح رفعها فقط
+    return attachments;
 }
-
-
-function readFileAsText(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsText(file);
-    });
-}
-
-// دالة جديدة لقراءة الملفات كـ Base64
-function readFileAsBase64(file) {
-    return new Promise((resolve, reject) => {
-        // ✨✨✨ التحقق من حجم الملف (5 ميجابايت) ✨✨✨
-        if (file.size > 5 * 1024 * 1024) {
-            return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.'));
-        }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result.split(',')[1];
-            resolve(base64String);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
 
 // File preview functions for input area
 function handleFileSelection(input) {
