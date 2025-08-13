@@ -180,6 +180,25 @@ if (window.visualViewport) {
 }
 } catch (_) {}
 
+// قياس ارتفاع شريط الإدخال وتحديث متغيّر CSS --footer-h
+const footerEl = document.querySelector('.footer-input');
+
+function updateFooterHeightVar(){
+  const h = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 88;
+  document.documentElement.style.setProperty('--footer-h', h + 'px');
+}
+
+// أول تحديث ثم عند تغيّر القياسات
+updateFooterHeightVar();
+window.addEventListener('resize', updateFooterHeightVar);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateFooterHeightVar);
+  window.visualViewport.addEventListener('scroll', updateFooterHeightVar);
+}
+if (window.ResizeObserver && footerEl) {
+  new ResizeObserver(updateFooterHeightVar).observe(footerEl);
+}
+
 // ===== خلفية زيوس =====
 const bgCanvas = document.getElementById('bgCanvas');
 const bgSelect = document.getElementById('bgStyleSelect');
@@ -3020,9 +3039,9 @@ function renderUserMenu(user) {
         </div>
 
         <div class="bg-gray-950/90 backdrop-blur divide-y divide-white/5">
-          <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="openSettings()">
-            <i class="fas fa-cog mr-2"></i> الإعدادات
-          </button>
+          <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="openSettingsFromMenu()">
+  <i class="fas fa-cog mr-2"></i> الإعدادات
+</button>
           <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="toggleDarkMode()">
             <i class="fas fa-moon mr-2"></i> تبديل المظهر
           </button>
@@ -3054,6 +3073,15 @@ function renderUserMenu(user) {
       document.removeEventListener('click', closePanel);
     }
   });
+}
+
+// إغلاق قائمة الحساب ثم فتح نافذة الإعدادات
+function openSettingsFromMenu() {
+  try {
+    const panel = document.getElementById('userMenuPanel');
+    if (panel) panel.classList.add('hidden'); // أخفِ القائمة فوراً
+  } catch(e) {}
+  openSettings(); // افتح نافذة الإعدادات
 }
 
 // ===== تبويبات نافذة الإعدادات =====
