@@ -818,6 +818,7 @@ function createFileCard(file) {
                 <div class="file-info">
                     <div class="file-name">${file.name}</div>
                     <div class="file-meta">${fileInfo.type} • ${fileSize}</div>
+                    ${file.fileUrl ? `<div class="file-url"><a href="${file.fileUrl}" target="_blank" class="text-blue-400 text-xs">عرض الملف</a></div>` : ''}
                 </div>
             </div>
         </div>
@@ -835,49 +836,75 @@ async function processAttachedFiles(files) {
     showNotification(`جاري رفع ${files.length} ملف...`, 'info');
 
     for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        // تحديد نوع البيانات
+        const isImage = file.type.startsWith('image/');
+        let dataType = 'text';
+        let content = null;
+        let mimeType = file.type;
 
-        // إنشاء وعد (Promise) لكل عملية رفع
-        const uploadPromise = fetch(CLOUDINARY_URL, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                // إذا حدث خطأ من Cloudinary، ارمِ الخطأ
-                throw new Error(data.error.message);
+        try {
+            if (isImage) {
+                // للصور: تحويل إلى Base64
+                dataType = 'image';
+                content = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        // إزالة البادئة data:image/...;base64,
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                // للملفات النصية: قراءة المحتوى
+                content = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsText(file, 'utf-8');
+                });
             }
+
+            // رفع إلى Cloudinary للحفظ الدائم
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+            const uploadResponse = await fetch(CLOUDINARY_URL, {
+                method: 'POST',
+                body: formData
+            });
             
-            // أضف معلومات الملف بعد نجاح الرفع إلى مصفوفتنا
+            const uploadData = await uploadResponse.json();
+            
+            if (uploadData.error) {
+                throw new Error(uploadData.error.message);
+            }
+
+            // إضافة الملف بالتنسيق المطلوب للخادم
             attachments.push({
                 name: file.name,
-                size: data.bytes,
-                type: data.resource_type, // 'image', 'video', or 'raw' for other files
-                fileUrl: data.secure_url, // ✨ الرابط الدائم والآمن للملف
-                fileId: data.public_id,   // المعرف الفريد في Cloudinary
+                size: file.size,
+                type: uploadData.resource_type,
+                fileUrl: uploadData.secure_url,
+                fileId: uploadData.public_id,
+                // البيانات المطلوبة للمعالجة
+                content: content,
+                dataType: dataType,
+                mimeType: mimeType
             });
-        })
-        .catch(error => {
-            // إذا فشل الرفع، أظهر إشعارًا للمستخدم
-            console.error('Cloudinary upload error:', error);
-            showNotification(`فشل رفع الملف: ${file.name}`, 'error');
-        });
 
-        uploadPromises.push(uploadPromise);
+        } catch (error) {
+            console.error('File processing error:', error);
+            showNotification(`فشل معالجة الملف: ${file.name}`, 'error');
+        }
     }
 
-    // انتظر حتى تكتمل جميع عمليات الرفع (الناجحة والفاشلة)
-    await Promise.all(uploadPromises);
-
-    // أظهر إشعارًا باكتمال الرفع
     if (attachments.length > 0) {
-        showNotification(`تم رفع ${attachments.length} ملف بنجاح.`, 'success');
+        showNotification(`تم معالجة ${attachments.length} ملف بنجاح.`, 'success');
     }
 
-    // أرجع مصفوفة المرفقات التي نجح رفعها فقط
     return attachments;
 }
 
@@ -1161,13 +1188,7 @@ async function sendMessage() {
         const userMessage = {
     role: 'user',
     content: message,
-    attachments: attachments.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        fileId: file.fileId || null,
-        fileUrl: file.fileUrl || null
-    })),
+    attachments: attachments,
     timestamp: Date.now()
 };
 
@@ -1272,10 +1293,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
   const payload = {
     chatHistory,
-    attachments: attachments.map(file => ({
-      name: file.name, type: file.type, size: file.size,
-      content: file.content, dataType: file.dataType, mimeType: file.mimeType
-    })),
+    attachments: attachments || [],
     settings,
     meta: { forceWebBrowsing, searchQuery }
   };
@@ -1975,13 +1993,14 @@ function sanitizeChatForSave(chat) {
     role: m.role,
     content: typeof m.content === 'string' ? m.content : '',
     timestamp: m.timestamp || Date.now(),
-    // نحفظ المراجع فقط (بدون content/base64)
+    // نحفظ المراجع فقط (بدون content/base64 للتوفير في المساحة)
     attachments: (m.attachments || []).map(a => ({
       name: a.name,
       type: a.type,
       size: a.size,
       fileId: a.fileId || null,
-      fileUrl: a.fileUrl || null
+      fileUrl: a.fileUrl || null,
+      mimeType: a.mimeType || null
     }))
   }));
 
