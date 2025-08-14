@@ -258,27 +258,91 @@
           </div>
         </div>
 
+<div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <i class="fas fa-user-cog mr-2"></i>تخصيص شخصية الذكاء الاصطناعي
+            </label>
+            <textarea id="customPromptInput" rows="4" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm resize-vertical" 
+                placeholder="مثال: أنت مساعد ذكي ودود، أجب دائماً باللغة العربية واستخدم أمثلة عملية في شرحك. كن مختصراً ومفيداً..."></textarea>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              هذا النص سيتم إرساله في بداية كل محادثة لتوجيه سلوك المساعد وتخصيص شخصيته حسب احتياجاتك
+            </p>
+          </div>
+
         <!-- التصفح والربط -->
         <div class="settings-panel hidden" data-tab="browsing">
+          
+          <!-- تفعيل البحث الرئيسي -->
           <div class="settings-section">
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" id="enableWebBrowsing">
-              <span>تفعيل البحث عبر الإنترنت</span>
-            </label>
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">تفعيل البحث عبر الإنترنت</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">يسمح للذكاء الاصطناعي بالبحث في الإنترنت للحصول على معلومات حديثة</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="enableWebBrowsing" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
           </div>
+
+          <!-- طريقة التصفح -->
           <div class="settings-section">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">طريقة التصفح</label>
-            <select id="browsingMode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base">
-              <option value="gemini">Google Search Grounding (Gemini)</option>
+            <select id="browsingMode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
+              <option value="gemini">Google Search Grounding (Gemini) - مُوصى به</option>
               <option value="proxy">وكيل بحث خارجي</option>
             </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Gemini يوفر بحثاً مدمجاً أسرع وأدق</p>
           </div>
+
+          <!-- عرض المصادر -->
           <div class="settings-section">
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" id="showSources">
-              <span>إظهار المصادر في الرد</span>
-            </label>
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">إظهار المصادر</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">عرض روابط المصادر مع النتائج</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="showSources" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
           </div>
+
+          <!-- حساسية البحث التلقائي -->
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              حساسية البحث التلقائي: <span id="dynamicThresholdValue" class="text-zeus-accent">0.3</span>
+            </label>
+            <input type="range" id="dynamicThresholdSlider" min="0.1" max="1.0" step="0.1" value="0.3" 
+                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <span>حساس جداً (يبحث كثيراً)</span>
+              <span>متوسط</span>
+              <span>أقل حساسية (يبحث قليلاً)</span>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              يحدد مدى سهولة تفعيل البحث تلقائياً عند طرح الأسئلة
+            </p>
+          </div>
+
+          <!-- معلومات إضافية -->
+          <div class="settings-section">
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-2"></i>
+                <div class="text-sm">
+                  <h5 class="font-medium text-blue-800 dark:text-blue-200 mb-1">كيف يعمل البحث التلقائي؟</h5>
+                  <p class="text-blue-700 dark:text-blue-300 text-xs">
+                    عندما تسأل أسئلة مثل "ما آخر أخبار الذكاء الاصطناعي" أو "سعر البتكوين اليوم"، 
+                    سيقوم النظام تلقائياً بالبحث في الإنترنت للحصول على أحدث المعلومات دون الحاجة لكتابة "ابحث".
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- المظهر -->
