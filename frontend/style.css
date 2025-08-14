@@ -1436,3 +1436,68 @@ body.theme-light .footer-input { background-color: #ffffff; color:#111827; borde
 
 /* قائمة المصادر (مخفية افتراضياً) */
 .sources-list.hidden { display: none; }
+
+/* أنماط المنزلق المخصص */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgb(209 213 219);
+  border-radius: 3px;
+  outline: none;
+  transition: background 0.2s;
+}
+
+.dark input[type="range"] {
+  background: rgb(75 85 99);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: rgb(45 156 255);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: rgb(30 127 224);
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: rgb(45 156 255);
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: rgb(30 127 224);
+  transform: scale(1.1);
+}
+
+/* تحسين مظهر الـ settings sections */
+.settings-section {
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+/* تحسين مظهر التبديل */
+.peer:checked ~ div {
+  background-color: rgb(45 156 255);
+}
+
+.peer:focus ~ div {
+  box-shadow: 0 0 0 3px rgba(45, 156, 255, 0.1);
+}
