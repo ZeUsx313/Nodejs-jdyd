@@ -1431,8 +1431,8 @@ body.theme-blue .footer-input { background-color: rgba(17,24,39,.6); color:#e5e7
 body.theme-black .footer-input { background-color: rgba(17,24,39,.7); color:#e5e7eb; border-color: #111827; }
 body.theme-light .footer-input { background-color: #ffffff; color:#111827; border-color: #e5e7eb; }
 
-#translatorApp { padding: 1rem; }
-.cz-row { display: flex; gap: .75rem; margin: .5rem 0; flex-wrap: wrap; }
-#czSource, #czTarget { width: 100%; min-height: 220px; }
-#czGlossaryTable { width:100%; border-collapse:collapse; }
-#czGlossaryTable th, #czGlossaryTable td { border:1px solid #333; padding:.4rem; }
+/* زر عرض/إخفاء المصادر */
+.sources-toggle { margin-top: 0.25rem; }
+
+/* قائمة المصادر (مخفية افتراضياً) */
+.sources-list.hidden { display: none; }
