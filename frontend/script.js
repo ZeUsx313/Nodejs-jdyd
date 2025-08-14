@@ -22,10 +22,10 @@ const defaultSettings = {
   fontSize: 18,
   theme: 'theme-black',
   // 🔎 إعدادات التصفح الجديدة
-  enableWebBrowsing: false,
+  enableWebBrowsing: true,
   browsingMode: 'gemini',      // 'gemini' | 'proxy'
   showSources: true,
-  dynamicThreshold: 0.6        // 0..1 — كلما زادت كان النموذج أقل ميلاً للبحث
+  dynamicThreshold: 0.3        // 0..1 — كلما زادت كان النموذج أقل ميلاً للبحث
 };
 
 // ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
@@ -262,16 +262,29 @@ document.getElementById('fileInput').addEventListener('change', updateSendButton
 const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
 const selBrowsingMode   = document.getElementById('browsingMode');
 const chkShowSources    = document.getElementById('showSources');
+const dynThresholdSlider = document.getElementById('dynamicThresholdSlider');
+const dynThresholdValue = document.getElementById('dynamicThresholdValue');
 
 // تحميل الحالة الحالية في الواجهة
-if (chkEnableBrowsing) chkEnableBrowsing.checked = !!settings.enableWebBrowsing;
-if (selBrowsingMode)   selBrowsingMode.value    = settings.browsingMode || 'gemini';
-if (chkShowSources)    chkShowSources.checked   = !!settings.showSources;
+if (chkEnableBrowsing) chkEnableBrowsing.checked = settings.enableWebBrowsing || false;
+if (selBrowsingMode) selBrowsingMode.value = settings.browsingMode || 'gemini';
+if (chkShowSources) chkShowSources.checked = settings.showSources !== false; // افتراضي true
+if (dynThresholdSlider) {
+    dynThresholdSlider.value = settings.dynamicThreshold || 0.6;
+    if (dynThresholdValue) dynThresholdValue.textContent = (settings.dynamicThreshold || 0.6).toFixed(1);
+}
 
 // استماع للتغييرات وتحديث settings
-chkEnableBrowsing?.addEventListener('change', e => settings.enableWebBrowsing = e.target.checked);
-selBrowsingMode?.addEventListener('change',   e => settings.browsingMode     = e.target.value);
-chkShowSources?.addEventListener('change',    e => settings.showSources      = e.target.checked);
+chkEnableBrowsing?.addEventListener('change', e => {
+    settings.enableWebBrowsing = e.target.checked;
+    console.log('Web browsing toggled:', e.target.checked);
+});
+selBrowsingMode?.addEventListener('change', e => settings.browsingMode = e.target.value);
+chkShowSources?.addEventListener('change', e => settings.showSources = e.target.checked);
+dynThresholdSlider?.addEventListener('input', e => {
+    settings.dynamicThreshold = parseFloat(e.target.value);
+    if (dynThresholdValue) dynThresholdValue.textContent = parseFloat(e.target.value).toFixed(1);
+});
 
     if (messageInput) {
         messageInput.addEventListener('input', function() {
@@ -2256,6 +2269,21 @@ if (cpi) cpi.value = settings.customPrompt || '';
     // Load API key retry strategy
     document.getElementById('apiKeyRetryStrategySelect').value = settings.apiKeyRetryStrategy;
 
+    // ✨ تحميل إعدادات البحث الجديدة ✨
+    const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
+    const selBrowsingMode = document.getElementById('browsingMode');
+    const chkShowSources = document.getElementById('showSources');
+    const dynThresholdSlider = document.getElementById('dynamicThresholdSlider');
+    const dynThresholdValue = document.getElementById('dynamicThresholdValue');
+
+    if (chkEnableBrowsing) chkEnableBrowsing.checked = settings.enableWebBrowsing || false;
+    if (selBrowsingMode) selBrowsingMode.value = settings.browsingMode || 'gemini';
+    if (chkShowSources) chkShowSources.checked = settings.showSources !== false; // افتراضي true
+    if (dynThresholdSlider) {
+        dynThresholdSlider.value = settings.dynamicThreshold || 0.6;
+        if (dynThresholdValue) dynThresholdValue.textContent = (settings.dynamicThreshold || 0.6).toFixed(1);
+    }
+
     // Load API keys
     renderGeminiApiKeys();
     renderOpenRouterApiKeys();
@@ -2279,6 +2307,17 @@ async function saveSettings() {
 
   settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
   settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
+
+  // ✨ حفظ إعدادات البحث ✨
+  const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
+  const selBrowsingMode = document.getElementById('browsingMode');
+  const chkShowSources = document.getElementById('showSources');
+  const dynThresholdSlider = document.getElementById('dynamicThresholdSlider');
+
+  if (chkEnableBrowsing) settings.enableWebBrowsing = chkEnableBrowsing.checked;
+  if (selBrowsingMode) settings.browsingMode = selBrowsingMode.value;
+  if (chkShowSources) settings.showSources = chkShowSources.checked;
+  if (dynThresholdSlider) settings.dynamicThreshold = parseFloat(dynThresholdSlider.value);
 
   // الثيم (قيَم موحَّدة theme-*)
   const THEME_KEY = 'zeus-theme';
