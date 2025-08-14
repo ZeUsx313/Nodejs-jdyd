@@ -1352,39 +1352,74 @@ function displayUserMessage(message) {
 // ----------------------------------------------------------------------------------
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
-  const browseTriggers = [
-    'ابحث','ابحث لي','بحث عبر الانترنت','البحث عبر الانترنت',
-    'تصفح الإنترنت','قم بالبحث','ابحث في الويب',
-    'search the web','browse the web','web search','do a web search'
-  ];
-
   const lastUserMsg = (chatHistory || [])
     .slice().reverse().find(m => m.role === 'user')?.content || '';
 
-  const forceWebBrowsing = browseTriggers.some(t =>
-    lastUserMsg.toLowerCase().includes(t.toLowerCase())
-  );
+  // البحث الذكي المتقدم - يحدد تلقائياً إذا كان المستخدم يريد البحث
+  function shouldSearch(message) {
+    const msg = message.toLowerCase().trim();
+    
+    // كلمات مفاتيح مباشرة للبحث
+    const directSearchTerms = [
+      'ابحث', 'بحث', 'البحث', 'تصفح', 'اعطني معلومات عن', 
+      'ما هي آخر أخبار', 'آخر الأخبار', 'الأخبار الحديثة',
+      'search', 'browse', 'find information', 'latest news', 'recent news'
+    ];
+    
+    // مؤشرات على الحاجة لمعلومات حديثة
+    const timeIndicators = [
+      'اليوم', 'أمس', 'هذا الأسبوع', 'هذا الشهر', 'الآن', 'حالياً',
+      'مؤخراً', 'جديد', 'حديث', 'متى', 'كم', 'أين',
+      'today', 'yesterday', 'this week', 'this month', 'now', 'currently',
+      'recently', 'new', 'recent', 'when', 'how much', 'where'
+    ];
+    
+    // مواضيع تحتاج معلومات حديثة
+    const currentTopics = [
+      'سعر', 'أسعار', 'الأسهم', 'العملة', 'الطقس', 'الأخبار',
+      'أحداث', 'تحديثات', 'إحصائيات', 'بيانات',
+      'price', 'prices', 'stock', 'currency', 'weather', 'news',
+      'events', 'updates', 'statistics', 'data'
+    ];
 
-function extractQuery(text) {
-  const t = (text || '').trim();
-  let m = t.match(/^ابحث\s+عن\s+(.+)/i); if (m && m[1]) return m[1].trim();
-  m = t.match(/^ابحث\s+(.+)/i);          if (m && m[1]) return m[1].trim();
-  m = t.match(/^search (the )?web\s+for\s+(.+)/i); if (m && m[2]) return m[2].trim();
-  m = t.match(/^(search|browse)\s+(.+)/i); if (m && m[2]) return m[2].trim();
-  return '';
-}
-const searchQuery = forceWebBrowsing ? extractQuery(lastUserMsg) : '';
+    // فحص التطابقات المباشرة
+    const hasDirectSearch = directSearchTerms.some(term => msg.includes(term));
+    const hasTimeIndicator = timeIndicators.some(term => msg.includes(term));
+    const hasCurrentTopic = currentTopics.some(term => msg.includes(term));
+    
+    // استخدام العتبة الديناميكية للحكم
+    const threshold = settings.dynamicThreshold || 0.6;
+    let searchScore = 0;
+    
+    if (hasDirectSearch) searchScore += 0.6;
+    if (hasTimeIndicator) searchScore += 0.3;
+    if (hasCurrentTopic) searchScore += 0.4;
+    
+    // أسئلة تحتاج معلومات حديثة
+    if (msg.includes('؟') || msg.includes('?')) {
+      if (hasTimeIndicator || hasCurrentTopic) searchScore += 0.2;
+    }
+    
+    return searchScore >= threshold;
+  }
 
-/* جديد: بدّل مؤشّر البث من "يكتب زيوس" إلى "يبحث زيوس" عند تفعيل البحث */
-if (forceWebBrowsing) {
-  const ind = document.querySelector('.streaming-indicator span'); // أُنشئته createStreamingMessage
-  if (ind) ind.textContent = 'يبحث زيوس';
-}
+  const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
+  
+  // استخراج موضوع البحث بطريقة ذكية
+  function extractSearchQuery(text) {
+    // إزالة كلمات الاستفهام والأوامر
+    let cleanText = text
+      .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
+      .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
+      .replace(/\?$/i, '')
+      .trim();
+    
+    return cleanText || text.trim();
+  }
+  
+  const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
 
-if (forceWebBrowsing && !searchQuery) {
-  appendToStreamingMessage('يرجى تحديد موضوع البحث، مثال: **ابحث عن شات زيوس**.', true);
-  return;
-}
+  // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
 
   const payload = {
     chatHistory,
@@ -1465,337 +1500,6 @@ async function sendRequestToServer(payload) {
     throw error;
   }
 }
-
-
-// ----------------------------------------------------------------------------------
-// OLD: Direct API communication functions (now disabled/commented out)
-// ----------------------------------------------------------------------------------
-
-/*
-async function sendToGeminiSimple(messages, attachments) {
-    const apiKeys = settings.geminiApiKeys.filter(key => key.status === 'active').map(key => key.key);
-    if (apiKeys.length === 0) {
-        throw new Error('لا توجد مفاتيح Gemini API نشطة');
-    }
-
-    // Try each API key with fallback
-    for (let i = 0; i < apiKeys.length; i++) {
-        const apiKey = apiKeys[i];
-        const model = settings.model;
-
-        try {
-            console.log(`Trying Gemini API with key ${i + 1}...`);
-            await sendToGeminiStreaming(messages, attachments, apiKey, model);
-            return; // Success, exit function
-        } catch (error) {
-            console.error(`Gemini API failed with key ${i + 1}:`, error);
-
-            // If this is the last key, throw the error
-            if (i === apiKeys.length - 1) {
-                throw error;
-            }
-        }
-    }
-}
-
-async function sendToGeminiStreamingRequest_DISABLED(messages, attachments, apiKey, model) {
-
-    // Prepare conversation history
-    const conversation = [];
-
-    // Add custom prompt if exists
-    if (settings.customPrompt.trim()) {
-        conversation.push({
-            role: 'user',
-            parts: [{ text: settings.customPrompt }]
-        });
-        conversation.push({
-            role: 'model',
-            parts: [{ text: 'مفهوم، سأتبع هذه التعليمات في جميع ردودي.' }]
-        });
-    }
-
-    // Convert messages to Gemini format
-    messages.forEach(msg => {
-        if (msg.role === 'user') {
-            let content = msg.content;
-
-            // Add file contents to message if any
-            if (attachments && attachments.length > 0) {
-                const fileContents = attachments
-                    .filter(file => file.content)
-                    .map(file => `\n\n--- محتوى الملف: ${file.name} ---\n${file.content}\n--- نهاية الملف ---`)
-                    .join('');
-                content += fileContents;
-            }
-
-            conversation.push({
-                role: 'user',
-                parts: [{ text: content }]
-            });
-        } else if (msg.role === 'assistant') {
-            conversation.push({
-                role: 'model',
-                parts: [{ text: msg.content }]
-            });
-        }
-    });
-
-    const requestBody = {
-        contents: conversation,
-        generationConfig: {
-            temperature: settings.temperature,
-            maxOutputTokens: 4096,
-        }
-    };
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API Error:', response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-    }
-
-    const reader = response.body.getReader();
-    let fullResponse = '';
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-
-            // Keep the last incomplete line in the buffer
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-
-                if (trimmedLine && trimmedLine !== '[' && trimmedLine !== ']' && trimmedLine !== ',' && trimmedLine.length > 2) {
-                    try {
-                        // Remove trailing commas and brackets
-                        let cleanLine = trimmedLine.replace(/,$/, '').replace(/^\[/, '').replace(/\]$/, '');
-
-                        // Skip empty or invalid JSON
-                        if (!cleanLine || cleanLine === '{' || cleanLine === '}') {
-                            continue;
-                        }
-
-                        // Parse the JSON directly (Gemini streaming format)
-                        const data = JSON.parse(cleanLine);
-                        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-                            const parts = data.candidates[0].content.parts;
-                            for (const part of parts) {
-                                if (part.text) {
-                                    fullResponse += part.text;
-                                    appendToStreamingMessage(part.text);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // Skip parsing errors silently unless it's a substantial chunk
-                        if (trimmedLine.length > 10) {
-                            console.debug('Skipping invalid JSON chunk:', trimmedLine.substring(0, 50));
-                        }
-                    }
-                }
-            }
-        }
-
-        // Process any remaining buffer
-        if (buffer.trim() && buffer.trim().length > 2) {
-            try {
-                let cleanBuffer = buffer.trim().replace(/,$/, '').replace(/^\[/, '').replace(/\]$/, '');
-                if (cleanBuffer && cleanBuffer !== '{' && cleanBuffer !== '}') {
-                    const data = JSON.parse(cleanBuffer);
-                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-                        const parts = data.candidates[0].content.parts;
-                        for (const part of parts) {
-                            if (part.text) {
-                                fullResponse += part.text;
-                                appendToStreamingMessage(part.text);
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                // Silently ignore final buffer parsing errors
-                console.debug('Could not parse final buffer:', buffer.substring(0, 50));
-            }
-        }
-    } finally {
-        reader.releaseLock();
-    }
-
-    // Complete the streaming
-    appendToStreamingMessage('', true);
-
-    // Add assistant message to conversation
-    chats[currentChatId].messages.push({
-        role: 'assistant',
-        content: fullResponse,
-        timestamp: Date.now()
-    });
-}
-
-async function sendToOpenRouterSimple(messages, attachments) {
-    const apiKeys = settings.openrouterApiKeys.filter(key => key.status === 'active').map(key => key.key);
-    if (apiKeys.length === 0) {
-        throw new Error('لا توجد مفاتيح OpenRouter API نشطة');
-    }
-
-    const apiKey = apiKeys[0];
-    const model = settings.model;
-
-    // Prepare messages for OpenRouter
-    const formattedMessages = [];
-
-    // Add custom prompt if exists
-    if (settings.customPrompt.trim()) {
-        formattedMessages.push({
-            role: 'system',
-            content: settings.customPrompt
-        });
-    }
-
-    messages.forEach(msg => {
-        if (msg.role === 'user') {
-            let content = msg.content;
-
-            // Add file contents if any
-            if (attachments && attachments.length > 0) {
-                const fileContents = attachments
-                    .filter(file => file.content)
-                    .map(file => `\n\n--- محتوى الملف: ${file.name} ---\n${file.content}\n--- نهاية الملف ---`)
-                    .join('');
-                content += fileContents;
-            }
-
-            formattedMessages.push({
-                role: 'user',
-                content: content
-            });
-        } else if (msg.role === 'assistant') {
-            formattedMessages.push({
-                role: 'assistant',
-                content: msg.content
-            });
-        }
-    });
-
-    const requestBody = {
-        model: model,
-        messages: formattedMessages,
-        temperature: settings.temperature,
-        stream: true,
-        max_tokens: 4096
-    };
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'Zeus Chat'
-        },
-        body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    let fullResponse = '';
-
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = new TextDecoder().decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') continue;
-
-                    try {
-                        const parsed = JSON.parse(data);
-                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                            const text = parsed.choices[0].delta.content;
-                            fullResponse += text;
-                            appendToStreamingMessage(text);
-                        }
-                    } catch (e) {
-                        // Ignore parsing errors
-                    }
-                }
-            }
-        }
-    } finally {
-        reader.releaseLock();
-    }
-
-    // Complete the streaming
-    appendToStreamingMessage('', true);
-
-    // Add assistant message to conversation
-    chats[currentChatId].messages.push({
-        role: 'assistant',
-        content: fullResponse,
-        timestamp: Date.now()
-    });
-}
-
-async function sendToCustomProviderSimple(messages, attachments, providerId) {
-    const customProvider = settings.customProviders.find(p => p.id === providerId);
-    if (!customProvider) {
-        throw new Error('المزود المخصص غير موجود');
-    }
-
-    const apiKeys = (customProvider.apiKeys || []).filter(key => key.status === 'active').map(key => key.key);
-    if (apiKeys.length === 0) {
-        throw new Error(`لا توجد مفاتيح API نشطة للمزود ${customProvider.name}`);
-    }
-
-    // For now, fallback to non-streaming for custom providers
-    // This can be extended based on the custom provider's API specifications
-    const response = await sendToCustomProvider(messages, attachments, providerId);
-
-    // Simulate streaming for custom providers
-    const text = response;
-    const words = text.split(' ');
-
-    for (let i = 0; i < words.length; i++) {
-        const word = words[i] + (i < words.length - 1 ? ' ' : '');
-        appendToStreamingMessage(word);
-        await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for streaming effect
-    }
-
-    appendToStreamingMessage('', true);
-
-    // Add assistant message to conversation
-    chats[currentChatId].messages.push({
-        role: 'assistant',
-        content: text,
-        timestamp: Date.now()
-    });
-}
-*/
 
 // Rest of the existing functions (chat management, UI functions, etc.)
 function escapeHtml(text) {
@@ -2435,7 +2139,11 @@ function copyCode(button) {
 function addMessageActions(messageElement, content) {
     const actions = document.createElement('div');
     actions.className = 'message-actions';
-    actions.innerHTML = `
+    
+    // فحص إذا كان الرد يحتوي على مصادر
+    const hasSources = content.includes('**🔍 المصادر:**') || content.includes('**المصادر:**');
+    
+    let actionsHTML = `
         <button onclick="copyMessage(this)" class="p-1 rounded text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-white/10" data-tooltip="نسخ">
             <i class="fas fa-copy text-xs"></i>
         </button>
@@ -2443,9 +2151,59 @@ function addMessageActions(messageElement, content) {
             <i class="fas fa-redo text-xs"></i>
         </button>
     `;
-
+    
+    // إضافة زر المصادر إذا كانت موجودة
+    if (hasSources) {
+        actionsHTML += `
+            <button onclick="showSources(this)" class="p-1 rounded text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-white/10" data-tooltip="المصادر">
+                <i class="fas fa-external-link-alt text-xs"></i>
+            </button>
+        `;
+    }
+    
+    actions.innerHTML = actionsHTML;
     messageElement.appendChild(actions);
     messageElement.setAttribute('data-content', content);
+}
+
+// إضافة دالة جديدة لعرض المصادر بجانب دالة `regenerateMessage`
+function showSources(button) {
+    const messageElement = button.closest('.chat-bubble');
+    const content = messageElement.getAttribute('data-content');
+    
+    // استخراج المصادر من المحتوى
+    const sourcesMatch = content.match(/\*\*🔍 المصادر:\*\*\n(.*?)$/s) || content.match(/\*\*المصادر:\*\*\n(.*?)$/s);
+    if (sourcesMatch) {
+        const sourcesText = sourcesMatch[1].trim();
+        
+        // إنشاء نافذة منبثقة للمصادر
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl max-h-80 overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">مصادر البحث</h3>
+                    <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="text-gray-700 dark:text-gray-300 space-y-2">
+                    ${marked.parse(sourcesText)}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // إغلاق النافذة عند النقر خارجها
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    } else {
+        showNotification('لا توجد مصادر متاحة لهذه الرسالة', 'info');
+    }
 }
 
 function copyMessage(button) {
@@ -3282,18 +3040,3 @@ function onOpenSettingsModal() {
   // اجعل تبويب "الحساب" هو الافتراضي
   activateSettingsTab('account');
 }
-// --- Marked.js configuration ---
-// Ensure marked.js is loaded before this script if you use it for Markdown parsing.
-// You might need to include it in your index.html:
-// <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-// Or handle its loading dynamically.
-
-// --- Highlight.js configuration ---
-// Ensure highlight.js is loaded and CSS is included for code highlighting.
-// You might need to include it in your index.html:
-// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> <!-- Example language -->
-// document.addEventListener('DOMContentLoaded', (event) => {
-//   hljs.highlightAll();
-// });
