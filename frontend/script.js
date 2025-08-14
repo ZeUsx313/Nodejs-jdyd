@@ -1471,7 +1471,7 @@ async function sendRequestToServer(payload) {
 // OLD: Direct API communication functions (now disabled/commented out)
 // ----------------------------------------------------------------------------------
 
-
+/*
 async function sendToGeminiSimple(messages, attachments) {
     const apiKeys = settings.geminiApiKeys.filter(key => key.status === 'active').map(key => key.key);
     if (apiKeys.length === 0) {
