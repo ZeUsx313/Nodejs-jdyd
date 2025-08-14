@@ -532,4 +532,47 @@
 
     <script src="script.js"></script>
 </body>
+
+<!-- أزرار أعلى الصفحة (مثال مختصر) -->
+<nav class="topbar">
+  <button id="tabChat">الدردشة</button>
+  <button id="tabTranslate">الترجمة</button>
+</nav>
+
+<!-- قسم الدردشة الحالي يبقى كما هو داخل عنصر اسمه chatApp -->
+<section id="chatApp"><!-- ... واجهتك الحالية ... --></section>
+
+<!-- قسم الترجمة (مخفي مبدئيًا) -->
+<section id="translatorApp" hidden>
+  <div class="cz-row">
+    <select id="czProvider">
+      <option value="gemini">Gemini</option>
+      <option value="openai">OpenAI</option>
+      <option value="together">Together</option>
+    </select>
+    <input id="czChapterName" placeholder="اسم الفصل">
+  </div>
+
+  <div class="cz-row">
+    <textarea id="czSource" placeholder="النص الإنجليزي"></textarea>
+    <textarea id="czTarget" placeholder="الترجمة العربية"></textarea>
+  </div>
+
+  <div class="cz-row">
+    <button id="czTranslateBtn">ترجمة</button>
+    <button id="czSaveChapterBtn">حفظ فصل</button>
+  </div>
+
+  <div class="cz-row">
+    <h3>المسرد</h3>
+    <input id="czTermEn" placeholder="EN term">
+    <input id="czTermAr" placeholder="المعادِل العربي">
+    <button id="czAddTermBtn">إضافة للمسرد</button>
+    <table id="czGlossaryTable"></table>
+  </div>
+</section>
+
+<!-- ربط السكربتات -->
+<script src="./script.js"></script>            <!-- سكربت الدردشة الحالي -->
+<script src="./translator.js"></script>        <!-- سكربت الترجمة الجديد -->
 </html>
