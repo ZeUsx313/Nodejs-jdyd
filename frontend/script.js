@@ -1,10 +1,6 @@
 // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
-const CLOUDINARY_CLOUD_NAME = "djuhxdjij";
-const CLOUDINARY_UPLOAD_PRESET = "of1ahiug";
-const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-
 // ===============================================
 // المتغيرات العامة
 // ===============================================
@@ -818,7 +814,6 @@ function createFileCard(file) {
                 <div class="file-info">
                     <div class="file-name">${file.name}</div>
                     <div class="file-meta">${fileInfo.type} • ${fileSize}</div>
-                    ${file.fileUrl ? `<div class="file-url"><a href="${file.fileUrl}" target="_blank" class="text-blue-400 text-xs">عرض الملف</a></div>` : ''}
                 </div>
             </div>
         </div>
@@ -827,86 +822,116 @@ function createFileCard(file) {
     return cardHtml;
 }
 
-// الدالة الجديدة ترفع الملفات مباشرة إلى Cloudinary ✨✨✨
+// ✅ إصلاح جذري: جمع المرفقات بشكل صحيح + رفع مرة واحدة فقط + التعامل مع عدم وجود توكن
 async function processAttachedFiles(files) {
-    const attachments = [];
-    const uploadPromises = [];
+  const token = localStorage.getItem('authToken');
+  const fileData = [];
 
-    // أظهر إشعارًا بأن الرفع قد بدأ
-    showNotification(`جاري رفع ${files.length} ملف...`, 'info');
+  // 1) اجمع معلومات كل ملف واقرأ محتواه (للاستخدام مع الذكاء حتى لو لم نحفظ على الخادم)
+  const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
+  const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
 
-    for (const file of files) {
-        // تحديد نوع البيانات
-        const isImage = file.type.startsWith('image/');
-        let dataType = 'text';
-        let content = null;
-        let mimeType = file.type;
+  for (const file of files) {
+    const info = {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    };
 
-        try {
-            if (isImage) {
-                // للصور: تحويل إلى Base64
-                dataType = 'image';
-                content = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        // إزالة البادئة data:image/...;base64,
-                        const base64 = reader.result.split(',')[1];
-                        resolve(base64);
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-            } else {
-                // للملفات النصية: قراءة المحتوى
-                content = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsText(file, 'utf-8');
-                });
-            }
-
-            // رفع إلى Cloudinary للحفظ الدائم
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-            const uploadResponse = await fetch(CLOUDINARY_URL, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const uploadData = await uploadResponse.json();
-            
-            if (uploadData.error) {
-                throw new Error(uploadData.error.message);
-            }
-
-            // إضافة الملف بالتنسيق المطلوب للخادم
-            attachments.push({
-                name: file.name,
-                size: file.size,
-                type: uploadData.resource_type,
-                fileUrl: uploadData.secure_url,
-                fileId: uploadData.public_id,
-                // البيانات المطلوبة للمعالجة
-                content: content,
-                dataType: dataType,
-                mimeType: mimeType
-            });
-
-        } catch (error) {
-            console.error('File processing error:', error);
-            showNotification(`فشل معالجة الملف: ${file.name}`, 'error');
-        }
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    try {
+      if (textExt.includes(ext)) {
+        info.dataType = 'text';
+        info.content  = await readFileAsText(file);
+      } else if (imgExt.includes(ext) || (file.type && file.type.startsWith('image/'))) {
+        info.dataType = 'image';
+        info.mimeType = file.type || 'image/*';
+        info.content  = await readFileAsBase64(file);
+      } else {
+        info.dataType = 'binary';
+        // لا حاجة لقراءة المحتوى الثنائي هنا
+      }
+    } catch (e) {
+      console.error('Error reading file:', e);
     }
 
-    if (attachments.length > 0) {
-        showNotification(`تم معالجة ${attachments.length} ملف بنجاح.`, 'success');
+    // 👈 المهم: أضف المعلومات للمصفوفة
+    fileData.push(info);
+  }
+
+  // 2) لو لا يوجد توكن، لا تحاول الرفع — اكتفِ بالمحتوى المحلي (ستظهر البطاقات وتُرسل للذكاء)
+  if (!token) {
+    showNotification('لا يمكنك حفظ الملفات على الخادم قبل تسجيل الدخول. سَأستخدم المرفقات مؤقتًا فقط داخل هذه الرسالة.', 'warning');
+    return fileData;
+  }
+
+  // 3) ارفع جميع الملفات دفعة واحدة (طلب واحد فقط) ثم اربط نتائج الرفع بكل عنصر
+  try {
+    const form = new FormData();
+    for (const f of files) {
+      form.append('files', f, f.name); // الخادم يتوقع الحقل "files"
     }
 
-    return attachments;
+    const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
+    });
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`فشل رفع الملفات: ${uploadRes.status} - ${errText}`);
+    }
+
+    const uploaded = await uploadRes.json();           // { files: [...] }
+    const byName = Object.fromEntries(
+      (uploaded.files || []).map(u => [u.originalName || u.filename, u])
+    );
+
+    for (const info of fileData) {
+      const rec = byName[info.name];
+      if (rec) {
+        info.fileId  = rec.id || rec._id || rec.filename || null;
+        info.fileUrl = rec.url || null;               // مثال: /uploads/xxxx
+      }
+    }
+  } catch (e) {
+    console.error('Upload error:', e);
+    showNotification('تعذر رفع الملفات للحفظ الدائم', 'error');
+    // نُرجع على أي حال الـ fileData حتى تظهر البطاقات ويُستخدم المحتوى مع الذكاء
+  }
+
+  return fileData;
 }
+
+
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
+
+// دالة جديدة لقراءة الملفات كـ Base64
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        // ✨✨✨ التحقق من حجم الملف (5 ميجابايت) ✨✨✨
+        if (file.size > 5 * 1024 * 1024) {
+            return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.'));
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 
 // File preview functions for input area
 function handleFileSelection(input) {
@@ -1079,48 +1104,106 @@ function appendToStreamingMessage(text, isComplete = false) {
 }
 
 function completeStreamingMessage() {
-    if (!streamingState.isStreaming) return;
+  if (!streamingState.isStreaming) return;
 
-    const messageElement = document.getElementById(`message-${streamingState.currentMessageId}`);
-    if (messageElement) {
-        // Remove streaming indicator
-        const indicator = messageElement.querySelector('.streaming-indicator');
-        if (indicator) indicator.remove();
+  const messageElement = document.getElementById(`message-${streamingState.currentMessageId}`);
+  if (messageElement) {
+    // إزالة مؤشّر البث
+    const indicator = messageElement.querySelector('.streaming-indicator');
+    if (indicator) indicator.remove();
+    messageElement.classList.remove('streaming-message');
 
-        // Remove streaming class
-        messageElement.classList.remove('streaming-message');
+    // --- جديد: استخراج قسم المصادر إن وجد ---
+    // نبحث عن بادئة المصادر التي يرسلها الخادم: **🔍 المصادر:**
+    const fullText = streamingState.currentText || '';
+    const splitToken = '\n**🔍 المصادر:**\n';
+    let mainText = fullText, sourcesMd = '';
 
-        // Add message actions
-        addMessageActions(messageElement, streamingState.currentText);
+    const idx = fullText.indexOf(splitToken);
+    if (idx !== -1) {
+      mainText  = fullText.slice(0, idx);
+      sourcesMd = fullText.slice(idx + splitToken.length);
     }
 
-    // Save assistant message to chat
-// احفظ الرسالة داخل المحادثة التي بدأ فيها البث
-const targetChatId = streamingState.chatId; // 👈 هذا هو الأهم
-if (targetChatId && chats[targetChatId] && streamingState.currentText) {
+    // إعادة عرض النص بدون قسم المصادر
+    const contentEl = messageElement.querySelector('.message-content');
+    if (contentEl) {
+      contentEl.innerHTML = marked.parse(mainText);
+      // تمييز الكود وإضافة رأس للكود كما في الباقي
+      contentEl.querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+        addCodeHeader(block.parentElement);
+      });
+    }
+
+    // أزرار الرسالة (نسخ/إعادة توليد)
+    addMessageActions(messageElement, mainText);
+
+    // --- جديد: زر عرض/إخفاء المصادر إن توفّرت ---
+    if (sourcesMd.trim()) {
+      const sources = sourcesMd
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.startsWith('- ['));
+
+      if (sources.length > 0) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mt-2';
+
+        // زر تبديل
+        const toggle = document.createElement('button');
+        toggle.className = 'btn-custom btn-secondary sources-toggle';
+        toggle.type = 'button';
+        toggle.textContent = 'عرض المصادر';
+        wrapper.appendChild(toggle);
+
+        // قائمة المصادر (مخفية افتراضياً)
+        const list = document.createElement('div');
+        list.className = 'sources-list hidden';
+        list.innerHTML = `
+          <ul class="list-disc pr-6 mt-2 space-y-1 text-sm text-gray-300">
+            ${sources.map(item => {
+              // استخراج [العنوان](الرابط)
+              const m = item.match(/\$begin:math:display$(.+?)\\$end:math:display$\$begin:math:text$(.+?)\\$end:math:text$/);
+              if (!m) return '';
+              const title = m[1], href = m[2];
+              return `<li><a href="${href}" target="_blank" rel="noopener" class="underline hover:no-underline">${escapeHtml(title)}</a></li>`;
+            }).join('')}
+          </ul>
+        `;
+        wrapper.appendChild(list);
+
+        toggle.addEventListener('click', () => {
+          const isHidden = list.classList.contains('hidden');
+          list.classList.toggle('hidden', !isHidden);
+          toggle.textContent = isHidden ? 'إخفاء المصادر' : 'عرض المصادر';
+        });
+
+        messageElement.appendChild(wrapper);
+      }
+    }
+  }
+
+  // حفظ الرسالة في المحادثة الصحيحة (الكود الأصلي كما هو)
+  const targetChatId = streamingState.chatId;
+  if (targetChatId && chats[targetChatId] && (streamingState.currentText || '')) {
     const now = Date.now();
-    chats[targetChatId].messages.push({
-        role: 'assistant',
-        content: streamingState.currentText,
-        timestamp: now
-    });
+    chats[targetChatId].messages.push({ role: 'assistant', content: streamingState.currentText, timestamp: now });
     chats[targetChatId].updatedAt = now;
     chats[targetChatId].order = now;
-}
+  }
 
-// إعادة ضبط حالة البث
-streamingState.isStreaming = false;
-streamingState.currentMessageId = null;
-streamingState.streamingElement = null;
-streamingState.currentText = '';
-streamingState.streamController = null;
-streamingState.chatId = null;
+  // إعادة ضبط حالة البث
+  streamingState.isStreaming = false;
+  streamingState.currentMessageId = null;
+  streamingState.streamingElement = null;
+  streamingState.currentText = '';
+  streamingState.streamController = null;
+  streamingState.chatId = null;
 
-// احفظ المحادثة الصحيحة في الخادم (تمرير المعرّف)
-saveCurrentChat(targetChatId);
-
-scrollToBottom();
-
+  // حفظ المحادثة
+  saveCurrentChat(targetChatId);
+  scrollToBottom();
 }
 
 function smoothScrollToBottom() {
@@ -1188,7 +1271,13 @@ async function sendMessage() {
         const userMessage = {
     role: 'user',
     content: message,
-    attachments: attachments,
+    attachments: attachments.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        fileId: file.fileId || null,
+        fileUrl: file.fileUrl || null
+    })),
     timestamp: Date.now()
 };
 
@@ -1276,24 +1365,33 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     lastUserMsg.toLowerCase().includes(t.toLowerCase())
   );
 
-  function extractQuery(text) {
-    const t = (text || '').trim();
-    let m = t.match(/^ابحث\s+عن\s+(.+)/i); if (m && m[1]) return m[1].trim();
-    m = t.match(/^ابحث\s+(.+)/i);          if (m && m[1]) return m[1].trim();
-    m = t.match(/^search (the )?web\s+for\s+(.+)/i); if (m && m[2]) return m[2].trim();
-    m = t.match(/^(search|browse)\s+(.+)/i); if (m && m[2]) return m[2].trim();
-    return '';
-  }
-  const searchQuery = forceWebBrowsing ? extractQuery(lastUserMsg) : '';
+function extractQuery(text) {
+  const t = (text || '').trim();
+  let m = t.match(/^ابحث\s+عن\s+(.+)/i); if (m && m[1]) return m[1].trim();
+  m = t.match(/^ابحث\s+(.+)/i);          if (m && m[1]) return m[1].trim();
+  m = t.match(/^search (the )?web\s+for\s+(.+)/i); if (m && m[2]) return m[2].trim();
+  m = t.match(/^(search|browse)\s+(.+)/i); if (m && m[2]) return m[2].trim();
+  return '';
+}
+const searchQuery = forceWebBrowsing ? extractQuery(lastUserMsg) : '';
 
-  if (forceWebBrowsing && !searchQuery) {
-    appendToStreamingMessage('يرجى تحديد موضوع البحث، مثال: **ابحث عن شات زيوس**.', true);
-    return;
-  }
+/* جديد: بدّل مؤشّر البث من "يكتب زيوس" إلى "يبحث زيوس" عند تفعيل البحث */
+if (forceWebBrowsing) {
+  const ind = document.querySelector('.streaming-indicator span'); // أُنشئته createStreamingMessage
+  if (ind) ind.textContent = 'يبحث زيوس';
+}
+
+if (forceWebBrowsing && !searchQuery) {
+  appendToStreamingMessage('يرجى تحديد موضوع البحث، مثال: **ابحث عن شات زيوس**.', true);
+  return;
+}
 
   const payload = {
     chatHistory,
-    attachments: attachments || [],
+    attachments: attachments.map(file => ({
+      name: file.name, type: file.type, size: file.size,
+      content: file.content, dataType: file.dataType, mimeType: file.mimeType
+    })),
     settings,
     meta: { forceWebBrowsing, searchQuery }
   };
@@ -1373,7 +1471,7 @@ async function sendRequestToServer(payload) {
 // OLD: Direct API communication functions (now disabled/commented out)
 // ----------------------------------------------------------------------------------
 
-/*
+
 async function sendToGeminiSimple(messages, attachments) {
     const apiKeys = settings.geminiApiKeys.filter(key => key.status === 'active').map(key => key.key);
     if (apiKeys.length === 0) {
@@ -1993,14 +2091,13 @@ function sanitizeChatForSave(chat) {
     role: m.role,
     content: typeof m.content === 'string' ? m.content : '',
     timestamp: m.timestamp || Date.now(),
-    // نحفظ المراجع فقط (بدون content/base64 للتوفير في المساحة)
+    // نحفظ المراجع فقط (بدون content/base64)
     attachments: (m.attachments || []).map(a => ({
       name: a.name,
       type: a.type,
       size: a.size,
       fileId: a.fileId || null,
-      fileUrl: a.fileUrl || null,
-      mimeType: a.mimeType || null
+      fileUrl: a.fileUrl || null
     }))
   }));
 
