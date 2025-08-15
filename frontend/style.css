@@ -137,8 +137,8 @@ pre, code, pre code {
     border-radius: 16px;
     width: 100%;
     max-width: 280px;
-    position: relative;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .file-card:hover {
@@ -1064,10 +1064,8 @@ html, body{
     height: 80px;
     border-radius: 0.75rem; /* 12px */
     object-fit: cover; /* يضمن أن الصورة تملأ المساحة بدون تشويه */
-    background-size: cover;
-    background-position: center;
-    position: relative;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #2d2d2d; /* لون خلفية احتياطي أثناء التحميل */
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1082,31 +1080,31 @@ html, body{
     max-width: 200px;
     transform: scale(0.9); /* تصغيرها قليلاً لتناسب التصميم الجديد */
 }
-/* أنماط القائمة المنسدلة للمستخدم */
-.dropdown {
-    position: relative;
-    display: inline-block;
+
+/* ✨ دعم عرض الصور المصغرة والمرفقات في فقاعات مستقلة */
+.attachment-thumbnail {
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    object-fit: cover;
+    background-color: #2d2d2d;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.attachment-thumbnail:hover {
+    transform: scale(1.03);
 }
 
-.dropdown-content {
-    position: absolute;
-    right: 0;
-    background-color: #1f2937;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1000;
-    border-radius: 0.5rem;
-    border: 1px solid #374151;
+/* فقاعة شفافة للمرفقات */
+.chat-bubble.glass-effect {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 0.5rem 1rem;
 }
-
-.dropdown-content a {
-    color: #f3f4f6;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    transition: background-color 0.2s ease;
-}
-
 .dropdown-content a:hover {
     background-color: #374151;
 }
