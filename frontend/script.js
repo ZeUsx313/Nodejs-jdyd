@@ -957,84 +957,431 @@ function handleFileSelection(input) {
 function displayFilePreview(files) {
     const container = document.getElementById('filePreviewContainer');
     const list = document.getElementById('filePreviewList');
-
-    list.innerHTML = ''; // مسح المحتوى السابق
+    list.innerHTML = '';
 
     files.forEach((file, index) => {
-        const fileInfo = getFileTypeInfo(file.name);
-        const fileSize = formatFileSize(file.size);
-
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileInfo.type.split(' ')[1].toLowerCase())) {
-            // عرض الصور كمصغرات
-            const thumbnail = document.createElement('div');
-            thumbnail.className = 'attachment-thumbnail relative';
-            thumbnail.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
-            thumbnail.innerHTML = `<button class="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1" onclick="removeFileFromPreview(${index})">X</button>`;
-            list.appendChild(thumbnail);
-        } else {
-            // عرض الملفات الأخرى كبطاقات
-            const card = document.createElement('div');
-            card.className = 'file-card';
-            card.innerHTML = `
-                <div class="file-icon-container ${fileInfo.color}">
-                    <i class="${fileInfo.icon}"></i>
-                </div>
-                <div class="file-info">
-                    <div class="file-name">${file.name}</div>
-                    <div class="file-meta">${fileInfo.type} • ${fileSize}</div>
-                </div>
-                <button class="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1" onclick="removeFileFromPreview(${index})">X</button>
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const imgExt = ['jpg','jpeg','png','gif','webp','bmp'];
+        if (imgExt.includes(ext) || (file.type && file.type.startsWith('image/'))) {
+            // صورة مصغرة
+            const preview = document.createElement('div');
+            preview.className = 'inline-flex items-center mr-2';
+            preview.innerHTML = `
+                <img src="${URL.createObjectURL(file)}" class="attachment-thumbnail" alt="${file.name}" />
+                <button onclick="removeFileFromPreview(${index})" class="text-gray-400 hover:text-gray-200 ml-1">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
             `;
-            list.appendChild(card);
+            list.appendChild(preview);
+        } else {
+            // بطاقة معلومات للملفات الأخرى
+            const preview = document.createElement('div');
+            preview.className = 'inline-flex items-center mr-2';
+            preview.innerHTML = `
+                ${createFileCard(file)}
+                <button onclick="removeFileFromPreview(${index})" class="text-gray-400 hover:text-gray-200 ml-1">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            `;
+            list.appendChild(preview);
         }
     });
 
     container.classList.remove('hidden');
 }
 
-// تحديث عرض المرفقات في سجل المحادثة
-function displayUserMessage(message) {
+function removeFileFromPreview(index) {
+    const fileInput = document.getElementById('fileInput');
+    const files = Array.from(fileInput.files);
+
+    files.splice(index, 1);
+
+    // Create new FileList
+    const dt = new DataTransfer();
+    files.forEach(file => dt.items.add(file));
+    fileInput.files = dt.files;
+
+    if (files.length === 0) {
+        clearFileInput();
+    } else {
+        displayFilePreview(files);
+    }
+}
+
+function clearFileInput() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('filePreviewContainer').classList.add('hidden');
+}
+
+// Advanced streaming functions
+function createStreamingMessage(sender = 'assistant') {
+    const messageId = Date.now().toString();
     const messagesArea = document.getElementById('messagesArea');
 
-    // عرض النص في فقاعة مستقلة
-    if (message.content) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-bubble message-user';
-        messageDiv.innerHTML = `<div class="message-content">${escapeHtml(message.content)}</div>`;
-        messagesArea.appendChild(messageDiv);
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-bubble message-${sender} streaming-message`;
+    messageDiv.id = `message-${messageId}`;
+
+    messageDiv.innerHTML = `
+        <div class="message-content" id="content-${messageId}">
+            <span class="streaming-cursor"></span>
+        </div>
+        <div class="streaming-indicator">
+            <i class="fas fa-robot text-xs"></i>
+            <span>يكتب زيوس</span>
+            <div class="streaming-dots">
+                <div class="streaming-dot"></div>
+                <div class="streaming-dot"></div>
+                <div class="streaming-dot"></div>
+            </div>
+        </div>
+    `;
+
+    messagesArea.appendChild(messageDiv);
+    scrollToBottom();
+
+    streamingState.currentMessageId = messageId;
+    streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+    streamingState.currentText = '';
+    streamingState.isStreaming = true;
+// ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
+    streamingState.chatId = currentChatId;
+
+// زر الإرسال يتحول فوراً إلى "إيقاف"
+    updateSendButton();
+
+    return messageId;
+}
+
+function appendToStreamingMessage(text, isComplete = false) {
+    if (!streamingState.isStreaming) return;
+
+    // نجمع النص دائمًا
+    streamingState.currentText += text;
+
+    // إذا لم يكن لدينا عنصر DOM (مثلاً لأننا بدّلنا المحادثة)
+    // ونعود الآن إلى نفس المحادثة التي يجري فيها البث،
+    // نعيد إنشاء الفقاعة وربط العنصر مرة أخرى.
+    if (!streamingState.streamingElement) {
+        const weAreOnTheStreamingChat =
+            currentChatId && streamingState.chatId && currentChatId === streamingState.chatId;
+
+        if (weAreOnTheStreamingChat) {
+            // إعادة إرفاق فقاعة البث في هذه المحادثة
+            const messageId = streamingState.currentMessageId;
+            const messagesArea = document.getElementById('messagesArea');
+
+            // أنشئ غلاف الرسالة يدويًا (نسخة مبسطة من createStreamingMessage بدون إعادة ضبط الحالة)
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-bubble message-assistant streaming-message`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
+              </div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+        }
     }
 
-    // عرض المرفقات
+    // إن لم يتوفر عنصر بعد (لأننا في محادثة أخرى)، نكتفي بتجميع النص ونؤجل العرض
+    if (!streamingState.streamingElement) {
+        if (isComplete) completeStreamingMessage();
+        return;
+    }
+
+    // الآن نحدّث الـ DOM كالمعتاد
+    const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
+    if (cursor) cursor.remove();
+    const renderedContent = marked.parse(streamingState.currentText);
+    streamingState.streamingElement.innerHTML = renderedContent;
+
+    if (!isComplete) {
+        const newCursor = document.createElement('span');
+        newCursor.className = 'streaming-cursor';
+        streamingState.streamingElement.appendChild(newCursor);
+    }
+
+    streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+        addCodeHeader(block.parentElement);
+    });
+
+    smoothScrollToBottom();
+
+    if (isComplete) {
+        completeStreamingMessage();
+    }
+}
+
+function completeStreamingMessage() {
+  if (!streamingState.isStreaming) return;
+
+  const messageElement = document.getElementById(`message-${streamingState.currentMessageId}`);
+  if (messageElement) {
+    // إزالة مؤشّر البث
+    const indicator = messageElement.querySelector('.streaming-indicator');
+    if (indicator) indicator.remove();
+    messageElement.classList.remove('streaming-message');
+
+    // --- جديد: استخراج قسم المصادر إن وجد ---
+    // نبحث عن بادئة المصادر التي يرسلها الخادم: **🔍 المصادر:**
+    const fullText = streamingState.currentText || '';
+    const splitToken = '\n**🔍 المصادر:**\n';
+    let mainText = fullText, sourcesMd = '';
+
+    const idx = fullText.indexOf(splitToken);
+    if (idx !== -1) {
+      mainText  = fullText.slice(0, idx);
+      sourcesMd = fullText.slice(idx + splitToken.length);
+    }
+
+    // إعادة عرض النص بدون قسم المصادر
+    const contentEl = messageElement.querySelector('.message-content');
+    if (contentEl) {
+      contentEl.innerHTML = marked.parse(mainText);
+      // تمييز الكود وإضافة رأس للكود كما في الباقي
+      contentEl.querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+        addCodeHeader(block.parentElement);
+      });
+    }
+
+    // أزرار الرسالة (نسخ/إعادة توليد)
+    addMessageActions(messageElement, mainText);
+
+    // --- جديد: زر عرض/إخفاء المصادر إن توفّرت ---
+    if (sourcesMd.trim()) {
+      const sources = sourcesMd
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.startsWith('- ['));
+
+      if (sources.length > 0) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mt-2';
+
+        // زر تبديل
+        const toggle = document.createElement('button');
+        toggle.className = 'btn-custom btn-secondary sources-toggle';
+        toggle.type = 'button';
+        toggle.textContent = 'عرض المصادر';
+        wrapper.appendChild(toggle);
+
+        // قائمة المصادر (مخفية افتراضياً)
+        const list = document.createElement('div');
+        list.className = 'sources-list hidden';
+        list.innerHTML = `
+          <ul class="list-disc pr-6 mt-2 space-y-1 text-sm text-gray-300">
+            ${sources.map(item => {
+              // استخراج [العنوان](الرابط)
+              const m = item.match(/\$begin:math:display$(.+?)\\$end:math:display$\$begin:math:text$(.+?)\\$end:math:text$/);
+              if (!m) return '';
+              const title = m[1], href = m[2];
+              return `<li><a href="${href}" target="_blank" rel="noopener" class="underline hover:no-underline">${escapeHtml(title)}</a></li>`;
+            }).join('')}
+          </ul>
+        `;
+        wrapper.appendChild(list);
+
+        toggle.addEventListener('click', () => {
+          const isHidden = list.classList.contains('hidden');
+          list.classList.toggle('hidden', !isHidden);
+          toggle.textContent = isHidden ? 'إخفاء المصادر' : 'عرض المصادر';
+        });
+
+        messageElement.appendChild(wrapper);
+      }
+    }
+  }
+
+  // حفظ الرسالة في المحادثة الصحيحة (الكود الأصلي كما هو)
+  const targetChatId = streamingState.chatId;
+  if (targetChatId && chats[targetChatId] && (streamingState.currentText || '')) {
+    const now = Date.now();
+    chats[targetChatId].messages.push({ role: 'assistant', content: streamingState.currentText, timestamp: now });
+    chats[targetChatId].updatedAt = now;
+    chats[targetChatId].order = now;
+  }
+
+  // إعادة ضبط حالة البث
+  streamingState.isStreaming = false;
+  streamingState.currentMessageId = null;
+  streamingState.streamingElement = null;
+  streamingState.currentText = '';
+  streamingState.streamController = null;
+  streamingState.chatId = null;
+
+  // حفظ المحادثة
+  saveCurrentChat(targetChatId);
+  scrollToBottom();
+}
+
+function smoothScrollToBottom() {
+    const messagesArea = document.getElementById('messagesArea');
+    messagesArea.scrollTo({
+        top: messagesArea.scrollHeight,
+        behavior: 'smooth'
+    });
+}
+
+async function sendMessage() {
+
+    if (streamingState.isStreaming) { 
+        cancelStreaming('new-send'); 
+        return; 
+    }
+
+    // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
+    if (currentChatId && !chats[currentChatId]) {
+        const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
+        currentChatId = latest ? latest._id : null;
+    }
+
+    const input = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const fileInput = document.getElementById('fileInput');
+
+    if (!input.value.trim() && fileInput.files.length === 0) return;
+
+    const message = input.value.trim();
+    const files = Array.from(fileInput.files);
+
+    // The API key check is no longer needed on the frontend.
+    // The backend will handle API key management.
+
+    console.log('Sending message to backend with provider:', settings.provider, 'model:', settings.model);
+
+    // Disable input during processing
+    input.disabled = true;
+    sendButton.disabled = true;
+
+    try {
+        // Create new chat if needed
+        if (!currentChatId) {
+            await startNewChat();
+        }
+
+        // ✨✨✨ الميزة الجديدة تبدأ هنا ✨✨✨
+        // 1. تحقق إذا كانت هذه هي الرسالة الأولى في المحادثة الحالية
+        if (chats[currentChatId] && chats[currentChatId].messages.length === 0 && message) {
+            // 2. إذا كانت كذلك، قم بتحديث عنوان المحادثة
+            chats[currentChatId].title = message;
+            // 3. قم بتحديث قائمة المحادثات فورًا لإظهار الاسم الجديد
+            displayChatHistory();
+        }
+        // ✨✨✨ الميزة الجديدة تنتهي هنا ✨✨✨
+
+        // Process files if any
+        let attachments = [];
+        if (files.length > 0) {
+            attachments = await processAttachedFiles(files);
+        }
+
+        // Create user message
+        const userMessage = {
+    role: 'user',
+    content: message,
+    attachments: attachments.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        fileId: file.fileId || null,
+        fileUrl: file.fileUrl || null
+    })),
+    timestamp: Date.now()
+};
+
+        // Add user message to chat
+        chats[currentChatId].messages.push(userMessage);
+
+        // Display user message with file cards
+        displayUserMessage(userMessage);
+
+        // Scroll to show new message
+        setTimeout(() => scrollToBottom(), 100);
+
+        // Clear input
+        input.value = '';
+        clearFileInput();
+
+        // Show welcome screen if hidden
+        document.getElementById('welcomeScreen').classList.add('hidden');
+        document.getElementById('messagesContainer').classList.remove('hidden');
+
+// ... بعد إنشاء userMessage وعرضه
+createStreamingMessage();
+
+// (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
+if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
+  // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
+  settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
+}
+
+// Send to AI with streaming
+await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
+
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showNotification(`حدث خطأ: ${error.message}`, 'error');
+
+        // Complete streaming message with error
+        if (streamingState.isStreaming) {
+            appendToStreamingMessage('\n\n❌ عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.', true);
+        }
+    } finally {
+        // Re-enable input
+        input.disabled = false;
+        sendButton.disabled = false;
+        updateSendButton();
+        input.focus();
+
+        // Data will be saved when streaming completes
+    }
+}
+
+function displayUserMessage(message) {
+    const messagesArea = document.getElementById('messagesArea');
+    // 1. النص في فقاعة مستقلة (إن وجد)
+    if (message.content && message.content.trim()) {
+        const textDiv = document.createElement('div');
+        textDiv.className = 'chat-bubble message-user';
+        textDiv.innerHTML = `<div class="message-content">${escapeHtml(message.content)}</div>`;
+        messagesArea.appendChild(textDiv);
+    }
+
+    // 2. المرفقات (كل مرفق في فقاعة مستقلة)
     if (message.attachments && message.attachments.length > 0) {
         message.attachments.forEach(file => {
-            const fileInfo = getFileTypeInfo(file.name);
-
-            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileInfo.type.split(' ')[1].toLowerCase())) {
-                // عرض الصور
-                const imageDiv = document.createElement('div');
-                imageDiv.className = 'chat-bubble message-user file-card-bubble';
-                imageDiv.innerHTML = `<img src="${file.fileUrl}" alt="${file.name}" class="attachment-thumbnail">`;
-                messagesArea.appendChild(imageDiv);
-            } else {
-                // عرض الملفات الأخرى كبطاقات
-                const cardDiv = document.createElement('div');
-                cardDiv.className = 'chat-bubble message-user file-card-bubble';
-                cardDiv.innerHTML = `
-                    <div class="file-card">
-                        <div class="file-icon-container ${fileInfo.color}">
-                            <i class="${fileInfo.icon}"></i>
-                        </div>
-                        <div class="file-info">
-                            <div class="file-name">${file.name}</div>
-                            <div class="file-meta">${fileInfo.type} • ${formatFileSize(file.size)}</div>
-                        </div>
-                    </div>
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const imgExt = ['jpg','jpeg','png','gif','webp','bmp'];
+            if ((imgExt.includes(ext) || (file.type && file.type.startsWith('image/'))) && file.fileUrl) {
+                // صورة كاملة في فقاعة شفافة
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'chat-bubble message-user glass-effect p-2';
+                imgDiv.innerHTML = `
+                    <img src="${file.fileUrl}" class="attachment-thumbnail" alt="${file.name}" style="width:180px;max-width:100%;border-radius:12px;object-fit:cover;" />
                 `;
-                messagesArea.appendChild(cardDiv);
+                messagesArea.appendChild(imgDiv);
+            } else {
+                // بطاقة معلومات للملفات الأخرى في فقاعة شفافة
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'chat-bubble message-user glass-effect p-2';
+                fileDiv.innerHTML = createFileCard(file);
+                messagesArea.appendChild(fileDiv);
             }
         });
     }
-
     scrollToBottom();
 }
 
@@ -1862,7 +2209,6 @@ function showSources(button) {
     const messageElement = button.closest('.chat-bubble');
     const content = messageElement.getAttribute('data-content');
     
-       
     // استخراج المصادر من المحتوى
     const sourcesMatch = content.match(/\*\*🔍 المصادر:\*\*\n(.*?)$/s) || content.match(/\*\*المصادر:\*\*\n(.*?)$/s);
     if (sourcesMatch) {
