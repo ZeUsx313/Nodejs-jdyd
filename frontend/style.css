@@ -137,8 +137,8 @@ pre, code, pre code {
     border-radius: 16px;
     width: 100%;
     max-width: 280px;
+    position: relative;
     transition: all 0.2s ease;
-    cursor: pointer;
 }
 
 .file-card:hover {
@@ -1064,8 +1064,10 @@ html, body{
     height: 80px;
     border-radius: 0.75rem; /* 12px */
     object-fit: cover; /* يضمن أن الصورة تملأ المساحة بدون تشويه */
+    background-size: cover;
+    background-position: center;
+    position: relative;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: #2d2d2d; /* لون خلفية احتياطي أثناء التحميل */
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
