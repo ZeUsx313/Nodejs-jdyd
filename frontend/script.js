@@ -1344,24 +1344,19 @@ await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
 
 function displayUserMessage(message) {
     const messagesArea = document.getElementById('messagesArea');
-
-    // أولاً: إذا هناك مرفقات، أنشئ فقاعة منفصلة لها (تظهر في الأعلى)
-    if (message.attachments && message.attachments.length > 0) {
-        const attachmentsDiv = document.createElement('div');
-        attachmentsDiv.className = 'chat-bubble message-user attachments-bubble mb-1';
-        attachmentsDiv.style.background = 'transparent';
-        attachmentsDiv.style.boxShadow = 'none';
-        attachmentsDiv.style.paddingBottom = '0.5rem';
-        attachmentsDiv.innerHTML = message.attachments.map(file => createFileCard(file)).join('');
-        messagesArea.appendChild(attachmentsDiv);
-    }
-
-    // ثم: فقاعة نص المستخدم فقط
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-bubble message-user';
-    messageDiv.innerHTML = `<div class="message-content">${escapeHtml(message.content)}</div>`;
-    messagesArea.appendChild(messageDiv);
 
+    let content = `<div class="message-content">${escapeHtml(message.content)}</div>`;
+
+    // Add file cards if there are attachments
+    if (message.attachments && message.attachments.length > 0) {
+        const fileCards = message.attachments.map(file => createFileCard(file)).join('');
+        content += fileCards;
+    }
+
+    messageDiv.innerHTML = content;
+    messagesArea.appendChild(messageDiv);
     scrollToBottom();
 }
 
