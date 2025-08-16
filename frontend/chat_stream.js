@@ -1,643 +1,601 @@
-function createStreamingMessage(sender = 'assistant') {
-    const messageId = Date.now().toString();
-    const messagesArea = document.getElementById('messagesArea');
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>شات زيوس - إله الرعد</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<!-- iOS PWA full-screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="شات زيوس">
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          zeus: {
+            primary: '#0a0f1a',          // خلفية داكنة مائلة للأزرق
+            secondary: '#122033',        // طبقة أفتح
+            accent: '#2d9cff',           // أزرق كهربائي
+            'accent-hover': '#1e7fe0',   // أزرق أغمق عند التحويم
+            text: '#e6f0ff'              // نص فاتح مزرق
+          }
+        },
+        fontFamily: {
+          arabic: ['Tajawal', 'Cairo', 'sans-serif']
+        },
+        animation: {
+          'fade-in': 'fadeIn 0.3s ease-out',
+          'slide-up': 'slideUp 0.3s ease-out',
+          'lightning': 'lightning 2.2s linear infinite'
+        },
+        keyframes: {
+          fadeIn: { '0%': {opacity:'0'}, '100%': {opacity:'1'} },
+          slideUp: { '0%': {opacity:'0', transform:'translateY(20px)'}, '100%': {opacity:'1', transform:'translateY(0)'} },
+          lightning: {
+            '0%, 97%, 100%': { filter:'brightness(1)' },
+            '12%': { filter:'brightness(1.35)' },
+            '13%': { filter:'brightness(1)' },
+            '20%': { filter:'brightness(1.5)' },
+            '21%': { filter:'brightness(1)' },
+            '55%': { filter:'brightness(1.25)' }
+          }
+        }
+      }
+    },
+    darkMode: 'class'
+  }
+</script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="transition-colors duration-300 min-h-screen">
+    <script>
+        if (
+            "serviceWorker" in navigator &&
+            (window.location.protocol === "https:" ||
+                window.location.hostname === "localhost")
+        ) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker
+                    .register("/service-worker.js")
+                    .then((registration) => {
+                        console.log(
+                            "Service Worker registered with scope:",
+                            registration.scope
+                        );
+                    })
+                    .catch((error) => {
+                        console.log("Service Worker registration failed:", error);
+                    });
+            });
+        }
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-bubble message-${sender} streaming-message`;
-    messageDiv.id = `message-${messageId}`;
+<script>
+  // Bootstrap early theme (runs before paint)
+  (() => {
+    const KEY = 'zeus-theme';
+    const VALID = ['theme-black','theme-blue','theme-light'];
+    let theme = localStorage.getItem(KEY);
+    if (!VALID.includes(theme)) theme = 'theme-black';            // جعل الداكن الافتراضي
+    const apply = () => {
+      const b = document.body;
+      if (!b) return document.addEventListener('DOMContentLoaded', apply, {once:true});
+      b.classList.remove('theme-black','theme-blue','theme-light');
+      b.classList.add(theme);
+      // مزامنة select لو وُجد لاحقًا
+      const sel = document.getElementById('themeSelect');
+      if (sel && sel.value !== theme) sel.value = theme;
+    };
+    // طبّق فورًا، ولو فشل انتظر DOMContentLoaded
+    apply();
+    // في حال تغيّر من تبويب آخر/نافذة أخرى
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY && VALID.includes(e.newValue)) {
+        localStorage.setItem(KEY, e.newValue);
+        theme = e.newValue;
+        apply();
+      }
+    });
+  })();
+</script>
 
-    messageDiv.innerHTML = `
-        <div class="message-content" id="content-${messageId}">
-            <span class="streaming-cursor"></span>
+    </script>
+<div id="app" class="fixed inset-0 w-screen h-[100svh] overflow-hidden">
+
+    <div id="notificationContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none">
         </div>
-        <div class="streaming-indicator">
-            <i class="fas fa-robot text-xs"></i>
-            <span>يكتب زيوس</span>
-            <div class="streaming-dots">
-                <div class="streaming-dot"></div>
-                <div class="streaming-dot"></div>
-                <div class="streaming-dot"></div>
+
+<div id="sidebar" class="fixed inset-y-0 right-0 sidebar-width w-80 glass-effect shadow-2xl z-40 sidebar-transition transform translate-x-full flex flex-col">
+        <div class="p-6 border-b border-white/20">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">المحادثات</h2>
+                <button onclick="closeSidebar()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق الشريط الجانبي" aria-controls="sidebar">
+  <i class="fas fa-times text-xl" aria-hidden="true"></i>
+</button>
+            </div>
+            <button onclick="startNewChat()" class="w-full mt-4 bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105"
+        aria-label="إنشاء محادثة جديدة" title="إنشاء محادثة جديدة">
+  <i class="fas fa-plus ml-2" aria-hidden="true"></i>محادثة جديدة
+</button>
+        </div>
+        <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-2">
+            </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="settings-modal glass-effect rounded-xl shadow-2xl w-full max-w-5xl mx-4 animate-fade-in overflow-hidden">
+
+    <!-- شريط علوي -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <h3 id="settingsTitle" class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
+      <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="إغلاق الإعدادات" title="إغلاق الإعدادات">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- جسم النافذة: قائمة يسار + محتوى يمين -->
+    <div class="flex h-[70vh]">
+
+      <!-- القائمة الجانبية -->
+      <aside class="w-64 p-4 border-l border-white/10 overflow-y-auto">
+        <button class="settings-tab active" data-tab="account"><i class="fas fa-user ml-2"></i>الحساب</button>
+        <button class="settings-tab" data-tab="models"><i class="fas fa-robot ml-2"></i>النماذج والمزوّد</button>
+        <button class="settings-tab" data-tab="browsing"><i class="fas fa-globe ml-2"></i>التصفح والربط</button>
+        <button class="settings-tab" data-tab="appearance"><i class="fas fa-palette ml-2"></i>المظهر</button>
+        <button class="settings-tab" data-tab="data"><i class="fas fa-shield-alt ml-2"></i>البيانات والخصوصية</button>
+        <button class="settings-tab" data-tab="about"><i class="fas fa-info-circle ml-2"></i>حول</button>
+      </aside>
+
+      <!-- المحتوى -->
+      <section id="settingsPanels" class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- الحساب -->
+<div class="settings-panel" data-tab="account">
+  <!-- معلومات الحساب الفعلية -->
+  <div class="settings-section" id="accountInfoSection">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <div class="text-sm text-gray-400">الاسم</div>
+        <div class="text-base font-medium text-white" id="accName">—</div>
+      </div>
+      <div>
+        <div class="text-sm text-gray-400">البريد</div>
+        <div class="text-base font-medium text-white" id="accEmail">—</div>
+      </div>
+      <div>
+        <div class="text-sm text-gray-400">تاريخ التسجيل</div>
+        <div class="text-base font-medium text-white" id="accCreatedAt">—</div>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">تُجلب هذه البيانات عند تسجيل الدخول.</p>
+  </div>
+</div>
+
+        <!-- النماذج والمزوّد -->
+        <div class="settings-panel hidden" data-tab="models">
+          <div class="settings-section">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">مزود الذكاء الاصطناعي</label>
+              <button onclick="openCustomProvidersManager()" class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
+                <i class="fas fa-cog ml-1"></i>إدارة المزودين المخصصين
+              </button>
+            </div>
+            <select id="providerSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
+              <option value="gemini">Google Gemini</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">اختر مزود الذكاء الاصطناعي المفضل لديك.</p>
+          </div>
+
+          <div class="settings-section" id="geminiApiKeysSection">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مفاتيح Gemini API</label>
+            <div id="geminiApiKeysContainer" class="space-y-2 mb-2"></div>
+            <button onclick="addGeminiApiKeyField()" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
+            </button>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">احصل على مفاتيح مجانية من
+              <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-zeus-accent hover:underline">Google AI Studio</a>
+            </p>
+          </div>
+
+          <div class="settings-section hidden" id="openrouterApiKeysSection">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مفاتيح OpenRouter API</label>
+            <div id="openrouterApiKeysContainer" class="space-y-2 mb-2"></div>
+            <button onclick="addOpenRouterApiKeyField()" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
+            </button>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">احصل على مفتاح API من
+              <a href="https://openrouter.ai/keys" target="_blank" class="text-zeus-accent hover:underline">OpenRouter</a>
+            </p>
+          </div>
+
+          <div class="settings-section hidden" id="customProviderApiKeysSection">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" id="customProviderApiKeysLabel">مفاتيح API للمزود المخصص</label>
+            <div id="customProviderApiKeysContainer" class="space-y-3"></div>
+            <button type="button" onclick="addCustomProviderApiKey()" class="mt-3 px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg transition-colors text-sm">
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحاً جديداً
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">استراتيجية تبديل المفاتيح</label>
+            <select id="apiKeyRetryStrategySelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
+              <option value="sequential">تبديل تسلسلي (Sequential)</option>
+              <option value="round-robin">تبديل دائري (Round Robin)</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">اختر كيفية استخدام مفاتيح API المتعددة عند حدوث أخطاء.</p>
+          </div>
+
+          <div class="settings-section">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">نموذج الذكاء الاصطناعي</label>
+              <button onclick="openCustomModelsManager()" class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
+                <i class="fas fa-cog ml-1"></i>إدارة النماذج المخصصة
+              </button>
+            </div>
+            <select id="modelSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
+              <!-- يتم تعبئته ديناميكياً -->
+            </select>
+          </div>
+
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">درجة الحرارة</label>
+            <input type="range" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7" class="w-full accent-zeus-accent">
+            <span id="temperatureValue" class="text-sm text-gray-600 dark:text-gray-400">0.7</span>
+          </div>
+
+<div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <i class="fas fa-user-cog mr-2"></i>تخصيص شخصية الذكاء الاصطناعي
+            </label>
+            <textarea id="customPromptInput" rows="4" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm resize-vertical" 
+                placeholder="مثال: أنت مساعد ذكي ودود، أجب دائماً باللغة العربية واستخدم أمثلة عملية في شرحك. كن مختصراً ومفيداً..."></textarea>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              هذا النص سيتم إرساله في بداية كل محادثة لتوجيه سلوك المساعد وتخصيص شخصيته حسب احتياجاتك
+            </p>
+          </div>
+     </div>
+
+        <!-- التصفح والربط -->
+        <div class="settings-panel hidden" data-tab="browsing">
+          
+          <!-- تفعيل البحث الرئيسي -->
+          <div class="settings-section">
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">تفعيل البحث عبر الإنترنت</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">يسمح للذكاء الاصطناعي بالبحث في الإنترنت للحصول على معلومات حديثة</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="enableWebBrowsing" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- طريقة التصفح -->
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">طريقة التصفح</label>
+            <select id="browsingMode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
+              <option value="gemini">Google Search Grounding (Gemini) - مُوصى به</option>
+              <option value="proxy">وكيل بحث خارجي</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Gemini يوفر بحثاً مدمجاً أسرع وأدق</p>
+          </div>
+
+          <!-- عرض المصادر -->
+          <div class="settings-section">
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">إظهار المصادر</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">عرض روابط المصادر مع النتائج</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="showSources" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- حساسية البحث التلقائي -->
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              حساسية البحث التلقائي: <span id="dynamicThresholdValue" class="text-zeus-accent">0.3</span>
+            </label>
+            <input type="range" id="dynamicThresholdSlider" min="0.1" max="1.0" step="0.1" value="0.3" 
+                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <span>حساس جداً (يبحث كثيراً)</span>
+              <span>متوسط</span>
+              <span>أقل حساسية (يبحث قليلاً)</span>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              يحدد مدى سهولة تفعيل البحث تلقائياً عند طرح الأسئلة
+            </p>
+          </div>
+
+          <!-- معلومات إضافية -->
+          <div class="settings-section">
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-2"></i>
+                <div class="text-sm">
+                  <h5 class="font-medium text-blue-800 dark:text-blue-200 mb-1">كيف يعمل البحث التلقائي؟</h5>
+                  <p class="text-blue-700 dark:text-blue-300 text-xs">
+                    عندما تسأل أسئلة مثل "ما آخر أخبار الذكاء الاصطناعي" أو "سعر البتكوين اليوم"، 
+                    سيقوم النظام تلقائياً بالبحث في الإنترنت للحصول على أحدث المعلومات دون الحاجة لكتابة "ابحث".
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- المظهر -->
+<div class="settings-panel hidden" data-tab="appearance">
+
+  <!-- حجم الخط -->
+  <div class="settings-section">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">حجم خط الرسائل</label>
+    <div class="flex items-center space-x-3 space-x-reverse">
+      <span class="text-sm">صغير</span>
+      <input type="range" id="fontSizeSlider" min="14" max="24" step="1" value="18" class="w-full accent-zeus-accent">
+      <span class="text-sm">كبير</span>
+    </div>
+    <span id="fontSizeValue" class="text-sm text-gray-600 dark:text-gray-400 block text-center mt-1">18px</span>
+  </div>
+
+  <!-- اختيار الثيم العام (داخل تبويب المظهر) -->
+  <div class="settings-section">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
+    <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+  <option value="theme-blue">أزرق داكن</option>
+  <option value="theme-black">أسود كامل (OLED)</option>
+  <option value="theme-light">نهاري أبيض</option>
+</select>
+  </div>
+
+  <!-- خلفية زيوس (داخل تبويب المظهر) -->
+  <div class="settings-section">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
+    <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+      <option value="calm">ليلي هادئ</option>
+      <option value="storm">عاصفة برق</option>
+    </select>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
+  </div>
+
+</div>
+
+        <!-- البيانات والخصوصية -->
+        <div class="settings-panel hidden" data-tab="data">
+          <div class="settings-section">
+            <p class="text-sm text-gray-400">إدارة البيانات ستُضاف هنا لاحقًا (مسح المحادثات، تنزيل البيانات، …).</p>
+          </div>
+        </div>
+
+        <!-- حول -->
+        <div class="settings-panel hidden" data-tab="about">
+          <div class="settings-section">
+            <p class="text-sm text-gray-400">شات زيوس — إصدار الواجهة الحالي.</p>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- أزرار أسفل -->
+    <div class="flex justify-end px-6 py-4 border-t border-white/10">
+      <button onclick="closeSettings()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">إلغاء</button>
+      <button onclick="saveSettings()" class="px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg ml-2">حفظ</button>
+    </div>
+  </div>
+</div>
+
+    <!-- نافذة إدارة النماذج المخصصة -->
+    <div id="customModelsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customModelsTitle">
+        <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="customModelsTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة النماذج المخصصة</h3>
+                <button onclick="closeCustomModelsManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق نافذة النماذج المخصصة" title="إغلاق نافذة النماذج المخصصة">
+  <i class="fas fa-times" aria-hidden="true"></i>
+</button>
+            </div>
+
+            <div class="mb-6">
+                <button onclick="addCustomModel()" class="w-full btn-custom btn-primary">
+                    <i class="fas fa-plus ml-2"></i>إضافة نموذج مخصص جديد
+                </button>
+            </div>
+
+            <div id="customModelsContainer" class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- سيتم ملء النماذج المخصصة هنا -->
+            </div>
+
+            <div class="flex justify-end mt-6 space-x-3 space-x-reverse">
+                <button onclick="closeCustomModelsManager()" class="btn-custom btn-secondary">
+                    إغلاق
+                </button>
             </div>
         </div>
-    `;
-
-    messagesArea.appendChild(messageDiv);
-    scrollToBottom();
-
-    streamingState.currentMessageId = messageId;
-    streamingState.streamingElement = document.getElementById(`content-${messageId}`);
-    streamingState.currentText = '';
-    streamingState.isStreaming = true;
-// ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
-    streamingState.chatId = currentChatId;
-
-// زر الإرسال يتحول فوراً إلى "إيقاف"
-    updateSendButton();
-
-    return messageId;
-}
-
-function appendToStreamingMessage(text, isComplete = false) {
-    if (!streamingState.isStreaming) return;
-
-    // نجمع النص دائمًا
-    streamingState.currentText += text;
-
-    // إذا لم يكن لدينا عنصر DOM (مثلاً لأننا بدّلنا المحادثة)
-    // ونعود الآن إلى نفس المحادثة التي يجري فيها البث،
-    // نعيد إنشاء الفقاعة وربط العنصر مرة أخرى.
-    if (!streamingState.streamingElement) {
-        const weAreOnTheStreamingChat =
-            currentChatId && streamingState.chatId && currentChatId === streamingState.chatId;
-
-        if (weAreOnTheStreamingChat) {
-            // إعادة إرفاق فقاعة البث في هذه المحادثة
-            const messageId = streamingState.currentMessageId;
-            const messagesArea = document.getElementById('messagesArea');
-
-            // أنشئ غلاف الرسالة يدويًا (نسخة مبسطة من createStreamingMessage بدون إعادة ضبط الحالة)
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-bubble message-assistant streaming-message`;
-            messageDiv.id = `message-${messageId}`;
-            messageDiv.innerHTML = `
-              <div class="message-content" id="content-${messageId}">
-                  <span class="streaming-cursor"></span>
-              </div>
-              <div class="streaming-indicator">
-                  <i class="fas fa-robot text-xs"></i>
-                  <span>يكتب زيوس</span>
-                  <div class="streaming-dots">
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                  </div>
-              </div>
-            `;
-            messagesArea.appendChild(messageDiv);
-            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
-        }
-    }
-
-    // إن لم يتوفر عنصر بعد (لأننا في محادثة أخرى)، نكتفي بتجميع النص ونؤجل العرض
-    if (!streamingState.streamingElement) {
-        if (isComplete) completeStreamingMessage();
-        return;
-    }
-
-    // الآن نحدّث الـ DOM كالمعتاد
-    const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
-    if (cursor) cursor.remove();
-    const renderedContent = marked.parse(streamingState.currentText);
-    streamingState.streamingElement.innerHTML = renderedContent;
-
-    if (!isComplete) {
-        const newCursor = document.createElement('span');
-        newCursor.className = 'streaming-cursor';
-        streamingState.streamingElement.appendChild(newCursor);
-    }
-
-    streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
-        hljs.highlightElement(block);
-        addCodeHeader(block.parentElement);
-    });
-
-    smoothScrollToBottom();
-
-    if (isComplete) {
-        completeStreamingMessage();
-    }
-}
-
-function completeStreamingMessage() {
-  if (!streamingState.isStreaming) return;
-
-  const messageElement = document.getElementById(`message-${streamingState.currentMessageId}`);
-  if (messageElement) {
-    // إزالة مؤشّر البث
-    const indicator = messageElement.querySelector('.streaming-indicator');
-    if (indicator) indicator.remove();
-    messageElement.classList.remove('streaming-message');
-
-    // --- جديد: استخراج قسم المصادر إن وجد ---
-    // نبحث عن بادئة المصادر التي يرسلها الخادم: **🔍 المصادر:**
-    const fullText = streamingState.currentText || '';
-    const splitToken = '\n**🔍 المصادر:**\n';
-    let mainText = fullText, sourcesMd = '';
-
-    const idx = fullText.indexOf(splitToken);
-    if (idx !== -1) {
-      mainText  = fullText.slice(0, idx);
-      sourcesMd = fullText.slice(idx + splitToken.length);
-    }
-
-    // إعادة عرض النص بدون قسم المصادر
-    const contentEl = messageElement.querySelector('.message-content');
-    if (contentEl) {
-      contentEl.innerHTML = marked.parse(mainText);
-      // تمييز الكود وإضافة رأس للكود كما في الباقي
-      contentEl.querySelectorAll('pre code').forEach(block => {
-        hljs.highlightElement(block);
-        addCodeHeader(block.parentElement);
-      });
-    }
-
-    // أزرار الرسالة (نسخ/إعادة توليد)
-    addMessageActions(messageElement, mainText);
-
-    // --- جديد: زر عرض/إخفاء المصادر إن توفّرت ---
-    if (sourcesMd.trim()) {
-      const sources = sourcesMd
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.startsWith('- ['));
-
-      if (sources.length > 0) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mt-2';
-
-        // زر تبديل
-        const toggle = document.createElement('button');
-        toggle.className = 'btn-custom btn-secondary sources-toggle';
-        toggle.type = 'button';
-        toggle.textContent = 'عرض المصادر';
-        wrapper.appendChild(toggle);
-
-        // قائمة المصادر (مخفية افتراضياً)
-        const list = document.createElement('div');
-        list.className = 'sources-list hidden';
-        list.innerHTML = `
-          <ul class="list-disc pr-6 mt-2 space-y-1 text-sm text-gray-300">
-            ${sources.map(item => {
-              // استخراج [العنوان](الرابط)
-              const m = item.match(/\$begin:math:display$(.+?)\\$end:math:display$\$begin:math:text$(.+?)\\$end:math:text$/);
-              if (!m) return '';
-              const title = m[1], href = m[2];
-              return `<li><a href="${href}" target="_blank" rel="noopener" class="underline hover:no-underline">${escapeHtml(title)}</a></li>`;
-            }).join('')}
-          </ul>
-        `;
-        wrapper.appendChild(list);
-
-        toggle.addEventListener('click', () => {
-          const isHidden = list.classList.contains('hidden');
-          list.classList.toggle('hidden', !isHidden);
-          toggle.textContent = isHidden ? 'إخفاء المصادر' : 'عرض المصادر';
-        });
-
-        messageElement.appendChild(wrapper);
-      }
-    }
-  }
-
-  // حفظ الرسالة في المحادثة الصحيحة (الكود الأصلي كما هو)
-  const targetChatId = streamingState.chatId;
-  if (targetChatId && chats[targetChatId] && (streamingState.currentText || '')) {
-    const now = Date.now();
-    chats[targetChatId].messages.push({ role: 'assistant', content: streamingState.currentText, timestamp: now });
-    chats[targetChatId].updatedAt = now;
-    chats[targetChatId].order = now;
-  }
-
-  // إعادة ضبط حالة البث
-  streamingState.isStreaming = false;
-  streamingState.currentMessageId = null;
-  streamingState.streamingElement = null;
-  streamingState.currentText = '';
-  streamingState.streamController = null;
-  streamingState.chatId = null;
-
-  // حفظ المحادثة
-  saveCurrentChat(targetChatId);
-  scrollToBottom();
-}
-
-function smoothScrollToBottom() {
-    const messagesArea = document.getElementById('messagesArea');
-    messagesArea.scrollTo({
-        top: messagesArea.scrollHeight,
-        behavior: 'smooth'
-    });
-}
-
-async function sendMessage() {
-
-    if (streamingState.isStreaming) { 
-        cancelStreaming('new-send'); 
-        return; 
-    }
-
-    // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
-    if (currentChatId && !chats[currentChatId]) {
-        const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
-        currentChatId = latest ? latest._id : null;
-    }
-
-    const input = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const fileInput = document.getElementById('fileInput');
-
-    if (!input.value.trim() && fileInput.files.length === 0) return;
-
-    const message = input.value.trim();
-    const files = Array.from(fileInput.files);
-
-    // The API key check is no longer needed on the frontend.
-    // The backend will handle API key management.
-
-    console.log('Sending message to backend with provider:', settings.provider, 'model:', settings.model);
-
-    // Disable input during processing
-    input.disabled = true;
-    sendButton.disabled = true;
-
-    try {
-        // Create new chat if needed
-        if (!currentChatId) {
-            await startNewChat();
-        }
-
-        // ✨✨✨ الميزة الجديدة تبدأ هنا ✨✨✨
-        // 1. تحقق إذا كانت هذه هي الرسالة الأولى في المحادثة الحالية
-        if (chats[currentChatId] && chats[currentChatId].messages.length === 0 && message) {
-            // 2. إذا كانت كذلك، قم بتحديث عنوان المحادثة
-            chats[currentChatId].title = message;
-            // 3. قم بتحديث قائمة المحادثات فورًا لإظهار الاسم الجديد
-            displayChatHistory();
-        }
-        // ✨✨✨ الميزة الجديدة تنتهي هنا ✨✨✨
-
-        // Process files if any
-        let attachments = [];
-        if (files.length > 0) {
-            attachments = await processAttachedFiles(files);
-        }
-
-        // Create user message
-        const userMessage = {
-    role: 'user',
-    content: message,
-    attachments: attachments.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        fileId: file.fileId || null,
-        fileUrl: file.fileUrl || null
-    })),
-    timestamp: Date.now()
-};
-
-        // Add user message to chat
-        chats[currentChatId].messages.push(userMessage);
-
-        // Display user message with file cards
-        displayUserMessage(userMessage);
-
-        // Scroll to show new message
-        setTimeout(() => scrollToBottom(), 100);
-
-        // Clear input
-        input.value = '';
-        clearFileInput();
-
-        // Show welcome screen if hidden
-        document.getElementById('welcomeScreen').classList.add('hidden');
-        document.getElementById('messagesContainer').classList.remove('hidden');
-
-// ... بعد إنشاء userMessage وعرضه
-createStreamingMessage();
-
-// (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
-if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
-  // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
-  settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
-}
-
-// Send to AI with streaming
-await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
-
-    } catch (error) {
-        console.error('Error sending message:', error);
-        showNotification(`حدث خطأ: ${error.message}`, 'error');
-
-        // Complete streaming message with error
-        if (streamingState.isStreaming) {
-            appendToStreamingMessage('\n\n❌ عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.', true);
-        }
-    } finally {
-        // Re-enable input
-        input.disabled = false;
-        sendButton.disabled = false;
-        updateSendButton();
-        input.focus();
-
-        // Data will be saved when streaming completes
-    }
-}
-
-function displayUserMessage(message) {
-    const messagesArea = document.getElementById('messagesArea');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-bubble message-user';
-
-    let content = `<div class="message-content">${escapeHtml(message.content)}</div>`;
-
-    // Add file cards if there are attachments
-    if (message.attachments && message.attachments.length > 0) {
-        const fileCards = message.attachments.map(file => createFileCard(file)).join('');
-        content += fileCards;
-    }
-
-    messageDiv.innerHTML = content;
-    messagesArea.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-// ----------------------------------------------------------------------------------
-// NEW: Functions to communicate with the local backend server
-// ----------------------------------------------------------------------------------
-
-async function sendToAIWithStreaming(chatHistory, attachments) {
-  const lastUserMsg = (chatHistory || [])
-    .slice().reverse().find(m => m.role === 'user')?.content || '';
-
-  // البحث الذكي المتقدم - يحدد تلقائياً إذا كان المستخدم يريد البحث
-  function shouldSearch(message) {
-    const msg = message.toLowerCase().trim();
-    
-    // كلمات مفاتيح مباشرة للبحث
-    const directSearchTerms = [
-      'ابحث', 'بحث', 'البحث', 'تصفح', 'اعطني معلومات عن', 
-      'ما هي آخر أخبار', 'آخر الأخبار', 'الأخبار الحديثة',
-      'search', 'browse', 'find information', 'latest news', 'recent news'
-    ];
-    
-    // مؤشرات على الحاجة لمعلومات حديثة
-    const timeIndicators = [
-      'اليوم', 'أمس', 'هذا الأسبوع', 'هذا الشهر', 'الآن', 'حالياً',
-      'مؤخراً', 'جديد', 'حديث', 'متى', 'كم', 'أين',
-      'today', 'yesterday', 'this week', 'this month', 'now', 'currently',
-      'recently', 'new', 'recent', 'when', 'how much', 'where'
-    ];
-    
-    // مواضيع تحتاج معلومات حديثة
-    const currentTopics = [
-      'سعر', 'أسعار', 'الأسهم', 'العملة', 'الطقس', 'الأخبار',
-      'أحداث', 'تحديثات', 'إحصائيات', 'بيانات',
-      'price', 'prices', 'stock', 'currency', 'weather', 'news',
-      'events', 'updates', 'statistics', 'data'
-    ];
-
-    // فحص التطابقات المباشرة
-    const hasDirectSearch = directSearchTerms.some(term => msg.includes(term));
-    const hasTimeIndicator = timeIndicators.some(term => msg.includes(term));
-    const hasCurrentTopic = currentTopics.some(term => msg.includes(term));
-    
-    // استخدام العتبة الديناميكية للحكم
-    const threshold = settings.dynamicThreshold || 0.6;
-    let searchScore = 0;
-    
-    if (hasDirectSearch) searchScore += 0.6;
-    if (hasTimeIndicator) searchScore += 0.3;
-    if (hasCurrentTopic) searchScore += 0.4;
-    
-    // أسئلة تحتاج معلومات حديثة
-    if (msg.includes('؟') || msg.includes('?')) {
-      if (hasTimeIndicator || hasCurrentTopic) searchScore += 0.2;
-    }
-    
-    return searchScore >= threshold;
-  }
-
-  const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
-  
-  // استخراج موضوع البحث بطريقة ذكية
-  function extractSearchQuery(text) {
-    // إزالة كلمات الاستفهام والأوامر
-    let cleanText = text
-      .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
-      .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
-      .replace(/\?$/i, '')
-      .trim();
-    
-    return cleanText || text.trim();
-  }
-  
-  const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
-
-  // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
-
-  const payload = {
-    chatHistory,
-    attachments: attachments.map(file => ({
-      name: file.name, type: file.type, size: file.size,
-      content: file.content, dataType: file.dataType, mimeType: file.mimeType
-    })),
-    settings,
-    meta: { forceWebBrowsing, searchQuery }
-  };
-
-  try {
-    await sendRequestToServer(payload);
-  } catch (error) {
-    console.error('Error sending request to server:', error);
-    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
-  }
-}
-
-async function sendRequestToServer(payload) {
-  try {
-    const token = localStorage.getItem('authToken');
-
-    // 1) إنشاء المتحكّم وربطه بحالة البث
-    const controller = new AbortController();
-    streamingState.streamController = controller;
-
-    // 2) الطلب مع signal للإلغاء الفوري
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server Error:', response.status, errorText);
-      throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        appendToStreamingMessage(chunk);
-      }
-
-      // اكتمال طبيعي
-      appendToStreamingMessage('', true);
-
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
-        console.debug('Streaming aborted by user.');
-        return;
-      }
-      throw error;
-
-    } finally {
-      // تنظيف المقبض - لا تغيّر isStreaming هنا (تُدار في append/cancel)
-      streamingState.streamController = null;
-    }
-
-  } catch (error) {
-    // أخطاء شبكة/خادم
-    console.error('Fetch error:', error);
-    if (error.name !== 'AbortError') {
-      appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
-    }
-    throw error;
-  }
-}
-
-// Rest of the existing functions (chat management, UI functions, etc.)
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function scrollToBottom() {
-    const messagesArea = document.getElementById('messagesArea');
-    // التمرير الفوري للأسفل
-    messagesArea.scrollTop = messagesArea.scrollHeight;
-
-    // التمرير السلس للأسفل كنسخة احتياطية
-    setTimeout(() => {
-        messagesArea.scrollTo({
-            top: messagesArea.scrollHeight,
-            behavior: 'smooth'
-        });
-    }, 50);
-}
-
-function updateSendButton() {
-  const input = document.getElementById('messageInput');
-  const sendButton = document.getElementById('sendButton');
-  const fileInput = document.getElementById('fileInput');
-
-  const hasText = input.value.trim().length > 0;
-  const hasFiles = fileInput.files.length > 0;
-
-  // إزالة أي ألوان سابقة
-  sendButton.classList.remove(
-    'bg-red-600', 'hover:bg-red-700',
-    'bg-zeus-accent', 'hover:bg-zeus-accent-hover',
-    'bg-gray-600', 'cursor-not-allowed', 'opacity-60'
-  );
-
-  if (streamingState.isStreaming) {
-    sendButton.disabled = false;
-    sendButton.onclick = () => cancelStreaming('button');
-    sendButton.innerHTML = '<i class="fas fa-stop"></i>';
-    sendButton.classList.add('bg-red-600', 'hover:bg-red-700');
-  } else {
-    const enabled = hasText || hasFiles;
-    sendButton.disabled = !enabled;
-    sendButton.onclick = () => sendMessage();
-    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-
-    if (enabled) {
-      sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
-    } else {
-      sendButton.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-60');
-    }
-  }
-}
-
-// ==== إلغاء البث الحالي ====
-function cancelStreaming(reason = 'user') {
-  if (!streamingState.isStreaming) return;
-
-  try {
-    if (streamingState.streamController) {
-      streamingState.streamController.abort(); // يقطع fetch فوراً
-    }
-  } catch (_) {}
-
-  // إنهاء بصري أنيق مع حفظ ما وصلنا إليه
-  appendToStreamingMessage('\n\n⏹️ تم إيقاف التوليد.', true);
-
-  // تحديث الحالة والزر
-  streamingState.isStreaming = false;
-  streamingState.streamController = null;
-  updateSendButton();
-
-  // إشعار اختياري
-  showNotification('تم إيقاف التوليد', 'info');
-}
-
-// إلغاء عند إغلاق/تحديث الصفحة
-window.addEventListener('beforeunload', () => {
-  if (streamingState.isStreaming && streamingState.streamController) {
-    streamingState.streamController.abort();
-  }
-});
-
-// اختصار لوحة المفاتيح: Escape يوقف البث
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && streamingState.isStreaming) {
-    cancelStreaming('escape');
-  }
-});
-
-// Chat management functions
-function showSources(button) {
-    const messageElement = button.closest('.chat-bubble');
-    const content = messageElement.getAttribute('data-content');
-
-    // استخراج المصادر من المحتوى
-    const sourcesMatch = content.match(/\*\*🔍 المصادر:\*\*\n(.*?)$/s) || content.match(/\*\*المصادر:\*\*\n(.*?)$/s);
-    if (sourcesMatch) {
-        const sourcesText = sourcesMatch[1].trim();
-
-        // إنشاء نافذة منبثقة للمصادر
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-        modal.innerHTML = `
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">🔍 مصادر البحث</h3>
-                    <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="space-y-4">
-                    ${marked.parse(sourcesText).replace(/<ul>/g, '<ul class="list-disc pl-6 text-gray-700 dark:text-gray-300">')}
-                </div>
-                <div class="mt-4 text-right">
-                    <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg">
-                        إغلاق
-                    </button>
-                </div>
+    </div>
+
+    <!-- نافذة إدارة المزودين المخصصين -->
+    <div id="customProvidersModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customProvidersTitle">
+        <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="customProvidersTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة المزودين المخصصين</h3>
+                <button onclick="closeCustomProvidersManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="إغلاق نافذة المزوّدين المخصصين" title="إغلاق نافذة المزوّدين المخصصين">
+  <i class="fas fa-times" aria-hidden="true"></i>
+</button>
             </div>
-        `;
 
-        document.body.appendChild(modal);
+            <div class="mb-6">
+                <button onclick="addCustomProvider()" class="w-full btn-custom btn-primary">
+                    <i class="fas fa-plus ml-2"></i>إضافة مزود مخصص جديد
+                </button>
+            </div>
 
-        // إغلاق النافذة عند النقر خارجها
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    } else {
-        showNotification('لا توجد مصادر متاحة لهذه الرسالة', 'info');
-    }
-}
+            <div id="customProvidersContainer" class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- سيتم ملء المزودين المخصصين هنا -->
+            </div>
+
+            <div class="flex justify-end mt-6 space-x-3 space-x-reverse">
+                <button onclick="closeCustomProvidersManager()" class="btn-custom btn-secondary">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- داخل #app -->
+
+<!-- داخل #app وقبل أي محتوى آخر -->
+<div id="bgCanvas" class="absolute inset-0 -z-10 bg-calm pointer-events-none"></div>
+
+<div class="flex w-full h-full">
+
+        <div class="flex-1 flex flex-col bg-black">
+            <header class="flex-shrink-0 px-6 py-4 border-b border-gray-800"
+        style="background:
+          linear-gradient(180deg, rgba(45,156,255,0.10), rgba(10,15,26,0.92) 45%),
+          url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 200%22 preserveAspectRatio=%22none%22><polyline points=%220,150 150,40 210,90 300,30 380,120 470,10 560,100 650,20 800,120%22 fill=%22none%22 stroke=%22rgba(111,183,255,0.35)%22 stroke-width=%223%22/></svg>')
+          no-repeat center/cover, #0a0f1a;">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4 space-x-reverse">
+                        <button onclick="openSidebar()" aria-label="فتح الشريط الجانبي" aria-controls="sidebar" aria-expanded="false"
+        class="text-gray-400 hover:text-gray-200 p-2 rounded-lg hover:bg-gray-800 transition-colors" title="فتح الشريط الجانبي">
+  <i class="fas fa-bars text-xl" aria-hidden="true"></i>
+</button>
+                        <div class="flex items-center space-x-3 space-x-reverse">
+                            <div class="zeus-logo w-8 h-8 rounded-full"></div>
+                            <div>
+                                <h1 class="header-title text-xl font-bold text-white">شات زيوس</h1>
+                                <p class="header-subtitle text-sm text-gray-400">إله الرعد والحكمة</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 space-x-reverse">
+    <!-- سيتم حقن الأفاتار + قائمة الحساب المنسدلة هنا عبر JavaScript -->
+    <div id="user-info-container"></div>
+</div>
+                </div>
+            </header>
+
+            <main class="flex-1 flex flex-col overflow-hidden">
+                <div id="welcomeScreen" class="flex-1 flex items-center justify-center p-8">
+                    <div class="text-center max-w-2xl">
+                        <div class="zeus-logo w-20 h-20 mx-auto mb-6 rounded-full"></div>
+                        <h2 class="text-3xl font-bold text-white mb-4">مرحباً بك في شات زيوس</h2>
+                        <p class="text-gray-400 text-lg mb-8">إله الرعد والحكمة في خدمتك. ابدأ محادثة جديدة واكتشف قوة الذكاء الاصطناعي.</p>
+
+                        <div class="welcome-grid grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                            <div class="glass-effect p-6 rounded-xl">
+                                <i class="fas fa-lightbulb text-zeus-accent text-2xl mb-4"></i>
+                                <h3 class="text-white font-semibold mb-2">أسئلة ذكية</h3>
+                                <p class="text-gray-400 text-sm">احصل على إجابات دقيقة ومفيدة لجميع استفساراتك</p>
+                            </div>
+                            <div class="glass-effect p-6 rounded-xl">
+                                <i class="fas fa-code text-zeus-accent text-2xl mb-4"></i>
+                                <h3 class="text-white font-semibold mb-2">مساعدة برمجية</h3>
+                                <p class="text-gray-400 text-sm">حلول برمجية متقدمة وشرح للأكواد المعقدة</p>
+                            </div>
+                            <div class="glass-effect p-6 rounded-xl">
+                                <i class="fas fa-language text-zeus-accent text-2xl mb-4"></i>
+                                <h3 class="text-white font-semibold mb-2">دعم متعدد اللغات</h3>
+                                <p class="text-gray-400 text-sm">تفاعل بالعربية والإنجليزية بسهولة تامة</p>
+                            </div>
+                            <div class="glass-effect p-6 rounded-xl">
+                                <i class="fas fa-bolt text-zeus-accent text-2xl mb-4"></i>
+                                <h3 class="text-white font-semibold mb-2">استجابات سريعة</h3>
+                                <p class="text-gray-400 text-sm">ردود فورية وذكية تلبي احتياجاتك</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="messagesContainer" class="hidden flex-1 flex flex-col overflow-hidden">
+                    <div id="messagesArea" class="flex-1 overflow-y-auto p-6 space-y-4"
+     aria-live="polite" aria-atomic="false">
+</div>
+                </div>
+
+               <div class="flex-shrink-0 border-t border-gray-800 bg-black p-6 footer-input">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="relative">
+                            <div id="filePreviewContainer" class="hidden mb-4">
+                                <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-300">الملفات المرفقة:</span>
+                                        <button onclick="clearFileInput()" class="text-gray-400 hover:text-gray-200 text-sm">
+                                            <i class="fas fa-times ml-1"></i>مسح الكل
+                                        </button>
+                                    </div>
+                                    <div id="filePreviewList" class="flex flex-wrap gap-2">
+                                        <!-- File previews will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-end space-x-3 space-x-reverse">
+    <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
+    <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700"
+       aria-label="إرفاق ملف" title="إرفاق ملف">
+  <i class="fas fa-paperclip text-2xl" aria-hidden="true"></i>
+  <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)" aria-label="اختيار ملف">
+</label>
+
+    <!-- الخطوة 2: مربع النص يأتي بعده -->
+    <div class="flex-1 relative">
+        <textarea
+            id="messageInput"
+            placeholder="تكلم عن أي شيء."
+            class="chat-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-zeus-accent focus:border-transparent resize-none"
+            rows="1"
+            style="max-height: 128px;"
+        ></textarea>
+    </div>
+
+    <!-- الخطوة 3: زر الإرسال يبقى في النهاية (أقصى اليسار) -->
+    <button
+  id="sendButton"
+  onclick="sendMessage()"
+  disabled
+  class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+  aria-label="إرسال الرسالة" title="إرسال الرسالة">
+  <i class="fas fa-paper-plane" aria-hidden="true"></i>
+</button>
+</div>
+
+
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500 text-center">
+                            قد يرتكب زيوس اخطاء، الرجاء التحقق من المعلومات
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="sourcesModal" class="hidden"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
