@@ -109,39 +109,109 @@ function appendToStreamingMessage(text, isComplete = false) {
 }
 
 // ===== دوالّ جديدة توضع فوق completeStreamingMessage() =====
+// === [جديد] فتح خارجي موثوق حتى على iOS (يحل مشكلة عدم فتح الروابط) ===
+function openExternal(url) {
+  try {
+    const w = window.open(url, '_blank', 'noopener'); // محاولة مباشرة
+    if (w && typeof w.focus === 'function') w.focus();
 
-// 1) يحوّل "- [العنوان](https://...)" إلى {title,url,domain,favicon}
-function parseMarkdownLinks(md) {
-  return md
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('- ['))
-    .map(item => {
-      const m = item.match(/^\-\s+\[(.+?)\]\((https?:\/\/[^\s)]+)\)/);
-      if (!m) return null;
-      const rawTitle = m[1];
-      const rawUrl   = m[2];
-      const url = unwrapUrl(rawUrl);
-      let domain = looksLikeDomain(rawTitle)
-        ? rawTitle.replace(/^www\./,'')
-        : (new URL(url)).hostname.replace(/^www\./,'');
-      const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-      return { title: rawTitle, url, domain, favicon };
-    })
-    .filter(Boolean);
+    // احتياطي لو منع المتصفح window.open
+    if (!w) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  } catch (_) {
+    // آخر حل: افتح في نفس الصفحة
+    location.href = url;
+  }
 }
 
-// 2) يبني شريط المعاينة أسفل الرسالة + زر "المصادر" لفتح النافذة
+// === [جديد] تحقّق بسيط: هل النص دومين؟ ===
+function looksLikeDomain(text) {
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test((text || '').trim());
+}
+
+// === [جديد/موسّع] فكّ الروابط الملتفّة (Google/Vertex/MSN/Reddit/LinkedIn/Twitter/Facebook...) ===
+function unwrapUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname;
+
+    const isWrapper =
+      /vertexaisearch\.cloud\.google\.com$/.test(host) ||
+      /news\.google\.com$/.test(host) ||
+      /\.google\./.test(host) ||
+      /^t\.co$/.test(host) ||
+      /^lnkd\.in$/.test(host) ||
+      /^l\.facebook\.com$/.test(host) ||
+      /^lm\.facebook\.com$/.test(host) ||
+      /^go\.microsoft\.com$/.test(host) ||
+      /^r\.msn\.com$/.test(host) ||
+      /^out\.reddit\.com$/.test(host);
+
+    if (isWrapper) {
+      const real =
+        u.searchParams.get('url')   ||
+        u.searchParams.get('u')     ||
+        u.searchParams.get('q')     ||
+        u.searchParams.get('target')||
+        u.searchParams.get('to')    ||
+        u.searchParams.get('dest')  || '';
+      if (real) return new URL(real).toString();
+    }
+    return u.toString();
+  } catch { return rawUrl; }
+}
+
+// === [جديد/موسّع] تحويل Markdown إلى روابط مرتّبة مع إزالة تكرار الدومين + Favicon صحيح ===
+function parseMarkdownLinks(md) {
+  const seen = new Set();
+  const items = [];
+
+  md.split('\n').forEach(line => {
+    const l = line.trim();
+    if (!l.startsWith('- [')) return;
+
+    const m = l.match(/^\-\s+\[(.+?)\]\((https?:\/\/[^\s)]+)\)/);
+    if (!m) return;
+
+    const rawTitle = (m[1] || '').trim();
+    const rawUrl   = m[2];
+
+    const url = unwrapUrl(rawUrl);
+    const domain = (looksLikeDomain(rawTitle) ? rawTitle : (new URL(url)).hostname)
+      .replace(/^www\./,'')
+      .toLowerCase();
+
+    if (seen.has(domain)) return;    // إزالة التكرار مع الحفاظ على أول ظهور (أسلوب GPT)
+    seen.add(domain);
+
+    const title   = rawTitle || domain; // fallback للعنوان إذا كان فارغًا
+    const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    items.push({ title, url, domain, favicon });
+  });
+
+  return items;
+}
+
+// === [جديد/محدّث] شريط الأيقونات أسفل الرسالة + زر "المصادر" ===
 function createSourcesInlineBar(containerEl, links) {
   if (!links || links.length === 0) return;
-  const preview = links.slice(0, 3);
+
+  const preview = links.slice(0, 3); // بعد dedupe
   const wrapper = document.createElement('div');
   wrapper.className = 'sources-inline';
 
   const icons = document.createElement('div');
   icons.className = 'sources-icons';
   icons.innerHTML = preview.map(l => `
-    <a class="source-icon" href="${l.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+    <a class="source-icon" href="${l.url}" target="_blank" rel="noopener"
+       onclick="event.preventDefault(); event.stopPropagation(); openExternal('${l.url.replace(/'/g, "\\'")}');">
       <img src="${l.favicon}" alt="${l.domain}" loading="lazy">
     </a>
   `).join('');
@@ -160,43 +230,35 @@ function createSourcesInlineBar(containerEl, links) {
   containerEl.appendChild(wrapper);
 }
 
-// 3) نافذة كروت المصادر
+// === [جديد/محدّث] نافذة "اقتباسات" بأسلوب GPT + RTL + فتح مضمون على iOS ===
 function openSourcesModal(links) {
+  // حافظ على ترتيب الظهور كما هو (بعد إزالة التكرار)
   const normalized = links.map(l => {
-    let title = l.title || '';
-    let excerpt = '';
-    const sep = title.includes(' — ') ? ' — ' : (title.includes(' - ') ? ' - ' : null);
-    if (sep) {
-      const parts = title.split(sep);
-      if (parts.length >= 2) {
-        title = parts[0].trim();
-        excerpt = parts.slice(1).join(sep).trim();
-      }
-    }
-    return { ...l, title, excerpt };
+    const title = (l.title && l.title.trim()) || l.domain; // fallback أقوى
+    return { ...l, title };
   });
 
   const modal = document.createElement('div');
   modal.className = 'gpt-modal-overlay';
   modal.innerHTML = `
-    <div class="gpt-modal">
+    <div class="gpt-modal" dir="rtl">
       <div class="gpt-modal-top-pill"></div>
       <div class="gpt-modal-header">
-        <div class="gpt-modal-title">اقتطاسات</div>
+        <div class="gpt-modal-title">اقتباسات</div>
         <button class="gpt-modal-close" aria-label="إغلاق">&times;</button>
       </div>
       <div class="gpt-modal-body">
         ${normalized.map(item => `
-          <a class="gpt-source-item" href="${item.url}" target="_blank" rel="noopener">
+          <a class="gpt-source-item" href="${item.url}" target="_blank" rel="noopener"
+             onclick="event.preventDefault(); openExternal('${item.url.replace(/'/g, "\\'")}');">
             <div class="gpt-source-title-line">
               <img class="gpt-favicon" src="${item.favicon}" alt="">
-              <span class="gpt-source-title">${escapeHtml(item.title || item.domain)}</span>
+              <span class="gpt-source-title">${escapeHtml(((item.title && item.title.trim()) || item.domain))}</span>
             </div>
             <div class="gpt-source-subline">
               <span class="gpt-source-domain">${escapeHtml(item.domain)}</span>
               <span class="gpt-source-badge" aria-hidden="true"></span>
             </div>
-            ${item.excerpt ? `<div class="gpt-source-excerpt">${escapeHtml(item.excerpt)}</div>` : ''}
           </a>
         `).join('')}
       </div>
@@ -207,36 +269,6 @@ function openSourcesModal(links) {
   const close = () => modal.remove();
   modal.querySelector('.gpt-modal-close').addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-}
-
-function unwrapUrl(rawUrl) {
-  try {
-    const u = new URL(rawUrl);
-    const host = u.hostname;
-    if (
-      /google\./.test(host) ||
-      /vertexaisearch\.cloud\.google\.com/.test(host) ||
-      /news\.google\.com/.test(host) ||
-      /t\.co$/.test(host) ||
-      /lnkd\.in$/.test(host) ||
-      /l\.facebook\.com$/.test(host) ||
-      /lm\.facebook\.com$/.test(host)
-    ) {
-      const real =
-        u.searchParams.get('url') ||
-        u.searchParams.get('u')   ||
-        u.searchParams.get('q')   ||
-        u.searchParams.get('target') || '';
-      if (real) return new URL(real).toString();
-    }
-    return u.toString();
-  } catch {
-    return rawUrl;
-  }
-}
-
-function looksLikeDomain(text) {
-  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test((text || '').trim());
 }
 
 // ====== بعد (نسخة جديدة بالكامل) ======
