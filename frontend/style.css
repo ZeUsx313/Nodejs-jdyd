@@ -905,13 +905,15 @@ pre code .hljs-title {
     color: #f9fafb;
     padding: 0.75rem 1rem;
     text-decoration: none;
-    display: block;
+    display: flex; /* استخدام flex لمحاذاة الأيقونة والنص */
+    align-items: center;
     transition: background-color 0.2s ease;
     font-size: 0.875rem;
 }
 
 .dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #374151;
+    color: #ffffff;
 }
 
 .dropdown-item i {
@@ -1080,31 +1082,31 @@ html, body{
     max-width: 200px;
     transform: scale(0.9); /* تصغيرها قليلاً لتناسب التصميم الجديد */
 }
-
-/* ✨ دعم عرض الصور المصغرة والمرفقات في فقاعات مستقلة */
-.attachment-thumbnail {
-    width: 180px;
-    max-width: 100%;
-    height: auto;
-    border-radius: 12px;
-    object-fit: cover;
-    background-color: #2d2d2d;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-.attachment-thumbnail:hover {
-    transform: scale(1.03);
+/* أنماط القائمة المنسدلة للمستخدم */
+.dropdown {
+    position: relative;
+    display: inline-block;
 }
 
-/* فقاعة شفافة للمرفقات */
-.chat-bubble.glass-effect {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    padding: 0.5rem 1rem;
+.dropdown-content {
+    position: absolute;
+    right: 0;
+    background-color: #1f2937;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: 0.5rem;
+    border: 1px solid #374151;
 }
+
+.dropdown-content a {
+    color: #f3f4f6;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.2s ease;
+}
+
 .dropdown-content a:hover {
     background-color: #374151;
 }
@@ -1437,44 +1439,42 @@ body.theme-light .footer-input { background-color: #ffffff; color:#111827; borde
 /* قائمة المصادر (مخفية افتراضياً) */
 .sources-list.hidden { display: none; }
 
-/* أنماط المنزلق المخصص */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  background: rgb(209 213 219);
-  border-radius: 3px;
-  outline: none;
-  transition: background 0.2s;
+/* تحسين مظهر نافذة المصادر */
+.sources-modal {
+    background: var(--zeus-primary);
+    color: var(--zeus-text);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    max-width: 600px;
+    width: 100%;
 }
 
-.dark input[type="range"] {
-  background: rgb(75 85 99);
+.sources-modal h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: rgb(45 156 255);
-  cursor: pointer;
-  transition: all 0.2s;
+.sources-modal ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 1rem;
+    color: var(--zeus-text);
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
-  background: rgb(30 127 224);
-  transform: scale(1.1);
+.sources-modal ul li {
+    margin-bottom: 0.5rem;
 }
 
-input[type="range"]::-moz-range-thumb {
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: rgb(45 156 255);
-  cursor: pointer;
-  border: none;
+.sources-modal a {
+    color: var(--zeus-accent);
+    text-decoration: underline;
+}
+
+.sources-modal a:hover {
+    text-decoration: none;
+}
   transition: all 0.2s;
 }
 
