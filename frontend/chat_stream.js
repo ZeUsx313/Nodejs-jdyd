@@ -119,11 +119,14 @@ function parseMarkdownLinks(md) {
     .map(item => {
       const m = item.match(/^\-\s+\[(.+?)\]\((https?:\/\/[^\s)]+)\)/);
       if (!m) return null;
-      const title = m[1];
-      const url = m[2];
-      const domain = (new URL(url)).hostname.replace(/^www\./,'');
+      const rawTitle = m[1];
+      const rawUrl   = m[2];
+      const url = unwrapUrl(rawUrl);
+      let domain = looksLikeDomain(rawTitle)
+        ? rawTitle.replace(/^www\./,'')
+        : (new URL(url)).hostname.replace(/^www\./,'');
       const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-      return { title, url, domain, favicon };
+      return { title: rawTitle, url, domain, favicon };
     })
     .filter(Boolean);
 }
@@ -131,26 +134,27 @@ function parseMarkdownLinks(md) {
 // 2) يبني شريط المعاينة أسفل الرسالة + زر "المصادر" لفتح النافذة
 function createSourcesInlineBar(containerEl, links) {
   if (!links || links.length === 0) return;
-
   const preview = links.slice(0, 3);
   const wrapper = document.createElement('div');
   wrapper.className = 'sources-inline';
 
-  const chips = document.createElement('div');
-  chips.className = 'sources-chips';
-  chips.innerHTML = preview.map(l => `
-    <a class="source-chip" href="${l.url}" target="_blank" rel="noopener">
-      <img src="${l.favicon}" alt="" loading="lazy">
-      <span class="source-domain">${escapeHtml(l.domain)}</span>
+  const icons = document.createElement('div');
+  icons.className = 'sources-icons';
+  icons.innerHTML = preview.map(l => `
+    <a class="source-icon" href="${l.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <img src="${l.favicon}" alt="${l.domain}" loading="lazy">
     </a>
   `).join('');
-  wrapper.appendChild(chips);
+  wrapper.appendChild(icons);
 
   const openBtn = document.createElement('button');
   openBtn.type = 'button';
   openBtn.className = 'sources-open-btn';
   openBtn.textContent = 'المصادر';
-  openBtn.addEventListener('click', () => openSourcesModal(links));
+  openBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    openSourcesModal(links);
+  });
   wrapper.appendChild(openBtn);
 
   containerEl.appendChild(wrapper);
@@ -158,36 +162,81 @@ function createSourcesInlineBar(containerEl, links) {
 
 // 3) نافذة كروت المصادر
 function openSourcesModal(links) {
+  const normalized = links.map(l => {
+    let title = l.title || '';
+    let excerpt = '';
+    const sep = title.includes(' — ') ? ' — ' : (title.includes(' - ') ? ' - ' : null);
+    if (sep) {
+      const parts = title.split(sep);
+      if (parts.length >= 2) {
+        title = parts[0].trim();
+        excerpt = parts.slice(1).join(sep).trim();
+      }
+    }
+    return { ...l, title, excerpt };
+  });
+
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.className = 'gpt-modal-overlay';
   modal.innerHTML = `
-    <div class="sources-modal">
-      <div class="sources-modal-header">
-        <h3>مصادر البحث</h3>
-        <button class="sources-modal-close" aria-label="إغلاق">&times;</button>
+    <div class="gpt-modal">
+      <div class="gpt-modal-top-pill"></div>
+      <div class="gpt-modal-header">
+        <div class="gpt-modal-title">اقتطاسات</div>
+        <button class="gpt-modal-close" aria-label="إغلاق">&times;</button>
       </div>
-      <div class="sources-modal-body">
-        ${links.map(l => `
-          <div class="source-card">
-            <div class="source-card-left">
-              <img class="source-favicon" src="${l.favicon}" alt="">
+      <div class="gpt-modal-body">
+        ${normalized.map(item => `
+          <a class="gpt-source-item" href="${item.url}" target="_blank" rel="noopener">
+            <div class="gpt-source-title-line">
+              <img class="gpt-favicon" src="${item.favicon}" alt="">
+              <span class="gpt-source-title">${escapeHtml(item.title || item.domain)}</span>
             </div>
-            <div class="source-card-main">
-              <a class="source-title" href="${l.url}" target="_blank" rel="noopener">${escapeHtml(l.title)}</a>
-              <div class="source-domain-text">${escapeHtml(l.domain)}</div>
+            <div class="gpt-source-subline">
+              <span class="gpt-source-domain">${escapeHtml(item.domain)}</span>
+              <span class="gpt-source-badge" aria-hidden="true"></span>
             </div>
-            <div class="source-card-right">
-              <a class="btn-open" href="${l.url}" target="_blank" rel="noopener">فتح</a>
-            </div>
-          </div>
+            ${item.excerpt ? `<div class="gpt-source-excerpt">${escapeHtml(item.excerpt)}</div>` : ''}
+          </a>
         `).join('')}
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  modal.querySelector('.sources-modal-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  const close = () => modal.remove();
+  modal.querySelector('.gpt-modal-close').addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+}
+
+function unwrapUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname;
+    if (
+      /google\./.test(host) ||
+      /vertexaisearch\.cloud\.google\.com/.test(host) ||
+      /news\.google\.com/.test(host) ||
+      /t\.co$/.test(host) ||
+      /lnkd\.in$/.test(host) ||
+      /l\.facebook\.com$/.test(host) ||
+      /lm\.facebook\.com$/.test(host)
+    ) {
+      const real =
+        u.searchParams.get('url') ||
+        u.searchParams.get('u')   ||
+        u.searchParams.get('q')   ||
+        u.searchParams.get('target') || '';
+      if (real) return new URL(real).toString();
+    }
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function looksLikeDomain(text) {
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test((text || '').trim());
 }
 
 // ====== بعد (نسخة جديدة بالكامل) ======
