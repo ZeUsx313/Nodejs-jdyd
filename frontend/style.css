@@ -1501,3 +1501,72 @@ input[type="range"]::-moz-range-thumb:hover {
 .peer:focus ~ div {
   box-shadow: 0 0 0 3px rgba(45, 156, 255, 0.1);
 }
+
+/* ==== Sources Inline Bar ==== */
+.sources-inline{
+  display:flex; align-items:center; gap:.5rem;
+  margin-top:.5rem;
+}
+.sources-chips{ display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.source-chip{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.25rem .5rem;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:.5rem;
+  text-decoration:none;
+  background: rgba(255,255,255,.04);
+}
+.source-chip:hover{ background: rgba(255,255,255,.08); }
+.source-chip img{
+  width:16px; height:16px; border-radius:4px; display:block;
+}
+.source-domain{ font-size:.8rem; color:#e5e7eb; }
+
+.sources-open-btn{
+  margin-inline-start:.25rem;
+  padding:.35rem .6rem;
+  border:1px solid rgba(255,255,255,.16);
+  background:transparent; color:#e5e7eb;
+  border-radius:.5rem; cursor:pointer;
+}
+.sources-open-btn:hover{ background: rgba(255,255,255,.08); }
+
+/* ==== Sources Modal ==== */
+.sources-modal{
+  width:min(680px, 92vw);
+  max-height:80vh; overflow:auto;
+  background: rgba(10,10,10,.92);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:.75rem; padding:1rem;
+  backdrop-filter: blur(8px);
+}
+.sources-modal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.75rem;
+}
+.sources-modal-header h3{
+  margin:0; font-size:1.05rem; color:#e5e7eb;
+}
+.sources-modal-close{
+  background:transparent; color:#e5e7eb; border:none; font-size:1.5rem; line-height:1; cursor:pointer;
+}
+.sources-modal-body{ display:flex; flex-direction:column; gap:.6rem; }
+
+.source-card{
+  display:grid; grid-template-columns: 28px 1fr auto; gap:.6rem;
+  align-items:center;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:.6rem; padding:.6rem .7rem;
+}
+.source-favicon{ width:20px; height:20px; border-radius:4px; display:block; }
+.source-title{
+  color:#e6f0ff; text-decoration:none; font-weight:600;
+}
+.source-title:hover{ text-decoration:underline; }
+.source-domain-text{ color:#9ca3af; font-size:.85rem; }
+.btn-open{
+  display:inline-block; padding:.35rem .6rem; border-radius:.5rem;
+  border:1px solid rgba(255,255,255,.16); color:#e5e7eb; text-decoration:none;
+}
+.btn-open:hover{ background: rgba(255,255,255,.08); }
