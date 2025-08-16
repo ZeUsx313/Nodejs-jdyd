@@ -108,6 +108,89 @@ function appendToStreamingMessage(text, isComplete = false) {
     }
 }
 
+// ===== دوالّ جديدة توضع فوق completeStreamingMessage() =====
+
+// 1) يحوّل "- [العنوان](https://...)" إلى {title,url,domain,favicon}
+function parseMarkdownLinks(md) {
+  return md
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.startsWith('- ['))
+    .map(item => {
+      const m = item.match(/^\-\s+\[(.+?)\]\((https?:\/\/[^\s)]+)\)/);
+      if (!m) return null;
+      const title = m[1];
+      const url = m[2];
+      const domain = (new URL(url)).hostname.replace(/^www\./,'');
+      const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      return { title, url, domain, favicon };
+    })
+    .filter(Boolean);
+}
+
+// 2) يبني شريط المعاينة أسفل الرسالة + زر "المصادر" لفتح النافذة
+function createSourcesInlineBar(containerEl, links) {
+  if (!links || links.length === 0) return;
+
+  const preview = links.slice(0, 3);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'sources-inline';
+
+  const chips = document.createElement('div');
+  chips.className = 'sources-chips';
+  chips.innerHTML = preview.map(l => `
+    <a class="source-chip" href="${l.url}" target="_blank" rel="noopener">
+      <img src="${l.favicon}" alt="" loading="lazy">
+      <span class="source-domain">${escapeHtml(l.domain)}</span>
+    </a>
+  `).join('');
+  wrapper.appendChild(chips);
+
+  const openBtn = document.createElement('button');
+  openBtn.type = 'button';
+  openBtn.className = 'sources-open-btn';
+  openBtn.textContent = 'المصادر';
+  openBtn.addEventListener('click', () => openSourcesModal(links));
+  wrapper.appendChild(openBtn);
+
+  containerEl.appendChild(wrapper);
+}
+
+// 3) نافذة كروت المصادر
+function openSourcesModal(links) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="sources-modal">
+      <div class="sources-modal-header">
+        <h3>مصادر البحث</h3>
+        <button class="sources-modal-close" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="sources-modal-body">
+        ${links.map(l => `
+          <div class="source-card">
+            <div class="source-card-left">
+              <img class="source-favicon" src="${l.favicon}" alt="">
+            </div>
+            <div class="source-card-main">
+              <a class="source-title" href="${l.url}" target="_blank" rel="noopener">${escapeHtml(l.title)}</a>
+              <div class="source-domain-text">${escapeHtml(l.domain)}</div>
+            </div>
+            <div class="source-card-right">
+              <a class="btn-open" href="${l.url}" target="_blank" rel="noopener">فتح</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector('.sources-modal-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+// ====== بعد (نسخة جديدة بالكامل) ======
 function completeStreamingMessage() {
   if (!streamingState.isStreaming) return;
 
@@ -118,8 +201,7 @@ function completeStreamingMessage() {
     if (indicator) indicator.remove();
     messageElement.classList.remove('streaming-message');
 
-    // --- جديد: استخراج قسم المصادر إن وجد ---
-    // نبحث عن بادئة المصادر التي يرسلها الخادم: **🔍 المصادر:**
+    // فصل المتن عن قسم **🔍 المصادر:**
     const fullText = streamingState.currentText || '';
     const splitToken = '\n**🔍 المصادر:**\n';
     let mainText = fullText, sourcesMd = '';
@@ -130,66 +212,29 @@ function completeStreamingMessage() {
       sourcesMd = fullText.slice(idx + splitToken.length);
     }
 
-    // إعادة عرض النص بدون قسم المصادر
+    // عرض المتن فقط داخل الفقاعة
     const contentEl = messageElement.querySelector('.message-content');
     if (contentEl) {
       contentEl.innerHTML = marked.parse(mainText);
-      // تمييز الكود وإضافة رأس للكود كما في الباقي
       contentEl.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
         addCodeHeader(block.parentElement);
       });
     }
 
-    // أزرار الرسالة (نسخ/إعادة توليد)
+    // أزرار (نسخ/إعادة توليد) تعمل على "المتن" فقط
     addMessageActions(messageElement, mainText);
 
-    // --- جديد: زر عرض/إخفاء المصادر إن توفّرت ---
+    // ✅ شريط معاينة + نافذة كروت للمصادر (بدون زر إظهار/إخفاء القديم)
     if (sourcesMd.trim()) {
-      const sources = sourcesMd
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.startsWith('- ['));
-
-      if (sources.length > 0) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mt-2';
-
-        // زر تبديل
-        const toggle = document.createElement('button');
-        toggle.className = 'btn-custom btn-secondary sources-toggle';
-        toggle.type = 'button';
-        toggle.textContent = 'عرض المصادر';
-        wrapper.appendChild(toggle);
-
-        // قائمة المصادر (مخفية افتراضياً)
-        const list = document.createElement('div');
-        list.className = 'sources-list hidden';
-        list.innerHTML = `
-          <ul class="list-disc pr-6 mt-2 space-y-1 text-sm text-gray-300">
-            ${sources.map(item => {
-              // استخراج [العنوان](الرابط)
-              const m = item.match(/\$begin:math:display$(.+?)\\$end:math:display$\$begin:math:text$(.+?)\\$end:math:text$/);
-              if (!m) return '';
-              const title = m[1], href = m[2];
-              return `<li><a href="${href}" target="_blank" rel="noopener" class="underline hover:no-underline">${escapeHtml(title)}</a></li>`;
-            }).join('')}
-          </ul>
-        `;
-        wrapper.appendChild(list);
-
-        toggle.addEventListener('click', () => {
-          const isHidden = list.classList.contains('hidden');
-          list.classList.toggle('hidden', !isHidden);
-          toggle.textContent = isHidden ? 'إخفاء المصادر' : 'عرض المصادر';
-        });
-
-        messageElement.appendChild(wrapper);
+      const links = parseMarkdownLinks(sourcesMd); // يستخدم Regex Markdown القياسي
+      if (links.length > 0) {
+        createSourcesInlineBar(messageElement, links); // بطاقات صغيرة + زر "المصادر"
       }
     }
   }
 
-  // حفظ الرسالة في المحادثة الصحيحة (الكود الأصلي كما هو)
+  // حفظ الرسالة في المحادثة الصحيحة (كما كان)
   const targetChatId = streamingState.chatId;
   if (targetChatId && chats[targetChatId] && (streamingState.currentText || '')) {
     const now = Date.now();
@@ -198,7 +243,7 @@ function completeStreamingMessage() {
     chats[targetChatId].order = now;
   }
 
-  // إعادة ضبط حالة البث
+  // إعادة الضبط
   streamingState.isStreaming = false;
   streamingState.currentMessageId = null;
   streamingState.streamingElement = null;
@@ -206,7 +251,6 @@ function completeStreamingMessage() {
   streamingState.streamController = null;
   streamingState.chatId = null;
 
-  // حفظ المحادثة
   saveCurrentChat(targetChatId);
   scrollToBottom();
 }
