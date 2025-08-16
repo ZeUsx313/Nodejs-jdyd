@@ -598,3 +598,46 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Chat management functions
+function showSources(button) {
+    const messageElement = button.closest('.chat-bubble');
+    const content = messageElement.getAttribute('data-content');
+
+    // استخراج المصادر من المحتوى
+    const sourcesMatch = content.match(/\*\*🔍 المصادر:\*\*\n(.*?)$/s) || content.match(/\*\*المصادر:\*\*\n(.*?)$/s);
+    if (sourcesMatch) {
+        const sourcesText = sourcesMatch[1].trim();
+
+        // إنشاء نافذة منبثقة للمصادر
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">🔍 مصادر البحث</h3>
+                    <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    ${marked.parse(sourcesText).replace(/<ul>/g, '<ul class="list-disc pl-6 text-gray-700 dark:text-gray-300">')}
+                </div>
+                <div class="mt-4 text-right">
+                    <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg">
+                        إغلاق
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // إغلاق النافذة عند النقر خارجها
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    } else {
+        showNotification('لا توجد مصادر متاحة لهذه الرسالة', 'info');
+    }
+}
