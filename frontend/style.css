@@ -905,15 +905,13 @@ pre code .hljs-title {
     color: #f9fafb;
     padding: 0.75rem 1rem;
     text-decoration: none;
-    display: flex; /* استخدام flex لمحاذاة الأيقونة والنص */
-    align-items: center;
+    display: block;
     transition: background-color 0.2s ease;
     font-size: 0.875rem;
 }
 
 .dropdown-item:hover {
-    background-color: #374151;
-    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-item i {
@@ -1439,42 +1437,44 @@ body.theme-light .footer-input { background-color: #ffffff; color:#111827; borde
 /* قائمة المصادر (مخفية افتراضياً) */
 .sources-list.hidden { display: none; }
 
-/* تحسين مظهر نافذة المصادر */
-.sources-modal {
-    background: var(--zeus-primary);
-    color: var(--zeus-text);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
-    max-width: 600px;
-    width: 100%;
+/* أنماط المنزلق المخصص */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgb(209 213 219);
+  border-radius: 3px;
+  outline: none;
+  transition: background 0.2s;
 }
 
-.sources-modal h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+.dark input[type="range"] {
+  background: rgb(75 85 99);
 }
 
-.sources-modal ul {
-    list-style-type: disc;
-    padding-left: 1.5rem;
-    margin-top: 1rem;
-    color: var(--zeus-text);
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: rgb(45 156 255);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.sources-modal ul li {
-    margin-bottom: 0.5rem;
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: rgb(30 127 224);
+  transform: scale(1.1);
 }
 
-.sources-modal a {
-    color: var(--zeus-accent);
-    text-decoration: underline;
-}
-
-.sources-modal a:hover {
-    text-decoration: none;
-}
+input[type="range"]::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: rgb(45 156 255);
+  cursor: pointer;
+  border: none;
   transition: all 0.2s;
 }
 
