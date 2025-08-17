@@ -253,6 +253,8 @@ function switchMode(mode) {
     // 1) ثبّت القيمة
     const next = (mode === 'team') ? 'team' : 'chat';
     if (settings.activeMode === next) return;
+    
+    console.log(`Switching mode from ${settings.activeMode} to ${next}`);
     settings.activeMode = next;
 
     // 2) تمييز الأزرار
@@ -292,8 +294,18 @@ function switchMode(mode) {
       document.getElementById('welcomeScreen').classList.remove('hidden');
     }
 
-    // 6) حفظ الإعدادات
-    if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
+    // 6) حفظ الإعدادات مع التأكد من وجود إعدادات الفريق
+    if (!settings.team) {
+      settings.team = {
+        coordinator: { provider: 'gemini', model: 'gemini-1.5-pro', name: 'الوكيل' },
+        members: [],
+        turnStyle: 'sequential'
+      };
+    }
+    
+    if (typeof saveSettingsToDB === 'function') {
+      saveSettingsToDB().catch(err => console.error('Error saving mode switch:', err));
+    }
 
   } catch (e) {
     console.error('switchMode error:', e);
