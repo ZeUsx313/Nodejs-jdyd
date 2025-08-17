@@ -20,7 +20,17 @@ const defaultSettings = {
   customPrompt: '',
   apiKeyRetryStrategy: 'sequential',
   fontSize: 18,
-  theme: 'theme-black',
+  theme: 'theme-black',  
+
+// 🚩 وضع التطبيق
+  activeMode: 'chat', // 'chat' | 'team'
+  // ⚙️ إعدادات وضع الفريق (عام، ليس للبرمجة فقط)
+  team: {
+    coordinator: { provider: 'gemini', model: 'gemini-1.5-pro', name: 'الوكيل' },
+    members: [],
+    turnStyle: 'sequential' // 'sequential' | 'parallel' (لاحقًا)
+  },
+
   // 🔎 إعدادات التصفح الجديدة
   enableWebBrowsing: true,
   browsingMode: 'gemini',      // 'gemini' | 'proxy'
@@ -234,3 +244,92 @@ function zeusFlash() {
   setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
 }
 });  // نهاية DOMContentLoaded
+
+// ===========================
+// تبديل وضع التطبيق (دردشة/فريق)
+// ===========================
+function switchMode(mode) {
+  try {
+    // 1) ثبّت القيمة
+    const next = (mode === 'team') ? 'team' : 'chat';
+    if (settings.activeMode === next) return;
+    settings.activeMode = next;
+
+    // 2) تمييز الأزرار
+    const chatBtn = document.getElementById('btnModeChat');
+    const teamBtn = document.getElementById('btnModeTeam');
+    if (chatBtn && teamBtn) {
+      chatBtn.classList.toggle('btn-primary', next === 'chat');
+      chatBtn.classList.toggle('btn-secondary', next !== 'chat');
+      teamBtn.classList.toggle('btn-primary', next === 'team');
+      teamBtn.classList.toggle('btn-secondary', next !== 'team');
+      chatBtn.setAttribute('aria-pressed', String(next === 'chat'));
+      teamBtn.setAttribute('aria-pressed', String(next === 'team'));
+    }
+
+    // 3) تحديث العناوين وأزرار الواجهة
+    const headerTitle = document.querySelector('.header-title');
+    if (headerTitle) headerTitle.textContent = (next === 'team')
+      ? 'غرف زيوس (وضع الفريق)'
+      : 'شات زيوس';
+
+    const newBtn = document.querySelector('#sidebar button[onclick="startNewChat()"]');
+    if (newBtn) {
+      newBtn.innerHTML = (next === 'team')
+        ? '<i class="fas fa-plus ml-2"></i>غرفة جديدة'
+        : '<i class="fas fa-plus ml-2"></i>محادثة جديدة';
+    }
+
+    // 4) تحديث قائمة التاريخ
+    if (typeof displayChatHistory === 'function') displayChatHistory();
+
+    // 5) إذا كانت المحادثة المعروضة حالياً من وضع آخر -> اخفِها
+    if (currentChatId && chats[currentChatId] && ((chats[currentChatId].mode || 'chat') !== next)) {
+      currentChatId = null;
+      const msgArea = document.getElementById('messagesArea');
+      if (msgArea) msgArea.innerHTML = '';
+      document.getElementById('messagesContainer').classList.add('hidden');
+      document.getElementById('welcomeScreen').classList.remove('hidden');
+    }
+
+    // 6) حفظ الإعدادات
+    if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
+
+  } catch (e) {
+    console.error('switchMode error:', e);
+  }
+}
+
+    // 4) تفريغ منطقة الرسائل وإظهار شاشة الترحيب
+    const messagesArea = document.getElementById('messagesArea');
+    if (messagesArea) messagesArea.innerHTML = '';
+    const welcome = document.getElementById('welcomeScreen');
+    const msgsWrap = document.getElementById('messagesContainer');
+    if (welcome && msgsWrap) {
+      welcome.classList.remove('hidden');
+      msgsWrap.classList.add('hidden');
+    }
+
+    // 5) إعادة رسم قائمة «المحادثات/الغرف» بناءً على الوضع
+    // ملاحظة: تعتمد على دالة displayChatHistory() الحالية؛
+    // سنخفي العناصر التي لا تطابق الوضع عبر data-mode إن كانت موجودة،
+    // وإلا نرسم كامل القائمة ثم نخفي بصريًا حسب العنوان.
+    if (typeof displayChatHistory === 'function') {
+      displayChatHistory();
+      // فلترة بسيطة بصريًا إن كنت تُضيف data-team في عناصر القائمة لاحقًا
+      const items = document.querySelectorAll('#chatHistory .chat-item');
+      items.forEach(el => {
+        const isTeam = el.getAttribute('data-mode') === 'team' || /غرفة|فريق/i.test(el.textContent || '');
+        el.style.display = (next === 'team')
+          ? (isTeam ? '' : 'none')
+          : (isTeam ? 'none' : '');
+      });
+    }
+
+    // 6) حفظ الإعداد فورًا (يبقي اختيار الوضع عبر الأجهزة)
+    if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
+
+  } catch (e) {
+    console.error('switchMode error:', e);
+  }
+}
