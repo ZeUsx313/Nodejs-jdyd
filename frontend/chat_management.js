@@ -2,7 +2,20 @@ async function startNewChat() {
   const chatId = Date.now().toString();
   currentChatId = chatId;
   const now  = Date.now();
-  const mode = (settings && settings.activeMode === 'team') ? 'team' : 'chat';
+  
+  // التأكد من الوضع الحالي بفحص الأزرار أيضاً
+  let mode = 'chat';
+  if (settings && settings.activeMode === 'team') {
+    mode = 'team';
+  } else {
+    // فحص إضافي من حالة الأزرار
+    const teamBtn = document.getElementById('btnModeTeam');
+    if (teamBtn && teamBtn.getAttribute('aria-pressed') === 'true') {
+      mode = 'team';
+      settings.activeMode = 'team'; // تحديث الإعدادات
+    }
+  }
+  
   const title = mode === 'team' ? 'غرفة جديدة' : 'محادثة جديدة';
 
   chats[chatId] = {
@@ -23,6 +36,9 @@ async function startNewChat() {
   if (msgArea) msgArea.innerHTML = '';
 
   displayChatHistory();
+  
+  // طباعة للتأكد من الوضع
+  console.log(`New ${mode} created:`, chatId, title);
 }
 
 // Drag and drop state
