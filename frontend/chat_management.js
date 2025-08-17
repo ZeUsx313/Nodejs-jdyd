@@ -1,73 +1,94 @@
 async function startNewChat() {
-    const chatId = Date.now().toString();
-    currentChatId = chatId;
-    const now = Date.now();
-    chats[chatId] = {
-        _id: chatId,
-        title: 'محادثة جديدة',
-        messages: [],
-        createdAt: now,
-        updatedAt: now,
-        order: now,
-        isTemporary: true         // ✨ تمييزها كمحادثة غير محفوظة بعد
-    };
+  const chatId = Date.now().toString();
+  currentChatId = chatId;
+  const now  = Date.now();
+  const mode = (settings && settings.activeMode === 'team') ? 'team' : 'chat';
+  const title = mode === 'team' ? 'غرفة جديدة' : 'محادثة جديدة';
 
-    document.getElementById('welcomeScreen').classList.remove('hidden');
-    document.getElementById('messagesContainer').classList.add('hidden');
-    document.getElementById('messagesArea').innerHTML = '';
+  chats[chatId] = {
+    _id: chatId,
+    title,
+    mode,                 // 👈 حفظ الوضع داخل الكيان
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+    order: now,
+    isTemporary: true
+  };
 
-    displayChatHistory();
+  // إعادة تهيئة الواجهة
+  document.getElementById('welcomeScreen').classList.remove('hidden');
+  document.getElementById('messagesContainer').classList.add('hidden');
+  const msgArea = document.getElementById('messagesArea');
+  if (msgArea) msgArea.innerHTML = '';
+
+  displayChatHistory();
 }
 
 // Drag and drop state
 let draggedChatId = null;
 
 function displayChatHistory() {
-    const chatHistory = document.getElementById('chatHistory');
-    chatHistory.innerHTML = '';
+  const chatHistory = document.getElementById('chatHistory');
+  chatHistory.innerHTML = '';
 
-    const sortedChats = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0));
+  const activeMode = (settings && settings.activeMode === 'team') ? 'team' : 'chat';
 
-    if (sortedChats.length === 0) {
-        chatHistory.innerHTML = `
-            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                <i class="fas fa-comments text-2xl mb-2"></i>
-                <p>لا توجد محادثات بعد</p>
-                <p class="text-xs">ابدأ محادثة جديدة لرؤيتها هنا</p>
-            </div>
-        `;
-        return;
-    }
+  // نرشّح حسب الوضع أولاً ثم نرتّب
+  const filteredSorted = Object
+    .values(chats)
+    .filter(ch => (ch.mode || 'chat') === activeMode)
+    .sort((a, b) => (b.order || 0) - (a.order || 0));
 
-    sortedChats.forEach(chat => {
-        if (!chat._id) return; 
+  if (filteredSorted.length === 0) {
+    const emptyTitle = activeMode === 'team' ? 'لا توجد غرف بعد' : 'لا توجد محادثات بعد';
+    const emptyHint  = activeMode === 'team' ? 'ابدأ بإنشاء غرفة جديدة' : 'ابدأ محادثة جديدة لرؤيتها هنا';
+    chatHistory.innerHTML = `
+      <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+        <i class="${activeMode === 'team' ? 'fas fa-users' : 'fas fa-comments'} text-2xl mb-2"></i>
+        <p>${emptyTitle}</p>
+        <p class="text-xs">${emptyHint}</p>
+      </div>`;
+    return;
+  }
 
-        const chatItem = document.createElement('div');
-        chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${chat._id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'}`;
+  filteredSorted.forEach(chat => {
+    if (!chat._id) return;
 
-        chatItem.setAttribute('draggable', true);
-        chatItem.setAttribute('data-chat-id', chat._id);
+    const chatItem = document.createElement('div');
+    chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${
+      chat._id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'
+    }`;
 
-        const lastMessage = chat.messages[chat.messages.length - 1];
-        const preview = lastMessage ? (lastMessage.content.substring(0, 50) + (lastMessage.content.length > 50 ? '...' : '')) : 'محادثة فارغة';
+    chatItem.setAttribute('draggable', true);
+    chatItem.setAttribute('data-chat-id', chat._id);
+    chatItem.setAttribute('data-mode', chat.mode || 'chat'); // 👈 مهم
 
-        // نسخة نظيفة تمامًا
-        chatItem.innerHTML = `
-            <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0" id="chat-title-container-${chat._id}">
-                    <h4 class="font-medium truncate">${escapeHtml(chat.title)}</h4>
-                    <p class="text-sm opacity-70 truncate">${escapeHtml(preview)}</p>
-                </div>
-                <div class="flex items-center ml-2 space-x-1 space-x-reverse">
-                    <button onclick="toggleEditChatTitle('${chat._id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
-                        <i class="fas fa-pen text-xs"></i>
-                    </button>
-                    <button onclick="deleteChat('${chat._id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف المحادثة">
-                        <i class="fas fa-trash text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `;
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    const preview = lastMessage
+      ? (lastMessage.content.substring(0, 50) + (lastMessage.content.length > 50 ? '...' : ''))
+      : (chat.mode === 'team' ? 'غرفة فارغة' : 'محادثة فارغة');
+
+    const iconHtml = chat.mode === 'team'
+      ? '<i class="fas fa-users text-xs opacity-80 mr-2"></i>'
+      : '<i class="fas fa-comments text-xs opacity-80 mr-2"></i>';
+
+    chatItem.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0" id="chat-title-container-${chat._id}">
+          <h4 class="font-medium truncate">${iconHtml}${escapeHtml(chat.title)}</h4>
+          <p class="text-sm opacity-70 truncate">${escapeHtml(preview)}</p>
+        </div>
+        <div class="flex items-center ml-2 space-x-1 space-x-reverse">
+          <button onclick="toggleEditChatTitle('${chat._id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
+            <i class="fas fa-pen text-xs"></i>
+          </button>
+          <button onclick="deleteChat('${chat._id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>
+      </div>
+    `;
 
         chatItem.onclick = (e) => {
             if (e.target.closest('button')) return;
@@ -194,13 +215,12 @@ function isValidObjectId(id) {
     return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 }
 
-// تنظيف المحادثة قبل الإرسال للخادم
+// تنظيف المحادثة او غرفة قبل الإرسال للخادم
 function sanitizeChatForSave(chat) {
   const safeMessages = (chat.messages || []).map(m => ({
     role: m.role,
     content: typeof m.content === 'string' ? m.content : '',
     timestamp: m.timestamp || Date.now(),
-    // نحفظ المراجع فقط (بدون content/base64)
     attachments: (m.attachments || []).map(a => ({
       name: a.name,
       type: a.type,
@@ -210,9 +230,12 @@ function sanitizeChatForSave(chat) {
     }))
   }));
 
+  const mode = chat.mode || 'chat';
+
   return {
     _id: chat._id,
-    title: chat.title || 'محادثة',
+    title: chat.title || (mode === 'team' ? 'غرفة' : 'محادثة'),
+    mode,                                    // 👈 نحفظ وضع هذه المحادثة
     messages: safeMessages,
     createdAt: chat.createdAt || Date.now(),
     updatedAt: Date.now(),
