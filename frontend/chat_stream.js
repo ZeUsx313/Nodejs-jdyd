@@ -336,6 +336,181 @@ function completeStreamingMessage() {
   scrollToBottom();
 }
 
+// ==============================
+// بث وضع الفريق: تفكيك الدفق
+// ==============================
+
+// علامات الفصل المقترحة التي سيرسلها الخادم لاحقًا:
+//   ⟦AGENT:BEGIN|<name>|<role>⟧
+//   ⟦AGENT:END⟧
+//
+// إن لم تصل هذه العلامات، يعود العرض تلقائيًا إلى فقاعة واحدة (السلوك الحالي).
+
+const teamStreaming = {
+  buffer: '',
+  activeAgent: null,   // { messageId, name, role, text }
+  chatId: null
+};
+
+// عدّاد للألوان
+let agentCounter = 0;
+
+function createAgentStreamingMessage(name, role) {
+  agentCounter++;
+  const colorClass = `agent-color-${(agentCounter % 4) + 1}`; // 4 ألوان تتكرر
+
+  const messagesArea = document.getElementById('messagesArea');
+  const messageId = 'agent-' + Date.now().toString();
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-bubble message-assistant streaming-message ${colorClass}`;
+  messageDiv.id = `message-${messageId}`;
+
+  messageDiv.innerHTML = `
+    <div class="flex items-center gap-2 text-xs opacity-75 mb-1">
+      <i class="fas fa-users-cog"></i>
+      <span>${escapeHtml(name)} <span class="opacity-60">(${escapeHtml(role)})</span></span>
+    </div>
+    <div class="message-content" id="content-${messageId}">
+      <span class="streaming-cursor"></span>
+    </div>
+    <div class="streaming-indicator">
+      <i class="fas fa-robot text-xs"></i>
+      <span>يكتب ${escapeHtml(name)}</span>
+      <div class="streaming-dots"><div class="streaming-dot"></div><div class="streaming-dot"></div><div class="streaming-dot"></div></div>
+    </div>
+  `;
+
+  messagesArea.appendChild(messageDiv);
+  scrollToBottom();
+
+  teamStreaming.activeAgent = { messageId, name, role, text: '' };
+  if (!teamStreaming.chatId) teamStreaming.chatId = currentChatId;
+}
+
+function appendToActiveAgent(text) {
+  const a = teamStreaming.activeAgent;
+  if (!a) {
+    // لا يوجد «عضو» نشط: استخدم الفقاعة العامة الحالية للحفاظ على تجربة مقبولة
+    appendToStreamingMessage(text);
+    return;
+  }
+  a.text += text;
+
+  const contentEl = document.getElementById(`content-${a.messageId}`);
+  if (!contentEl) return;
+
+  // إزالة المؤشّر المؤقت
+  const cursor = contentEl.querySelector('.streaming-cursor');
+  if (cursor) cursor.remove();
+
+  contentEl.innerHTML = marked.parse(a.text);
+
+  // إعادة المؤشّر طالما البث لم يكتمل
+  const newCursor = document.createElement('span');
+  newCursor.className = 'streaming-cursor';
+  contentEl.appendChild(newCursor);
+
+  contentEl.querySelectorAll('pre code').forEach(block => {
+    hljs.highlightElement(block);
+    addCodeHeader(block.parentElement);
+  });
+
+  smoothScrollToBottom();
+}
+
+function completeActiveAgent() {
+  const a = teamStreaming.activeAgent;
+  if (!a) return;
+  const msgEl = document.getElementById(`message-${a.messageId}`);
+  if (msgEl) {
+    const indicator = msgEl.querySelector('.streaming-indicator');
+    if (indicator) indicator.remove();
+    msgEl.classList.remove('streaming-message');
+  }
+
+  // خزّن نص العضو داخل سجلّ المحادثة (نفس chatId الذي نحفظ فيه البث العام)
+  const targetChatId = teamStreaming.chatId || currentChatId;
+  if (targetChatId && chats[targetChatId] && (a.text || '')) {
+    const now = Date.now();
+    chats[targetChatId].messages.push({
+      role: 'assistant',
+      content: `### ${a.name} (${a.role})\n\n${a.text}`,
+      timestamp: now
+    });
+    chats[targetChatId].updatedAt = now;
+    chats[targetChatId].order = now;
+  }
+
+  teamStreaming.activeAgent = null;
+}
+
+function processTeamChunk(chunk) {
+  // إن لم تُضبط العلامات من الخادم، نُمرّر الدفق كما هو إلى الفقاعة العامة
+  if (!chunk.includes('⟦AGENT:BEGIN|') && !chunk.includes('⟦AGENT:END⟧')) {
+    appendToActiveAgent(chunk); // إن وُجد «عضو» نشط سنلصق له، وإلا نعتمد الفقاعة العامة
+    return;
+  }
+
+  teamStreaming.buffer += chunk;
+
+  // عالجًا التتابعات المحتملة (قد تصل BEGIN/END داخل نفس الـchunk)
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    // 1) BEGIN
+    const beginIdx = teamStreaming.buffer.indexOf('⟦AGENT:BEGIN|');
+    if (beginIdx !== -1) {
+      // انقل أي نص سابق للعضو الحالي/الفقاعة العامة
+      const pre = teamStreaming.buffer.slice(0, beginIdx);
+      if (pre) appendToActiveAgent(pre);
+
+      // استخرج الهيدر: ⟦AGENT:BEGIN|name|role⟧
+      const closeIdx = teamStreaming.buffer.indexOf('⟧', beginIdx);
+      if (closeIdx !== -1) {
+        const header = teamStreaming.buffer.slice(beginIdx + '⟦AGENT:BEGIN|'.length, closeIdx);
+        const [name, role] = header.split('|');
+        // ابدأ رسالة عضو جديدة (وأغلق السابقة إن وُجدت)
+        if (teamStreaming.activeAgent) completeActiveAgent();
+        createAgentStreamingMessage(name || 'عضو', role || 'عضو فريق');
+
+        // احذف الرأس من المخبأ
+        teamStreaming.buffer = teamStreaming.buffer.slice(closeIdx + 1);
+        changed = true;
+        continue;
+      }
+    }
+
+    // 2) END
+    const endIdx = teamStreaming.buffer.indexOf('⟦AGENT:END⟧');
+    if (endIdx !== -1) {
+      const body = teamStreaming.buffer.slice(0, endIdx);
+      if (body) appendToActiveAgent(body);
+      completeActiveAgent();
+      teamStreaming.buffer = teamStreaming.buffer.slice(endIdx + '⟦AGENT:END⟧'.length);
+      changed = true;
+      continue;
+    }
+  }
+}
+
+function finalizeTeamStreaming() {
+  // صبّ أي بقايا
+  if (teamStreaming.buffer) {
+    appendToActiveAgent(teamStreaming.buffer);
+    teamStreaming.buffer = '';
+  }
+  // أغلق العضو الأخير
+  completeActiveAgent();
+
+  // أغلق حالة البث العامة أيضًا (حتى يتبدّل زر الإرسال وتُحفظ المحادثة…)
+  if (streamingState.isStreaming) {
+    // نحافظ على سلوك completeStreamingMessage لتحديث الزر والحفظ إلخ:
+    // سنستدعيه بنص قصير حتى يُنجز التنظيف.
+    appendToStreamingMessage('', true);
+  }
+}
+
 function smoothScrollToBottom() {
     const messagesArea = document.getElementById('messagesArea');
     messagesArea.scrollTo({
@@ -577,8 +752,12 @@ async function sendRequestToServer(payload) {
     const controller = new AbortController();
     streamingState.streamController = controller;
 
-    // 2) الطلب مع signal للإلغاء الفوري
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    // 2) اختيار المسار بحسب وضع التطبيق
+    const endpoint = (settings.activeMode === 'team')
+      ? `${API_BASE_URL}/api/team_chat`
+      : `${API_BASE_URL}/api/chat`;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -602,11 +781,20 @@ async function sendRequestToServer(payload) {
         const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        appendToStreamingMessage(chunk);
+
+        if (settings.activeMode === 'team') {
+          processTeamChunk(chunk);          // بث مباشر لكل عضو
+        } else {
+          appendToStreamingMessage(chunk);  // السلوك القديم
+        }
       }
 
       // اكتمال طبيعي
-      appendToStreamingMessage('', true);
+      if (settings.activeMode === 'team') {
+        finalizeTeamStreaming();            // إقفال أي فقاعة عضو مفتوحة
+      } else {
+        appendToStreamingMessage('', true); // السلوك القديم
+      }
 
     } catch (error) {
       if (error.name === 'AbortError') {
