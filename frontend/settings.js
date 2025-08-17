@@ -152,6 +152,8 @@ async function saveSettings() {
   settings.team.turnStyle = turnSel ? turnSel.value : 'sequential';
   settings.team.members   = collectTeamMembersFromUI();
 
+await saveSettingsToDB();
+
   closeSettings();
 }
 
