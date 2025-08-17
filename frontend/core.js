@@ -243,7 +243,7 @@ function zeusFlash() {
   bgCanvas.classList.add('flash');
   setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
 }
-  // نهاية DOMContentLoaded
+});  // نهاية DOMContentLoaded
 
 // ===========================
 // تبديل وضع التطبيق (دردشة/فريق)
@@ -280,20 +280,10 @@ function switchMode(mode) {
         : '<i class="fas fa-plus ml-2"></i>محادثة جديدة';
     }
 
-    // 4) تفريغ منطقة الرسائل وإظهار شاشة الترحيب
-    const messagesArea = document.getElementById('messagesArea');
-    if (messagesArea) messagesArea.innerHTML = '';
-    const welcome = document.getElementById('welcomeScreen');
-    const msgsWrap = document.getElementById('messagesContainer');
-    if (welcome && msgsWrap) {
-      welcome.classList.remove('hidden');
-      msgsWrap.classList.add('hidden');
-    }
-
-    // 5) تحديث قائمة التاريخ
+    // 4) تحديث قائمة التاريخ
     if (typeof displayChatHistory === 'function') displayChatHistory();
 
-    // 6) إذا كانت المحادثة المعروضة حالياً من وضع آخر -> اخفِها
+    // 5) إذا كانت المحادثة المعروضة حالياً من وضع آخر -> اخفِها
     if (currentChatId && chats[currentChatId] && ((chats[currentChatId].mode || 'chat') !== next)) {
       currentChatId = null;
       const msgArea = document.getElementById('messagesArea');
@@ -302,7 +292,7 @@ function switchMode(mode) {
       document.getElementById('welcomeScreen').classList.remove('hidden');
     }
 
-    // 7) حفظ الإعدادات
+    // 6) حفظ الإعدادات
     if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
 
   } catch (e) {
