@@ -542,6 +542,11 @@ async function sendMessage() {
         return; 
     }
 
+    // التحقق من إعدادات الفريق في وضع الفريق
+    if (settings.activeMode === 'team' && !validateTeamSettings()) {
+        return;
+    }
+
     // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
     if (currentChatId && !chats[currentChatId]) {
         const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
@@ -648,6 +653,34 @@ await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
 
         // Data will be saved when streaming completes
     }
+}
+
+// التحقق من صحة إعدادات الفريق قبل الإرسال
+function validateTeamSettings() {
+  if (!settings.team) {
+    showNotification('إعدادات الفريق غير موجودة. يرجى إعداد الفريق أولاً.', 'error');
+    return false;
+  }
+
+  if (!Array.isArray(settings.team.members) || settings.team.members.length === 0) {
+    showNotification('يرجى إضافة أعضاء الفريق من الإعدادات قبل البدء.', 'error');
+    return false;
+  }
+
+  // التحقق من أن كل عضو لديه اسم وموديل
+  for (let i = 0; i < settings.team.members.length; i++) {
+    const member = settings.team.members[i];
+    if (!member.name || !member.name.trim()) {
+      showNotification(`العضو رقم ${i + 1} لا يملك اسماً. يرجى تعديل الإعدادات.`, 'error');
+      return false;
+    }
+    if (!member.model || !member.model.trim()) {
+      showNotification(`العضو "${member.name}" لا يملك موديل محدد. يرجى تعديل الإعدادات.`, 'error');
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function displayUserMessage(message) {
