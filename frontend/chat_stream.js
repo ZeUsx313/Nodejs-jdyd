@@ -503,11 +503,27 @@ function finalizeTeamStreaming() {
   // أغلق العضو الأخير
   completeActiveAgent();
 
-  // أغلق حالة البث العامة أيضًا (حتى يتبدّل زر الإرسال وتُحفظ المحادثة…)
+  // إعادة تعيين متغيرات الفريق
+  teamStreaming.activeAgent = null;
+  teamStreaming.chatId = null;
+  teamStreaming.buffer = '';
+
+  // أغلق حالة البث العامة أيضًا
   if (streamingState.isStreaming) {
-    // نحافظ على سلوك completeStreamingMessage لتحديث الزر والحفظ إلخ:
-    // سنستدعيه بنص قصير حتى يُنجز التنظيف.
-    appendToStreamingMessage('', true);
+    streamingState.isStreaming = false;
+    streamingState.currentMessageId = null;
+    streamingState.streamingElement = null;
+    streamingState.currentText = '';
+    streamingState.streamController = null;
+    streamingState.chatId = null;
+    
+    // تحديث زر الإرسال
+    updateSendButton();
+    
+    // حفظ المحادثة
+    if (teamStreaming.chatId || currentChatId) {
+      saveCurrentChat(teamStreaming.chatId || currentChatId);
+    }
   }
 }
 
@@ -727,7 +743,8 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
 
   const payload = {
-    chatHistory,
+    chatHistory, // للدردشة العادية
+    history: chatHistory, // لوضع الفريق
     attachments: attachments.map(file => ({
       name: file.name, type: file.type, size: file.size,
       content: file.content, dataType: file.dataType, mimeType: file.mimeType
