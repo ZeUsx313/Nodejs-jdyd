@@ -299,3 +299,15 @@ function switchMode(mode) {
     console.error('switchMode error:', e);
   }
 }
+
+// دالة للتحقق من حالة وضع الفريق
+function isTeamMode() {
+    return settings.activeMode === 'team';
+}
+
+// دالة للتحقق من وجود أعضاء الفريق
+function hasTeamMembers() {
+    return settings.team && 
+           Array.isArray(settings.team.members) && 
+           settings.team.members.length > 0;
+}
