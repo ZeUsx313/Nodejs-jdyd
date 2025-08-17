@@ -243,7 +243,7 @@ function zeusFlash() {
   bgCanvas.classList.add('flash');
   setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
 }
-});  // نهاية DOMContentLoaded
+  // نهاية DOMContentLoaded
 
 // ===========================
 // تبديل وضع التطبيق (دردشة/فريق)
