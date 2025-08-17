@@ -1545,3 +1545,21 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 .gpt-source-subline{ display:flex; align-items:center; gap:6px; color:#a3a3a3; font-size:.8rem; }
 .gpt-source-badge{ display:inline-block; width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.12); }
+
+/* 🎨 ألوان مميزة لأعضاء الفريق */
+.agent-color-1 {
+  background-color: #e3f2fd; /* أزرق فاتح */
+  border-left: 4px solid #2196f3;
+}
+.agent-color-2 {
+  background-color: #f1f8e9; /* أخضر فاتح */
+  border-left: 4px solid #4caf50;
+}
+.agent-color-3 {
+  background-color: #f3e5f5; /* بنفسجي فاتح */
+  border-left: 4px solid #9c27b0;
+}
+.agent-color-4 {
+  background-color: #fff3e0; /* برتقالي فاتح */
+  border-left: 4px solid #ff9800;
+}
