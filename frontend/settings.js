@@ -81,7 +81,6 @@ if (cpi) cpi.value = settings.customPrompt || '';
     }
 }
 
-// ✨✨✨ الدالة المفقودة التي تصلح زر الحفظ ✨✨✨
 async function saveSettings() {
   settings.provider = document.getElementById('providerSelect').value;
   settings.model = document.getElementById('modelSelect').value;
@@ -103,6 +102,25 @@ async function saveSettings() {
   if (selBrowsingMode) settings.browsingMode = selBrowsingMode.value;
   if (chkShowSources) settings.showSources = chkShowSources.checked;
   if (dynThresholdSlider) settings.dynamicThreshold = parseFloat(dynThresholdSlider.value);
+
+  // === وضع الفريق: جمع الحقول قبل الحفظ ===
+  settings.team = settings.team || {};
+
+  const cpName    = document.getElementById('teamCoordinatorName');
+  const cpProv    = document.getElementById('teamCoordinatorProvider');
+  const cpModel   = document.getElementById('teamCoordinatorModel');
+  const cpPersona = document.getElementById('teamCoordinatorPersona');
+  const turnSel   = document.getElementById('teamTurnStyle');
+
+  settings.team.coordinator = {
+    name:     cpName    ? cpName.value.trim()    : 'الوكيل',
+    provider: cpProv    ? cpProv.value           : 'gemini',
+    model:    cpModel   ? cpModel.value.trim()   : 'gemini-1.5-pro',
+    persona:  cpPersona ? cpPersona.value.trim() : ''
+  };
+
+  settings.team.turnStyle = turnSel ? turnSel.value : 'sequential';
+  settings.team.members   = collectTeamMembersFromUI();
 
   // الثيم (قيَم موحَّدة theme-*)
   const THEME_KEY = 'zeus-theme';
@@ -131,28 +149,8 @@ async function saveSettings() {
   document.documentElement.style.setProperty('--chat-font-size', `${settings.fontSize}px`);
   localStorage.setItem('zeus-font-size', String(settings.fontSize));
 
+  // حفظ واحد فقط بعد جمع كل الإعدادات
   await saveSettingsToDB();
-
-  // === وضع الفريق: جمع الحقول ===
-  settings.team = settings.team || {};
-
-  const cpName    = document.getElementById('teamCoordinatorName');
-  const cpProv    = document.getElementById('teamCoordinatorProvider');
-  const cpModel   = document.getElementById('teamCoordinatorModel');
-  const cpPersona = document.getElementById('teamCoordinatorPersona');
-  const turnSel   = document.getElementById('teamTurnStyle');
-
-  settings.team.coordinator = {
-    name:     cpName    ? cpName.value.trim()    : 'الوكيل',
-    provider: cpProv    ? cpProv.value           : 'gemini',
-    model:    cpModel   ? cpModel.value.trim()   : 'gemini-1.5-pro',
-    persona:  cpPersona ? cpPersona.value.trim() : ''
-  };
-
-  settings.team.turnStyle = turnSel ? turnSel.value : 'sequential';
-  settings.team.members   = collectTeamMembersFromUI();
-
-await saveSettingsToDB();
 
   closeSettings();
 }
