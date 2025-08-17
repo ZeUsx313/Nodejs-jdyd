@@ -55,6 +55,30 @@ if (cpi) cpi.value = settings.customPrompt || '';
 
     updateProviderUI();
     updateModelOptions();
+
+    // === وضع الفريق: تعبئة الحقول ===
+    settings.team = settings.team || {};
+    const team = settings.team;
+
+    // الوكيل
+    const cpName = document.getElementById('teamCoordinatorName');
+    const cpProv = document.getElementById('teamCoordinatorProvider');
+    const cpModel = document.getElementById('teamCoordinatorModel');
+    const cpPersona = document.getElementById('teamCoordinatorPersona');
+
+    if (cpName)    cpName.value    = team.coordinator?.name    ?? 'الوكيل';
+    if (cpProv)    cpProv.value    = team.coordinator?.provider ?? 'gemini';
+    if (cpModel)   cpModel.value   = team.coordinator?.model   ?? 'gemini-1.5-pro';
+    if (cpPersona) cpPersona.value = team.coordinator?.persona ?? '';
+
+    // أسلوب الدوران
+    const turnSel = document.getElementById('teamTurnStyle');
+    if (turnSel) turnSel.value = team.turnStyle ?? 'sequential';
+
+    // الأعضاء
+    if (document.getElementById('teamMembersContainer')) {
+      renderTeamMembers(Array.isArray(team.members) ? team.members : []);
+    }
 }
 
 // ✨✨✨ الدالة المفقودة التي تصلح زر الحفظ ✨✨✨
@@ -80,14 +104,14 @@ async function saveSettings() {
   if (chkShowSources) settings.showSources = chkShowSources.checked;
   if (dynThresholdSlider) settings.dynamicThreshold = parseFloat(dynThresholdSlider.value);
 
-  // الثيم (قيَم موحَّدة theme-*)
+  // الثيم (قيَم موحَّدة theme-*)
   const THEME_KEY = 'zeus-theme';
   const VALID = ['theme-black','theme-blue','theme-light'];
   const themeSel = document.getElementById('themeSelect');
   let chosen = themeSel ? themeSel.value : 'theme-black';
   if (!VALID.includes(chosen)) chosen = 'theme-black';
 
-  // خزّن في localStorage + في الإعدادات + طبِّق فوراً
+  // خزّن في localStorage + في الإعدادات + طبِّق فوراً
   localStorage.setItem(THEME_KEY, chosen);
   settings.theme = chosen;
   setTheme(chosen);
@@ -108,6 +132,26 @@ async function saveSettings() {
   localStorage.setItem('zeus-font-size', String(settings.fontSize));
 
   await saveSettingsToDB();
+
+  // === وضع الفريق: جمع الحقول ===
+  settings.team = settings.team || {};
+
+  const cpName    = document.getElementById('teamCoordinatorName');
+  const cpProv    = document.getElementById('teamCoordinatorProvider');
+  const cpModel   = document.getElementById('teamCoordinatorModel');
+  const cpPersona = document.getElementById('teamCoordinatorPersona');
+  const turnSel   = document.getElementById('teamTurnStyle');
+
+  settings.team.coordinator = {
+    name:     cpName    ? cpName.value.trim()    : 'الوكيل',
+    provider: cpProv    ? cpProv.value           : 'gemini',
+    model:    cpModel   ? cpModel.value.trim()   : 'gemini-1.5-pro',
+    persona:  cpPersona ? cpPersona.value.trim() : ''
+  };
+
+  settings.team.turnStyle = turnSel ? turnSel.value : 'sequential';
+  settings.team.members   = collectTeamMembersFromUI();
+
   closeSettings();
 }
 
@@ -292,6 +336,85 @@ function toggleOpenRouterApiKeyVisibility(index) {
         input.type = 'password';
         icon.className = 'fas fa-eye';
     }
+}
+
+function renderTeamMembers(members) {
+  const div = document.getElementById('teamMembersContainer');
+  if (!div) return;
+  div.innerHTML = '';
+  members.forEach((m, i) => div.appendChild(teamMemberRow(m, i)));
+}
+
+function addTeamMemberRow() {
+  const div = document.getElementById('teamMembersContainer');
+  if (!div) return;
+  const m = {
+    id: `m-${cryptoRandomId()}`,
+    name: 'عضو',
+    role: '',
+    provider: 'gemini',
+    model: 'gemini-1.5-flash',
+    persona: ''
+  };
+  settings.team = settings.team || {};
+  settings.team.members = Array.isArray(settings.team.members) ? settings.team.members : [];
+  settings.team.members.push(m);
+  div.appendChild(teamMemberRow(m, settings.team.members.length - 1));
+}
+
+function removeTeamMemberRow(index) {
+  settings.team = settings.team || {};
+  settings.team.members = Array.isArray(settings.team.members) ? settings.team.members : [];
+  settings.team.members.splice(index, 1);
+  renderTeamMembers(settings.team.members);
+}
+
+function teamMemberRow(m, i) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'card';
+  wrapper.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+      <input class="form-input" data-k="name"   value="${m.name || ''}" placeholder="الاسم/اللقب">
+      <input class="form-input" data-k="role"   value="${m.role || ''}" placeholder="الدور (اختياري)">
+      <select class="form-input" data-k="provider">
+        <option value="gemini" ${m.provider==='gemini'?'selected':''}>Gemini</option>
+        <option value="openrouter" ${m.provider==='openrouter'?'selected':''}>OpenRouter</option>
+      </select>
+      <input class="form-input" data-k="model"  value="${m.model || ''}" placeholder="الموديل">
+      <button type="button" class="btn-custom btn-danger" onclick="removeTeamMemberRow(${i})">
+        <i class="fas fa-trash ml-1"></i> حذف
+      </button>
+    </div>
+    <div class="mt-2">
+      <textarea class="form-textarea" data-k="persona" rows="2" placeholder="شخصية/تعليمات هذا العضو (System Prompt)">${m.persona || ''}</textarea>
+    </div>
+  `;
+  return wrapper;
+}
+
+function collectTeamMembersFromUI() {
+  const div = document.getElementById('teamMembersContainer');
+  if (!div) return [];
+  const rows = Array.from(div.children || []);
+  return rows.map(r => {
+    const nameEl    = r.querySelector('[data-k="name"]');
+    const roleEl    = r.querySelector('[data-k="role"]');
+    const provEl    = r.querySelector('[data-k="provider"]');
+    const modelEl   = r.querySelector('[data-k="model"]');
+    const personaEl = r.querySelector('[data-k="persona"]');
+    return {
+      id: `m-${cryptoRandomId()}`,
+      name:    nameEl    ? nameEl.value.trim()    : '',
+      role:    roleEl    ? roleEl.value.trim()    : '',
+      provider:provEl    ? provEl.value           : 'gemini',
+      model:   modelEl   ? modelEl.value.trim()   : '',
+      persona: personaEl ? personaEl.value.trim() : ''
+    };
+  });
+}
+
+function cryptoRandomId() {
+  return Math.random().toString(36).slice(2);
 }
 
 // UI functions
