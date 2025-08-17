@@ -280,26 +280,6 @@ function switchMode(mode) {
         : '<i class="fas fa-plus ml-2"></i>محادثة جديدة';
     }
 
-    // 4) تحديث قائمة التاريخ
-    if (typeof displayChatHistory === 'function') displayChatHistory();
-
-    // 5) إذا كانت المحادثة المعروضة حالياً من وضع آخر -> اخفِها
-    if (currentChatId && chats[currentChatId] && ((chats[currentChatId].mode || 'chat') !== next)) {
-      currentChatId = null;
-      const msgArea = document.getElementById('messagesArea');
-      if (msgArea) msgArea.innerHTML = '';
-      document.getElementById('messagesContainer').classList.add('hidden');
-      document.getElementById('welcomeScreen').classList.remove('hidden');
-    }
-
-    // 6) حفظ الإعدادات
-    if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
-
-  } catch (e) {
-    console.error('switchMode error:', e);
-  }
-}
-
     // 4) تفريغ منطقة الرسائل وإظهار شاشة الترحيب
     const messagesArea = document.getElementById('messagesArea');
     if (messagesArea) messagesArea.innerHTML = '';
@@ -310,23 +290,19 @@ function switchMode(mode) {
       msgsWrap.classList.add('hidden');
     }
 
-    // 5) إعادة رسم قائمة «المحادثات/الغرف» بناءً على الوضع
-    // ملاحظة: تعتمد على دالة displayChatHistory() الحالية؛
-    // سنخفي العناصر التي لا تطابق الوضع عبر data-mode إن كانت موجودة،
-    // وإلا نرسم كامل القائمة ثم نخفي بصريًا حسب العنوان.
-    if (typeof displayChatHistory === 'function') {
-      displayChatHistory();
-      // فلترة بسيطة بصريًا إن كنت تُضيف data-team في عناصر القائمة لاحقًا
-      const items = document.querySelectorAll('#chatHistory .chat-item');
-      items.forEach(el => {
-        const isTeam = el.getAttribute('data-mode') === 'team' || /غرفة|فريق/i.test(el.textContent || '');
-        el.style.display = (next === 'team')
-          ? (isTeam ? '' : 'none')
-          : (isTeam ? 'none' : '');
-      });
+    // 5) تحديث قائمة التاريخ
+    if (typeof displayChatHistory === 'function') displayChatHistory();
+
+    // 6) إذا كانت المحادثة المعروضة حالياً من وضع آخر -> اخفِها
+    if (currentChatId && chats[currentChatId] && ((chats[currentChatId].mode || 'chat') !== next)) {
+      currentChatId = null;
+      const msgArea = document.getElementById('messagesArea');
+      if (msgArea) msgArea.innerHTML = '';
+      document.getElementById('messagesContainer').classList.add('hidden');
+      document.getElementById('welcomeScreen').classList.remove('hidden');
     }
 
-    // 6) حفظ الإعداد فورًا (يبقي اختيار الوضع عبر الأجهزة)
+    // 7) حفظ الإعدادات
     if (typeof saveSettingsToDB === 'function') saveSettingsToDB();
 
   } catch (e) {
