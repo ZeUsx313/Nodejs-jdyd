@@ -61,58 +61,46 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="transition-colors duration-300 min-h-screen">
-    <script>
-        if (
-            "serviceWorker" in navigator &&
-            (window.location.protocol === "https:" ||
-                window.location.hostname === "localhost")
-        ) {
-            window.addEventListener("load", () => {
-                navigator.serviceWorker
-                    .register("/service-worker.js")
-                    .then((registration) => {
-                        console.log(
-                            "Service Worker registered with scope:",
-                            registration.scope
-                        );
-                    })
-                    .catch((error) => {
-                        console.log("Service Worker registration failed:", error);
-                    });
-            });
+
+  <!-- Service Worker (سكربت مستقل ومغلق) -->
+  <script>
+    if ("serviceWorker" in navigator &&
+        (window.location.protocol === "https:" || window.location.hostname === "localhost")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js")
+          .then(reg => console.log("Service Worker registered with scope:", reg.scope))
+          .catch(err => console.log("Service Worker registration failed:", err));
+      });
+    }
+  </script>
+
+  <!-- Bootstrap early theme (سكربت مستقل ومغلق) -->
+  <script>
+    (() => {
+      const KEY = 'zeus-theme';
+      const VALID = ['theme-black','theme-blue','theme-light'];
+      let theme = localStorage.getItem(KEY);
+      if (!VALID.includes(theme)) theme = 'theme-black';
+      const apply = () => {
+        const b = document.body;
+        if (!b) return document.addEventListener('DOMContentLoaded', apply, {once:true});
+        b.classList.remove('theme-black','theme-blue','theme-light');
+        b.classList.add(theme);
+        const sel = document.getElementById('themeSelect');
+        if (sel && sel.value !== theme) sel.value = theme;
+      };
+      apply();
+      window.addEventListener('storage', (e) => {
+        if (e.key === KEY && VALID.includes(e.newValue)) {
+          localStorage.setItem(KEY, e.newValue);
+          theme = e.newValue;
+          apply();
         }
-</script>
+      });
+    })();
+  </script>
 
-<script>
-  // Bootstrap early theme (runs before paint)
-  (() => {
-    const KEY = 'zeus-theme';
-    const VALID = ['theme-black','theme-blue','theme-light'];
-    let theme = localStorage.getItem(KEY);
-    if (!VALID.includes(theme)) theme = 'theme-black';            // جعل الداكن الافتراضي
-    const apply = () => {
-      const b = document.body;
-      if (!b) return document.addEventListener('DOMContentLoaded', apply, {once:true});
-      b.classList.remove('theme-black','theme-blue','theme-light');
-      b.classList.add(theme);
-      // مزامنة select لو وُجد لاحقًا
-      const sel = document.getElementById('themeSelect');
-      if (sel && sel.value !== theme) sel.value = theme;
-    };
-    // طبّق فورًا، ولو فشل انتظر DOMContentLoaded
-    apply();
-    // في حال تغيّر من تبويب آخر/نافذة أخرى
-    window.addEventListener('storage', (e) => {
-      if (e.key === KEY && VALID.includes(e.newValue)) {
-        localStorage.setItem(KEY, e.newValue);
-        theme = e.newValue;
-        apply();
-      }
-    });
-  })();
-
-    </script>
-<div id="app" class="fixed inset-0 w-screen h-[100svh] overflow-hidden">
+  <div id="app" class="fixed inset-0 w-screen h-[100svh] overflow-hidden">
 
     <div id="notificationContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none">
         </div>
