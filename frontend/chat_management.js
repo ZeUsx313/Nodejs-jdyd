@@ -429,19 +429,19 @@ function displayMessages() {
             messageDiv.className = `chat-bubble message-assistant streaming-message`;
             messageDiv.id = `message-${messageId}`;
             messageDiv.innerHTML = `
-              <div class="message-content" id="content-${messageId}">
-                  <span class="streaming-cursor"></span>
-              </div>
-              <div class="streaming-indicator">
-                  <i class="fas fa-robot text-xs"></i>
-                  <span>يكتب زيوس</span>
-                  <div class="streaming-dots">
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                  </div>
-              </div>
-            `;
+  <div class="message-content" id="content-${messageId}">
+      <span class="streaming-cursor"></span>
+  </div>
+  <div class="streaming-indicator">
+      <i class="fas fa-robot text-xs"></i>
+      <span>يكتب زيوس</span>
+      <div class="streaming-dots">
+          <div class="streaming-dot"></div>
+          <div class="streaming-dot"></div>
+          <div class="streaming-dot"></div>
+      </div>
+  </div>
+`;
             messagesArea.appendChild(messageDiv);
             streamingState.streamingElement = document.getElementById(`content-${messageId}`);
 
