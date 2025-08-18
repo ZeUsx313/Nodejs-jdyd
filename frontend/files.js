@@ -43,7 +43,7 @@ async function processAttachedFiles(files) {
 
   // 1) اجمع معلومات كل ملف واقرأ محتواه (للاستخدام مع الذكاء حتى لو لم نحفظ على الخادم)
   const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
-  const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
+const imgExt  = ['jpg','jpeg','png','gif','webp','bmp','heic','heif'];
 
   for (const file of files) {
     const info = {
@@ -104,17 +104,22 @@ async function processAttachedFiles(files) {
     );
 
      for (const info of fileData) {
-      const rec = byName[info.name];
-      if (rec) {
-        info.fileId  = rec.id || rec._id || rec.filename || null;
-        info.fileUrl = rec.fileUrl || null;               // ✨ تم التغيير هنا: rec.fileUrl بدلاً من rec.url ✨
-      }
-    }
-  } catch (e) {
-    console.error('Upload error:', e);
-    showNotification('تعذر رفع الملفات للحفظ الدائم', 'error');
-    // نُرجع على أي حال الـ fileData حتى تظهر البطاقات ويُستخدم المحتوى مع الذكاء
+  const rec = byName[info.name];
+  if (rec) {
+    info.fileId  = rec.id || rec._id || rec.filename || null;
+    info.fileUrl = rec.fileUrl || null;               // ✨ تم التغيير هنا: rec.fileUrl بدلاً من rec.url ✨
   }
+}
+
+// ✅ هنا تضع سطر الإشعار بعد الربط بنجاح
+showNotification('تم رفع الملفات وحفظ الروابط بنجاح', 'success');
+
+} catch (e) {
+  console.error('Upload error:', e);
+const msg = (e && e.message) ? e.message : 'تعذر رفع الملفات للحفظ الدائم';
+showNotification(msg.includes('نوع الملف غير مسموح') ? msg : 'تعذر رفع الملفات للحفظ الدائم', 'error');
+  // نُرجع على أي حال الـ fileData حتى تظهر البطاقات ويُستخدم المحتوى مع الذكاء
+}
 
   return fileData;
 }
@@ -133,9 +138,9 @@ function readFileAsText(file) {
 function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
         // ✨✨✨ التحقق من حجم الملف (5 ميجابايت) ✨✨✨
-        if (file.size > 5 * 1024 * 1024) {
-            return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.'));
-        }
+        if (file.size > 10 * 1024 * 1024) {
+  return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 10 ميجابايت.'));
+}
         const reader = new FileReader();
         reader.onloadend = () => {
             const base64String = reader.result.split(',')[1];
