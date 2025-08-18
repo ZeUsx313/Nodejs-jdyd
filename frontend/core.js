@@ -108,7 +108,9 @@ let streamingState = {
     currentMessageId: null,
     streamController: null,
     currentText: '',
-    streamingElement: null
+    streamingElement: null,
+    lightningElement: null,
+    hasStartedTyping: false
 };
 
 // Initialize app
