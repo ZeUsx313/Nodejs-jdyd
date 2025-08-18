@@ -7,17 +7,8 @@ function createStreamingMessage(sender = 'assistant') {
     messageDiv.id = `message-${messageId}`;
 
     messageDiv.innerHTML = `
-        <div class="message-content" id="content-${messageId}">
-            <span class="streaming-cursor"></span>
-        </div>
-        <div class="streaming-indicator">
-            <i class="fas fa-robot text-xs"></i>
-            <span>يكتب زيوس</span>
-            <div class="streaming-dots">
-                <div class="streaming-dot"></div>
-                <div class="streaming-dot"></div>
-                <div class="streaming-dot"></div>
-            </div>
+        <div class="message-content" id="content-${messageId}" style="position: relative;">
+            <i class="fas fa-bolt lightning-cursor waiting" id="lightning-${messageId}"></i>
         </div>
     `;
 
@@ -28,6 +19,8 @@ function createStreamingMessage(sender = 'assistant') {
     streamingState.streamingElement = document.getElementById(`content-${messageId}`);
     streamingState.currentText = '';
     streamingState.isStreaming = true;
+    streamingState.lightningElement = document.getElementById(`lightning-${messageId}`);
+    streamingState.hasStartedTyping = false;
 // ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
     streamingState.chatId = currentChatId;
 
@@ -60,21 +53,14 @@ function appendToStreamingMessage(text, isComplete = false) {
             messageDiv.className = `chat-bubble message-assistant streaming-message`;
             messageDiv.id = `message-${messageId}`;
             messageDiv.innerHTML = `
-              <div class="message-content" id="content-${messageId}">
-                  <span class="streaming-cursor"></span>
-              </div>
-              <div class="streaming-indicator">
-                  <i class="fas fa-robot text-xs"></i>
-                  <span>يكتب زيوس</span>
-                  <div class="streaming-dots">
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                      <div class="streaming-dot"></div>
-                  </div>
+              <div class="message-content" id="content-${messageId}" style="position: relative;">
+                  <i class="fas fa-bolt lightning-cursor" id="lightning-${messageId}"></i>
               </div>
             `;
             messagesArea.appendChild(messageDiv);
             streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+            streamingState.lightningElement = document.getElementById(`lightning-${messageId}`);
+            streamingState.hasStartedTyping = false;
         }
     }
 
@@ -84,16 +70,30 @@ function appendToStreamingMessage(text, isComplete = false) {
         return;
     }
 
-    // الآن نحدّث الـ DOM كالمعتاد
-    const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
-    if (cursor) cursor.remove();
+    // تحويل البرق من وضع الانتظار إلى وضع الكتابة عند وصول أول نص
+    if (!streamingState.hasStartedTyping && text && text.trim()) {
+        streamingState.hasStartedTyping = true;
+        if (streamingState.lightningElement) {
+            streamingState.lightningElement.classList.remove('waiting');
+            streamingState.lightningElement.classList.add('typing');
+        }
+    }
+
+    // الآن نحدّث الـ DOM
     const renderedContent = marked.parse(streamingState.currentText);
+    
+    // إزالة البرق مؤقتاً قبل تحديث المحتوى
+    let lightningElement = streamingState.lightningElement;
+    if (lightningElement && lightningElement.parentNode) {
+        lightningElement.parentNode.removeChild(lightningElement);
+    }
+    
     streamingState.streamingElement.innerHTML = renderedContent;
 
-    if (!isComplete) {
-        const newCursor = document.createElement('span');
-        newCursor.className = 'streaming-cursor';
-        streamingState.streamingElement.appendChild(newCursor);
+    // إعادة إدراج البرق في نهاية النص إذا لم يكتمل البث
+    if (!isComplete && lightningElement) {
+        streamingState.streamingElement.appendChild(lightningElement);
+        streamingState.lightningElement = lightningElement;
     }
 
     streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
@@ -331,6 +331,8 @@ function completeStreamingMessage() {
   streamingState.currentText = '';
   streamingState.streamController = null;
   streamingState.chatId = null;
+  streamingState.lightningElement = null;
+  streamingState.hasStartedTyping = false;
 
   saveCurrentChat(targetChatId);
   scrollToBottom();
@@ -370,20 +372,22 @@ function createAgentStreamingMessage(name, role) {
       <i class="fas fa-users-cog"></i>
       <span>${escapeHtml(name)} <span class="opacity-60">(${escapeHtml(role)})</span></span>
     </div>
-    <div class="message-content" id="content-${messageId}">
-      <span class="streaming-cursor"></span>
-    </div>
-    <div class="streaming-indicator">
-      <i class="fas fa-robot text-xs"></i>
-      <span>يكتب ${escapeHtml(name)}</span>
-      <div class="streaming-dots"><div class="streaming-dot"></div><div class="streaming-dot"></div><div class="streaming-dot"></div></div>
+    <div class="message-content" id="content-${messageId}" style="position: relative;">
+      <i class="fas fa-bolt lightning-cursor waiting" id="lightning-${messageId}"></i>
     </div>
   `;
 
   messagesArea.appendChild(messageDiv);
   scrollToBottom();
 
-  teamStreaming.activeAgent = { messageId, name, role, text: '' };
+  teamStreaming.activeAgent = { 
+    messageId, 
+    name, 
+    role, 
+    text: '',
+    lightningElement: document.getElementById(`lightning-${messageId}`),
+    hasStartedTyping: false
+  };
   if (!teamStreaming.chatId) teamStreaming.chatId = currentChatId;
 }
 
@@ -399,16 +403,28 @@ function appendToActiveAgent(text) {
   const contentEl = document.getElementById(`content-${a.messageId}`);
   if (!contentEl) return;
 
-  // إزالة المؤشّر المؤقت
-  const cursor = contentEl.querySelector('.streaming-cursor');
-  if (cursor) cursor.remove();
+  // تحويل البرق من وضع الانتظار إلى وضع الكتابة عند وصول أول نص
+  if (!a.hasStartedTyping && text && text.trim()) {
+    a.hasStartedTyping = true;
+    if (a.lightningElement) {
+      a.lightningElement.classList.remove('waiting');
+      a.lightningElement.classList.add('typing');
+    }
+  }
+
+  // إزالة البرق مؤقتاً قبل تحديث المحتوى
+  let lightningElement = a.lightningElement;
+  if (lightningElement && lightningElement.parentNode) {
+    lightningElement.parentNode.removeChild(lightningElement);
+  }
 
   contentEl.innerHTML = marked.parse(a.text);
 
-  // إعادة المؤشّر طالما البث لم يكتمل
-  const newCursor = document.createElement('span');
-  newCursor.className = 'streaming-cursor';
-  contentEl.appendChild(newCursor);
+  // إعادة إدراج البرق في نهاية النص
+  if (lightningElement) {
+    contentEl.appendChild(lightningElement);
+    a.lightningElement = lightningElement;
+  }
 
   contentEl.querySelectorAll('pre code').forEach(block => {
     hljs.highlightElement(block);
