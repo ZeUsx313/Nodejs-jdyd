@@ -595,16 +595,19 @@ async function sendMessage() {
 
         // Create user message
         const userMessage = {
-    role: 'user',
-    content: message,
-    attachments: attachments.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        fileId: file.fileId || null,
-        fileUrl: file.fileUrl || null
-    })),
-    timestamp: Date.now()
+  role: 'user',
+  content: message,
+  attachments: attachments.map(file => ({
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    dataType: file.dataType || null,
+    mimeType: file.mimeType || file.type || null,
+    fileId: file.fileId || null,
+    fileUrl: file.fileUrl || null
+    // (لا نحفظ base64 في التاريخ حتى لا نضخم التخزين؛ يكفي أنه يُرسل للمساعد الآن)
+  })),
+  timestamp: Date.now()
 };
 
         // Add user message to chat
