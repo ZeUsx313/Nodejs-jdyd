@@ -103,11 +103,11 @@ async function processAttachedFiles(files) {
       (uploaded.files || []).map(u => [u.originalName || u.filename, u])
     );
 
-    for (const info of fileData) {
+     for (const info of fileData) {
       const rec = byName[info.name];
       if (rec) {
         info.fileId  = rec.id || rec._id || rec.filename || null;
-        info.fileUrl = rec.url || null;               // مثال: /uploads/xxxx
+        info.fileUrl = rec.fileUrl || null;               // ✨ تم التغيير هنا: rec.fileUrl بدلاً من rec.url ✨
       }
     }
   } catch (e) {
