@@ -211,66 +211,85 @@ pre, code, pre code {
     text-overflow: ellipsis;
 }
 
-/* Streaming Animation Styles */
+/* Streaming Animation Styles - Zeus Lightning Cursor */
 .streaming-message {
     position: relative;
 }
 
-.streaming-cursor {
+/* مؤشر البرق الجديد */
+.lightning-cursor {
     display: inline-block;
-    width: 2px;
-    height: 1.2em;
-    background-color: #10a37f;
-    margin-left: 2px;
-    animation: blink 1s infinite;
+    position: relative;
+    width: 16px;
+    height: 20px;
+    color: #2d9cff;
+    font-size: 16px;
     vertical-align: baseline;
+    margin-left: 4px;
 }
 
-@keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+/* مرحلة الاهتزاز العشوائي (قبل بدء النص) */
+.lightning-cursor.waiting {
+    animation: lightningShake 0.8s infinite ease-in-out;
 }
 
+/* مرحلة الحركة الأفقية (أثناء الكتابة) */
+.lightning-cursor.typing {
+    animation: lightningGlow 1.2s ease-in-out infinite;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 5;
+}
+
+/* اهتزاز عشوائي للبرق في مرحلة الانتظار */
+@keyframes lightningShake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-2deg); }
+    20% { transform: translate(-2px, 0px) rotate(1deg); }
+    30% { transform: translate(2px, 1px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-2px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+/* توهج البرق أثناء الكتابة */
+@keyframes lightningGlow {
+    0%, 100% { 
+        color: #2d9cff; 
+        filter: drop-shadow(0 0 2px #2d9cff); 
+    }
+    50% { 
+        color: #4fb3ff; 
+        filter: drop-shadow(0 0 6px #2d9cff) drop-shadow(0 0 12px #1e7fe0); 
+    }
+}
+
+/* إخفاء المؤشر التقليدي */
+.streaming-cursor {
+    display: none;
+}
+
+/* تحديث مؤشر الكتابة ليكون أقل بروزاً */
 .streaming-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: #9ca3af;
-    font-size: 14px;
-    margin-top: 8px;
+    display: none; /* إخفاء المؤشر النصي القديم بالكامل */
 }
 
 .streaming-dots {
-    display: flex;
-    gap: 2px;
+    display: none; /* إخفاء النقاط */
 }
 
 .streaming-dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: #10a37f;
-    animation: streamingPulse 1.4s infinite ease-in-out;
+    display: none; /* إخفاء النقاط */
 }
 
-.streaming-dot:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.streaming-dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes streamingPulse {
-    0%, 60%, 100% {
-        transform: scale(0.8);
-        opacity: 0.5;
-    }
-    30% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
+/* إزالة الأنيميشن القديم */
+@keyframes blink { display: none; }
+@keyframes streamingPulse { display: none; }
 
 /* Code Block Styling - ChatGPT Style */
 pre {
