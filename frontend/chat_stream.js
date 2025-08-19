@@ -7,8 +7,17 @@ function createStreamingMessage(sender = 'assistant') {
     messageDiv.id = `message-${messageId}`;
 
     messageDiv.innerHTML = `
-        <div class="message-content" id="content-${messageId}" style="position: relative;">
-            <i class="fas fa-bolt lightning-cursor waiting" id="lightning-${messageId}"></i>
+        <div class="message-content" id="content-${messageId}">
+            <span class="streaming-cursor"></span>
+        </div>
+        <div class="streaming-indicator">
+            <i class="fas fa-robot text-xs"></i>
+            <span>يكتب زيوس</span>
+            <div class="streaming-dots">
+                <div class="streaming-dot"></div>
+                <div class="streaming-dot"></div>
+                <div class="streaming-dot"></div>
+            </div>
         </div>
     `;
 
@@ -19,8 +28,6 @@ function createStreamingMessage(sender = 'assistant') {
     streamingState.streamingElement = document.getElementById(`content-${messageId}`);
     streamingState.currentText = '';
     streamingState.isStreaming = true;
-    streamingState.lightningElement = document.getElementById(`lightning-${messageId}`);
-    streamingState.hasStartedTyping = false;
 // ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
     streamingState.chatId = currentChatId;
 
@@ -28,53 +35,6 @@ function createStreamingMessage(sender = 'assistant') {
     updateSendButton();
 
     return messageId;
-}
-
-// === جديد: عرض حالة البحث ===
-function showSearchingMessage(container, text) {
-  const msg = document.createElement("div");
-  msg.className = "searching-text";
-
-  // تقسيم النص إلى حروف وإعطاء كل حرف انيميشن متدرج
-  text.split("").forEach((ch, i) => {
-    const span = document.createElement("span");
-    span.textContent = ch;
-    span.style.animationDelay = (i * 0.05) + "s";
-    msg.appendChild(span);
-  });
-
-  container.appendChild(msg);
-
-  // إنشاء المؤشر البرق
-  const lightning = document.createElement("div");
-  lightning.className = "lightning-cursor searching";
-  lightning.textContent = "⚡"; // أو أيقونة SVG لديك
-
-  msg.appendChild(lightning);
-
-  return { msg, lightning };
-}
-
-// === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
-function placeLightningAtEnd(container, lightning) {
-  if (!container || !lightning) return;
-
-  // التقط آخر عنصر نصّي مناسب:
-  const candidates = container.querySelectorAll(
-    'p, li, h1, h2, h3, h4, h5, h6, blockquote p'
-  );
-
-  let target = null;
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    const el = candidates[i];
-    if (el.textContent && el.textContent.trim().length > 0) {
-      target = el;
-      break;
-    }
-  }
-
-  // إن لم نجد مرشحًا، ألحِق بالحاوية كحل أخير
-  (target || container).appendChild(lightning);
 }
 
 function appendToStreamingMessage(text, isComplete = false) {
@@ -100,14 +60,21 @@ function appendToStreamingMessage(text, isComplete = false) {
             messageDiv.className = `chat-bubble message-assistant streaming-message`;
             messageDiv.id = `message-${messageId}`;
             messageDiv.innerHTML = `
-              <div class="message-content" id="content-${messageId}" style="position: relative;">
-                  <i class="fas fa-bolt lightning-cursor" id="lightning-${messageId}"></i>
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
               </div>
             `;
             messagesArea.appendChild(messageDiv);
             streamingState.streamingElement = document.getElementById(`content-${messageId}`);
-            streamingState.lightningElement = document.getElementById(`lightning-${messageId}`);
-            streamingState.hasStartedTyping = false;
         }
     }
 
@@ -117,31 +84,17 @@ function appendToStreamingMessage(text, isComplete = false) {
         return;
     }
 
-    // تحويل البرق من وضع الانتظار إلى وضع الكتابة عند وصول أول نص
-    if (!streamingState.hasStartedTyping && text && text.trim()) {
-        streamingState.hasStartedTyping = true;
-        if (streamingState.lightningElement) {
-            streamingState.lightningElement.classList.remove('waiting');
-            streamingState.lightningElement.classList.add('typing');
-        }
-    }
-
-    // الآن نحدّث الـ DOM
+    // الآن نحدّث الـ DOM كالمعتاد
+    const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
+    if (cursor) cursor.remove();
     const renderedContent = marked.parse(streamingState.currentText);
-    
-    // إزالة البرق مؤقتاً قبل تحديث المحتوى
-    let lightningElement = streamingState.lightningElement;
-    if (lightningElement && lightningElement.parentNode) {
-        lightningElement.parentNode.removeChild(lightningElement);
-    }
-    
     streamingState.streamingElement.innerHTML = renderedContent;
 
-// إعادة إدراج البرق في نهاية النص إذا لم يكتمل البث
-if (!isComplete && lightningElement) {
-    placeLightningAtEnd(streamingState.streamingElement, lightningElement);
-    streamingState.lightningElement = lightningElement;
-}
+    if (!isComplete) {
+        const newCursor = document.createElement('span');
+        newCursor.className = 'streaming-cursor';
+        streamingState.streamingElement.appendChild(newCursor);
+    }
 
     streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
@@ -378,8 +331,6 @@ function completeStreamingMessage() {
   streamingState.currentText = '';
   streamingState.streamController = null;
   streamingState.chatId = null;
-  streamingState.lightningElement = null;
-  streamingState.hasStartedTyping = false;
 
   saveCurrentChat(targetChatId);
   scrollToBottom();
@@ -419,22 +370,20 @@ function createAgentStreamingMessage(name, role) {
       <i class="fas fa-users-cog"></i>
       <span>${escapeHtml(name)} <span class="opacity-60">(${escapeHtml(role)})</span></span>
     </div>
-    <div class="message-content" id="content-${messageId}" style="position: relative;">
-      <i class="fas fa-bolt lightning-cursor waiting" id="lightning-${messageId}"></i>
+    <div class="message-content" id="content-${messageId}">
+      <span class="streaming-cursor"></span>
+    </div>
+    <div class="streaming-indicator">
+      <i class="fas fa-robot text-xs"></i>
+      <span>يكتب ${escapeHtml(name)}</span>
+      <div class="streaming-dots"><div class="streaming-dot"></div><div class="streaming-dot"></div><div class="streaming-dot"></div></div>
     </div>
   `;
 
   messagesArea.appendChild(messageDiv);
   scrollToBottom();
 
-  teamStreaming.activeAgent = { 
-    messageId, 
-    name, 
-    role, 
-    text: '',
-    lightningElement: document.getElementById(`lightning-${messageId}`),
-    hasStartedTyping: false
-  };
+  teamStreaming.activeAgent = { messageId, name, role, text: '' };
   if (!teamStreaming.chatId) teamStreaming.chatId = currentChatId;
 }
 
@@ -450,28 +399,16 @@ function appendToActiveAgent(text) {
   const contentEl = document.getElementById(`content-${a.messageId}`);
   if (!contentEl) return;
 
-  // تحويل البرق من وضع الانتظار إلى وضع الكتابة عند وصول أول نص
-  if (!a.hasStartedTyping && text && text.trim()) {
-    a.hasStartedTyping = true;
-    if (a.lightningElement) {
-      a.lightningElement.classList.remove('waiting');
-      a.lightningElement.classList.add('typing');
-    }
-  }
-
-  // إزالة البرق مؤقتاً قبل تحديث المحتوى
-  let lightningElement = a.lightningElement;
-  if (lightningElement && lightningElement.parentNode) {
-    lightningElement.parentNode.removeChild(lightningElement);
-  }
+  // إزالة المؤشّر المؤقت
+  const cursor = contentEl.querySelector('.streaming-cursor');
+  if (cursor) cursor.remove();
 
   contentEl.innerHTML = marked.parse(a.text);
 
-// إعادة إدراج البرق في نهاية النص
-if (lightningElement) {
-  placeLightningAtEnd(contentEl, lightningElement);
-  a.lightningElement = lightningElement;
-}
+  // إعادة المؤشّر طالما البث لم يكتمل
+  const newCursor = document.createElement('span');
+  newCursor.className = 'streaming-cursor';
+  contentEl.appendChild(newCursor);
 
   contentEl.querySelectorAll('pre code').forEach(block => {
     hljs.highlightElement(block);
@@ -697,39 +634,29 @@ createStreamingMessage();
 if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
   // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
   settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
-
-}	
-
+}
 
 // Send to AI with streaming
-const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
-  
-  // استخراج موضوع البحث بطريقة ذكية
-  function extractSearchQuery(text) {
-    // إزالة كلمات الاستفهام والأوامر
-    let cleanText = text
-      .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
-      .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
-      .replace(/\?$/i, '')
-      .trim();
-    
-    return cleanText || text.trim();
-  }
-  
-  const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
+await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
 
-  // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showNotification(`حدث خطأ: ${error.message}`, 'error');
 
-  const payload = {
-    chatHistory, // للدردشة العادية
-    history: chatHistory, // لوضع الفريق
-    attachments: attachments.map(file => ({
-      name: file.name, type: file.type, size: file.size,
-      content: file.content, dataType: file.dataType, mimeType: file.mimeType
-    })),
-    settings,
-    meta: { forceWebBrowsing, searchQuery }
-  };
+        // Complete streaming message with error
+        if (streamingState.isStreaming) {
+            appendToStreamingMessage('\n\n❌ عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.', true);
+        }
+    } finally {
+        // Re-enable input
+        input.disabled = false;
+        sendButton.disabled = false;
+        updateSendButton();
+        input.focus();
+
+        // Data will be saved when streaming completes
+    }
+}
 
 // التحقق من صحة إعدادات الفريق قبل الإرسال
 function validateTeamSettings() {
