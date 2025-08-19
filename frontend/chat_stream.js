@@ -30,6 +30,28 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
+// === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
+function placeLightningAtEnd(container, lightning) {
+  if (!container || !lightning) return;
+
+  // التقط آخر عنصر نصّي مناسب:
+  const candidates = container.querySelectorAll(
+    'p, li, h1, h2, h3, h4, h5, h6, blockquote p'
+  );
+
+  let target = null;
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const el = candidates[i];
+    if (el.textContent && el.textContent.trim().length > 0) {
+      target = el;
+      break;
+    }
+  }
+
+  // إن لم نجد مرشحًا، ألحِق بالحاوية كحل أخير
+  (target || container).appendChild(lightning);
+}
+
 function appendToStreamingMessage(text, isComplete = false) {
     if (!streamingState.isStreaming) return;
 
@@ -90,11 +112,11 @@ function appendToStreamingMessage(text, isComplete = false) {
     
     streamingState.streamingElement.innerHTML = renderedContent;
 
-    // إعادة إدراج البرق في نهاية النص إذا لم يكتمل البث
-    if (!isComplete && lightningElement) {
-        streamingState.streamingElement.appendChild(lightningElement);
-        streamingState.lightningElement = lightningElement;
-    }
+// إعادة إدراج البرق في نهاية النص إذا لم يكتمل البث
+if (!isComplete && lightningElement) {
+    placeLightningAtEnd(streamingState.streamingElement, lightningElement);
+    streamingState.lightningElement = lightningElement;
+}
 
     streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
@@ -420,11 +442,11 @@ function appendToActiveAgent(text) {
 
   contentEl.innerHTML = marked.parse(a.text);
 
-  // إعادة إدراج البرق في نهاية النص
-  if (lightningElement) {
-    contentEl.appendChild(lightningElement);
-    a.lightningElement = lightningElement;
-  }
+// إعادة إدراج البرق في نهاية النص
+if (lightningElement) {
+  placeLightningAtEnd(contentEl, lightningElement);
+  a.lightningElement = lightningElement;
+}
 
   contentEl.querySelectorAll('pre code').forEach(block => {
     hljs.highlightElement(block);
