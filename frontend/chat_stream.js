@@ -799,6 +799,8 @@ function displayUserMessage(message) {
     scrollToBottom();
 }
 
+// =================== الصق هذا الكود الجديد بالكامل في مكانه ===================
+
 // ----------------------------------------------------------------------------------
 // NEW: Functions to communicate with the local backend server
 // ----------------------------------------------------------------------------------
@@ -811,14 +813,12 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   function shouldSearch(message) {
     const msg = message.toLowerCase().trim();
     
-    // كلمات مفاتيح مباشرة للبحث
     const directSearchTerms = [
       'ابحث', 'بحث', 'البحث', 'تصفح', 'اعطني معلومات عن', 
       'ما هي آخر أخبار', 'آخر الأخبار', 'الأخبار الحديثة',
       'search', 'browse', 'find information', 'latest news', 'recent news'
     ];
     
-    // مؤشرات على الحاجة لمعلومات حديثة
     const timeIndicators = [
       'اليوم', 'أمس', 'هذا الأسبوع', 'هذا الشهر', 'الآن', 'حالياً',
       'مؤخراً', 'جديد', 'حديث', 'متى', 'كم', 'أين',
@@ -826,7 +826,6 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
       'recently', 'new', 'recent', 'when', 'how much', 'where'
     ];
     
-    // مواضيع تحتاج معلومات حديثة
     const currentTopics = [
       'سعر', 'أسعار', 'الأسهم', 'العملة', 'الطقس', 'الأخبار',
       'أحداث', 'تحديثات', 'إحصائيات', 'بيانات',
@@ -834,12 +833,10 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
       'events', 'updates', 'statistics', 'data'
     ];
 
-    // فحص التطابقات المباشرة
     const hasDirectSearch = directSearchTerms.some(term => msg.includes(term));
     const hasTimeIndicator = timeIndicators.some(term => msg.includes(term));
     const hasCurrentTopic = currentTopics.some(term => msg.includes(term));
     
-    // استخدام العتبة الديناميكية للحكم
     const threshold = settings.dynamicThreshold || 0.6;
     let searchScore = 0;
     
@@ -847,7 +844,6 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     if (hasTimeIndicator) searchScore += 0.3;
     if (hasCurrentTopic) searchScore += 0.4;
     
-    // أسئلة تحتاج معلومات حديثة
     if (msg.includes('؟') || msg.includes('?')) {
       if (hasTimeIndicator || hasCurrentTopic) searchScore += 0.2;
     }
@@ -867,7 +863,6 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   
   // استخراج موضوع البحث بطريقة ذكية
   function extractSearchQuery(text) {
-    // إزالة كلمات الاستفهام والأوامر
     let cleanText = text
       .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
       .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
@@ -879,11 +874,9 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   
   const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
 
-  // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
-
   const payload = {
-    chatHistory, // للدردشة العادية
-    history: chatHistory, // لوضع الفريق
+    chatHistory,
+    history: chatHistory,
     attachments: attachments.map(file => ({
       name: file.name, type: file.type, size: file.size,
       content: file.content, dataType: file.dataType, mimeType: file.mimeType
@@ -893,6 +886,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   };
 
   try {
+    // استدعاء الدالة الجديدة مع تمرير معرف رسالة البحث
     await sendRequestToServer(payload, searchMessageId);
   } catch (error) {
     // إزالة رسالة البحث في حالة الخطأ
@@ -902,16 +896,15 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     console.error('Error sending request to server:', error);
     appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
   }
+}
 
 async function sendRequestToServer(payload, searchMessageId = null) {
   try {
     const token = localStorage.getItem('authToken');
 
-    // 1) إنشاء المتحكّم وربطه بحالة البث
     const controller = new AbortController();
     streamingState.streamController = controller;
 
-    // 2) اختيار المسار بحسب وضع التطبيق
     const endpoint = (settings.activeMode === 'team')
       ? `${API_BASE_URL}/api/team_chat`
       : `${API_BASE_URL}/api/chat`;
@@ -938,7 +931,7 @@ async function sendRequestToServer(payload, searchMessageId = null) {
 
     try {
       while (true) {
-        const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
+        const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
 
@@ -949,24 +942,27 @@ async function sendRequestToServer(payload, searchMessageId = null) {
         }
 
         if (settings.activeMode === 'team') {
-          processTeamChunk(chunk);          // بث مباشر لكل عضو
+          processTeamChunk(chunk);
         } else {
-          appendToStreamingMessage(chunk);  // السلوك القديم
+          appendToStreamingMessage(chunk);
         }
+      }
+
+      // إذا لم تصل أي بيانات (رد فارغ)، تأكد من إزالة رسالة البحث
+      if (!firstChunkReceived && searchMessageId) {
+        removeWebSearchMessage(searchMessageId);
       }
 
       // اكتمال طبيعي
       if (settings.activeMode === 'team') {
-        finalizeTeamStreaming();            // إقفال أي فقاعة عضو مفتوحة
+        finalizeTeamStreaming();
       } else {
-        appendToStreamingMessage('', true); // السلوك القديم
+        appendToStreamingMessage('', true);
       }
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
         console.debug('Streaming aborted by user.');
-        // إزالة رسالة البحث في حالة الإلغاء
         if (searchMessageId) {
           removeWebSearchMessage(searchMessageId);
         }
@@ -975,14 +971,10 @@ async function sendRequestToServer(payload, searchMessageId = null) {
       throw error;
 
     } finally {
-      // تنظيف المقبض - لا تغيّر isStreaming هنا (تُدار في append/cancel)
       streamingState.streamController = null;
     }
 
   } catch (error) {
-    // أخطاء شبكة/خادم
-    console.error('Fetch error:', error);
-    // إزالة رسالة البحث في حالة الخطأ
     if (searchMessageId) {
       removeWebSearchMessage(searchMessageId);
     }
@@ -992,6 +984,8 @@ async function sendRequestToServer(payload, searchMessageId = null) {
     throw error;
   }
 }
+
+// =================== نهاية الكود الجديد ===================
 
 // Rest of the existing functions (chat management, UI functions, etc.)
 function escapeHtml(text) {
