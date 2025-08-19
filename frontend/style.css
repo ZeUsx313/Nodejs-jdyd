@@ -1583,29 +1583,196 @@ input[type="range"]::-moz-range-thumb:hover {
   border-left: 4px solid #ff9800;
 }
 
-/* === تأثير كتابة النص عند البحث === */
-.searching-text span {
-  opacity: 0;
+/* ===== تأثير البحث في الويب - مثل GPT ===== */
+
+/* حاوية رسالة البحث */
+.web-search-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(45,156,255,0.1), rgba(30,127,224,0.05));
+  border: 1px solid rgba(45,156,255,0.2);
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* النص المتحرك "جاري البحث في الويب" */
+.search-text {
+  font-size: 0.95rem;
+  color: #e5f3ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* كل حرف في النص */
+.search-text .letter {
   display: inline-block;
-  animation: fadeInLetter 0.05s forwards;
+  opacity: 0;
+  animation: letterPulse 2.5s ease-in-out infinite;
 }
 
-@keyframes fadeInLetter {
-  from { opacity: 0; transform: translateY(-0.3em); }
-  to   { opacity: 1; transform: translateY(0); }
+/* تأخير متدرج لكل حرف */
+.search-text .letter:nth-child(1) { animation-delay: 0.1s; }
+.search-text .letter:nth-child(2) { animation-delay: 0.15s; }
+.search-text .letter:nth-child(3) { animation-delay: 0.2s; }
+.search-text .letter:nth-child(4) { animation-delay: 0.25s; }
+.search-text .letter:nth-child(5) { animation-delay: 0.3s; }
+.search-text .letter:nth-child(6) { animation-delay: 0.35s; }
+.search-text .letter:nth-child(7) { animation-delay: 0.4s; }
+.search-text .letter:nth-child(8) { animation-delay: 0.45s; }
+.search-text .letter:nth-child(9) { animation-delay: 0.5s; }
+.search-text .letter:nth-child(10) { animation-delay: 0.55s; }
+.search-text .letter:nth-child(11) { animation-delay: 0.6s; }
+.search-text .letter:nth-child(12) { animation-delay: 0.65s; }
+.search-text .letter:nth-child(13) { animation-delay: 0.7s; }
+.search-text .letter:nth-child(14) { animation-delay: 0.75s; }
+.search-text .letter:nth-child(15) { animation-delay: 0.8s; }
+.search-text .letter:nth-child(16) { animation-delay: 0.85s; }
+.search-text .letter:nth-child(17) { animation-delay: 0.9s; }
+.search-text .letter:nth-child(18) { animation-delay: 0.95s; }
+.search-text .letter:nth-child(19) { animation-delay: 1s; }
+.search-text .letter:nth-child(20) { animation-delay: 1.05s; }
+
+/* تأثير ظهور واختفاء الحروف */
+@keyframes letterPulse {
+  0%, 20% { opacity: 0.3; transform: scale(1); }
+  40%, 60% { opacity: 1; transform: scale(1.05); filter: brightness(1.3); }
+  80%, 100% { opacity: 0.3; transform: scale(1); }
 }
 
-/* === شرارة البرق فوق النص === */
-.lightning-cursor.searching {
+/* البرق المتحرك حول النص */
+.search-lightning {
   position: relative;
   display: inline-block;
-  animation: lightningJump 1s ease-in-out infinite;
+  font-size: 18px;
+  color: #2d9cff;
+  animation: lightningOrbit 3s ease-in-out infinite;
+  z-index: 10;
 }
 
-@keyframes lightningJump {
-  0%   { transform: translateY(0) scale(1); }
-  25%  { transform: translateY(-0.6em) scale(1.1); }
-  50%  { transform: translateY(0.2em) scale(0.9); }
-  75%  { transform: translateY(-0.4em) scale(1.05); }
-  100% { transform: translateY(0) scale(1); }
+/* مسار البرق الدائري حول النص */
+@keyframes lightningOrbit {
+  0% { 
+    transform: translateX(-60px) translateY(-10px) scale(0.8) rotate(-15deg);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 8px #2d9cff);
+  }
+  15% { 
+    transform: translateX(-40px) translateY(-25px) scale(1.2) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 15px #2d9cff) drop-shadow(0 0 25px #1e7fe0);
+  }
+  30% { 
+    transform: translateX(0px) translateY(-30px) scale(0.9) rotate(15deg);
+    opacity: 0.8;
+    filter: drop-shadow(0 0 12px #2d9cff);
+  }
+  45% { 
+    transform: translateX(40px) translateY(-25px) scale(1.1) rotate(30deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 18px #2d9cff) drop-shadow(0 0 30px #1e7fe0);
+  }
+  60% { 
+    transform: translateX(60px) translateY(-10px) scale(0.7) rotate(45deg);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 6px #2d9cff);
+  }
+  75% { 
+    transform: translateX(40px) translateY(10px) scale(1.3) rotate(60deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 20px #2d9cff) drop-shadow(0 0 35px #1e7fe0);
+  }
+  90% { 
+    transform: translateX(-20px) translateY(15px) scale(0.8) rotate(75deg);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 10px #2d9cff);
+  }
+  100% { 
+    transform: translateX(-60px) translateY(-10px) scale(0.8) rotate(90deg);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 8px #2d9cff);
+  }
+}
+
+/* تأثير التوهج الخلفي */
+.web-search-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(45,156,255,0.1) 0%, transparent 50%);
+  animation: searchGlow 4s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes searchGlow {
+  0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.7; transform: scale(1.1) rotate(180deg); }
+}
+
+/* التأكد أن المحتوى يظهر فوق التوهج */
+.web-search-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* تأثير إضافي: نقاط متحركة */
+.search-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.search-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2d9cff;
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.search-dot:nth-child(1) { animation-delay: 0s; }
+.search-dot:nth-child(2) { animation-delay: 0.2s; }
+.search-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 60%, 100% { 
+    opacity: 0.3; 
+    transform: scale(0.8); 
+  }
+  30% { 
+    opacity: 1; 
+    transform: scale(1.2);
+    box-shadow: 0 0 10px #2d9cff;
+  }
+}
+
+/* تحسين للشاشات الصغيرة */
+@media (max-width: 768px) {
+  .web-search-container {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .search-text {
+    font-size: 0.875rem;
+  }
+  
+  .search-lightning {
+    font-size: 16px;
+  }
+  
+  @keyframes lightningOrbit {
+    0% { transform: translateX(-40px) translateY(-8px) scale(0.7) rotate(-15deg); }
+    25% { transform: translateX(0px) translateY(-20px) scale(1) rotate(15deg); }
+    50% { transform: translateX(40px) translateY(-8px) scale(0.6) rotate(45deg); }
+    75% { transform: translateX(0px) translateY(8px) scale(1.1) rotate(75deg); }
+    100% { transform: translateX(-40px) translateY(-8px) scale(0.7) rotate(90deg); }
+  }
 }
