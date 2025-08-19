@@ -30,29 +30,59 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
-// === جديد: عرض حالة البحث ===
-function showSearchingMessage(container, text) {
-  const msg = document.createElement("div");
-  msg.className = "searching-text";
+/**
+ * يحول سلسلة نصية إلى HTML مع تأثير حركي متدرج على كل حرف.
+ * @param {string} text - النص المراد تحريكه.
+ * @param {number} [delayStep=0.05] - مقدار التأخير الزمني بين كل حرف بالثواني.
+ * @returns {string} - سلسلة HTML جاهزة للعرض.
+ */
+function createAnimatedLetters(text, delayStep = 0.05) {
+  return text.split('').map((char, index) => {
+    // التعامل مع المسافات الفارغة بشكل صحيح
+    const character = char === ' ' ? '&nbsp;' : char;
+    return `<span class="letter" style="animation-delay: ${(index + 1) * delayStep}s;">${character}</span>`;
+  }).join('');
+}
 
-  // تقسيم النص إلى حروف وإعطاء كل حرف انيميشن متدرج
-  text.split("").forEach((ch, i) => {
-    const span = document.createElement("span");
-    span.textContent = ch;
-    span.style.animationDelay = (i * 0.05) + "s";
-    msg.appendChild(span);
-  });
+// === عرض رسالة البحث في الويب مع البرق المتحرك ===
+function createWebSearchMessage() {
+  const messageId = Date.now().toString() + '_search';
+  const messagesArea = document.getElementById('messagesArea');
 
-  container.appendChild(msg);
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-bubble message-assistant streaming-message web-search-message';
+  messageDiv.id = `message-${messageId}`;
 
-  // إنشاء المؤشر البرق
-  const lightning = document.createElement("div");
-  lightning.className = "lightning-cursor searching";
-  lightning.textContent = "⚡"; // أو أيقونة SVG لديك
+  // استدعاء الدالة المساعدة لإنشاء النص المتحرك
+  const animatedText = createAnimatedLetters('جاري البحث في الويب');
 
-  msg.appendChild(lightning);
+  messageDiv.innerHTML = `
+    <div class="web-search-container">
+      <div class="search-text">
+        ${animatedText}
+        <div class="search-dots">
+          <div class="search-dot"></div>
+          <div class="search-dot"></div>
+          <div class="search-dot"></div>
+        </div>
+      </div>
+      <i class="fas fa-bolt search-lightning"></i>
+    </div>
+  `;
 
-  return { msg, lightning };
+  messagesArea.appendChild(messageDiv);
+  scrollToBottom();
+
+  return messageId;
+}
+
+// === إزالة رسالة البحث ===
+function removeWebSearchMessage(messageId) {
+  if (!messageId) return;
+  const messageElement = document.getElementById(messageId);
+  if (messageElement) {
+    messageElement.remove();
+  }
 }
 
 // === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
@@ -827,6 +857,14 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
   const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
   
+  // متغير لحفظ معرف رسالة البحث
+  let searchMessageId = null;
+  
+  // إظهار رسالة البحث إذا كان البحث مفعلاً
+  if (forceWebBrowsing) {
+    searchMessageId = createWebSearchMessage();
+  }
+  
   // استخراج موضوع البحث بطريقة ذكية
   function extractSearchQuery(text) {
     // إزالة كلمات الاستفهام والأوامر
@@ -855,14 +893,17 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   };
 
   try {
-    await sendRequestToServer(payload);
+    await sendRequestToServer(payload, searchMessageId);
   } catch (error) {
+    // إزالة رسالة البحث في حالة الخطأ
+    if (searchMessageId) {
+      removeWebSearchMessage(searchMessageId);
+    }
     console.error('Error sending request to server:', error);
     appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
   }
-}
 
-async function sendRequestToServer(payload) {
+async function sendRequestToServer(payload, searchMessageId = null) {
   try {
     const token = localStorage.getItem('authToken');
 
@@ -893,12 +934,19 @@ async function sendRequestToServer(payload) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
+    let firstChunkReceived = false;
 
     try {
       while (true) {
         const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+
+        // إزالة رسالة البحث عند وصول أول رد من الخادم
+        if (!firstChunkReceived && searchMessageId) {
+          removeWebSearchMessage(searchMessageId);
+          firstChunkReceived = true;
+        }
 
         if (settings.activeMode === 'team') {
           processTeamChunk(chunk);          // بث مباشر لكل عضو
@@ -918,6 +966,10 @@ async function sendRequestToServer(payload) {
       if (error.name === 'AbortError') {
         // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
         console.debug('Streaming aborted by user.');
+        // إزالة رسالة البحث في حالة الإلغاء
+        if (searchMessageId) {
+          removeWebSearchMessage(searchMessageId);
+        }
         return;
       }
       throw error;
@@ -930,6 +982,10 @@ async function sendRequestToServer(payload) {
   } catch (error) {
     // أخطاء شبكة/خادم
     console.error('Fetch error:', error);
+    // إزالة رسالة البحث في حالة الخطأ
+    if (searchMessageId) {
+      removeWebSearchMessage(searchMessageId);
+    }
     if (error.name !== 'AbortError') {
       appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
