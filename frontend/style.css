@@ -236,10 +236,10 @@ pre, code, pre code {
 /* مرحلة الحركة الأفقية (أثناء الكتابة) */
 .lightning-cursor.typing {
     animation: lightningGlow 1.2s ease-in-out infinite;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 5;
+    position: static;           /* إلغاء التثبيت المطلق */
+    display: inline-block;      /* عنصرٌ داخلي يتبع تدفّق النص */
+    margin-inline-start: 4px;   /* مسافة صغيرة بعد الكلمة */
+    vertical-align: -0.1em;     /* محاذاة لطيفة على السطر */
 }
 
 /* اهتزاز عشوائي للبرق في مرحلة الانتظار */
