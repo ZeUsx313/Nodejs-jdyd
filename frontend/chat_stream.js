@@ -30,52 +30,29 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
-// === عرض رسالة البحث في الويب مع البرق المتحرك ===
-function createWebSearchMessage() {
-  const messageId = Date.now().toString() + '_search';
-  const messagesArea = document.getElementById('messagesArea');
+// === جديد: عرض حالة البحث ===
+function showSearchingMessage(container, text) {
+  const msg = document.createElement("div");
+  msg.className = "searching-text";
 
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'chat-bubble message-assistant streaming-message web-search-message';
-  messageDiv.id = `message-${messageId}`;
+  // تقسيم النص إلى حروف وإعطاء كل حرف انيميشن متدرج
+  text.split("").forEach((ch, i) => {
+    const span = document.createElement("span");
+    span.textContent = ch;
+    span.style.animationDelay = (i * 0.05) + "s";
+    msg.appendChild(span);
+  });
 
-  // إنشاء النص حرف بحرف
-  const searchText = 'جاري البحث في الويب';
-  const letters = searchText.split('').map((char, index) => {
-    if (char === ' ') {
-      return `<span class="letter" style="animation-delay: ${(index + 1) * 0.05}s;">&nbsp;</span>`;
-    }
-    return `<span class="letter" style="animation-delay: ${(index + 1) * 0.05}s;">${char}</span>`;
-  }).join('');
+  container.appendChild(msg);
 
-  messageDiv.innerHTML = `
-    <div class="web-search-container">
-      <div class="search-text">
-        ${letters}
-        <div class="search-dots">
-          <div class="search-dot"></div>
-          <div class="search-dot"></div>
-          <div class="search-dot"></div>
-        </div>
-      </div>
-      <i class="fas fa-bolt search-lightning"></i>
-    </div>
-  `;
+  // إنشاء المؤشر البرق
+  const lightning = document.createElement("div");
+  lightning.className = "lightning-cursor searching";
+  lightning.textContent = "⚡"; // أو أيقونة SVG لديك
 
-  messagesArea.appendChild(messageDiv);
-  scrollToBottom();
+  msg.appendChild(lightning);
 
-  return messageId;
-}
-
-// === إزالة رسالة البحث ===
-function removeWebSearchMessage(messageId) {
-  if (messageId) {
-    const messageElement = document.getElementById(`message-${messageId}`);
-    if (messageElement) {
-      messageElement.remove();
-    }
-  }
+  return { msg, lightning };
 }
 
 // === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
