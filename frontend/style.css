@@ -1582,3 +1582,30 @@ input[type="range"]::-moz-range-thumb:hover {
   background-color: #fff3e0; /* برتقالي فاتح */
   border-left: 4px solid #ff9800;
 }
+
+/* === تأثير كتابة النص عند البحث === */
+.searching-text span {
+  opacity: 0;
+  display: inline-block;
+  animation: fadeInLetter 0.05s forwards;
+}
+
+@keyframes fadeInLetter {
+  from { opacity: 0; transform: translateY(-0.3em); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === شرارة البرق فوق النص === */
+.lightning-cursor.searching {
+  position: relative;
+  display: inline-block;
+  animation: lightningJump 1s ease-in-out infinite;
+}
+
+@keyframes lightningJump {
+  0%   { transform: translateY(0) scale(1); }
+  25%  { transform: translateY(-0.6em) scale(1.1); }
+  50%  { transform: translateY(0.2em) scale(0.9); }
+  75%  { transform: translateY(-0.4em) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
