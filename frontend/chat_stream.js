@@ -30,6 +30,54 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
+// === عرض رسالة البحث في الويب مع البرق المتحرك ===
+function createWebSearchMessage() {
+  const messageId = Date.now().toString() + '_search';
+  const messagesArea = document.getElementById('messagesArea');
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-bubble message-assistant streaming-message web-search-message';
+  messageDiv.id = `message-${messageId}`;
+
+  // إنشاء النص حرف بحرف
+  const searchText = 'جاري البحث في الويب';
+  const letters = searchText.split('').map((char, index) => {
+    if (char === ' ') {
+      return `<span class="letter" style="animation-delay: ${(index + 1) * 0.05}s;">&nbsp;</span>`;
+    }
+    return `<span class="letter" style="animation-delay: ${(index + 1) * 0.05}s;">${char}</span>`;
+  }).join('');
+
+  messageDiv.innerHTML = `
+    <div class="web-search-container">
+      <div class="search-text">
+        ${letters}
+        <div class="search-dots">
+          <div class="search-dot"></div>
+          <div class="search-dot"></div>
+          <div class="search-dot"></div>
+        </div>
+      </div>
+      <i class="fas fa-bolt search-lightning"></i>
+    </div>
+  `;
+
+  messagesArea.appendChild(messageDiv);
+  scrollToBottom();
+
+  return messageId;
+}
+
+// === إزالة رسالة البحث ===
+function removeWebSearchMessage(messageId) {
+  if (messageId) {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.remove();
+    }
+  }
+}
+
 // === جديد: عرض حالة البحث ===
 function showSearchingMessage(container, text) {
   const msg = document.createElement("div");
@@ -702,26 +750,53 @@ if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i
 
 
 // Send to AI with streaming
-await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
+const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
+  
+  // متغير لحفظ معرف رسالة البحث
+  let searchMessageId = null;
+  
+  // إظهار رسالة البحث إذا كان البحث مفعلاً
+  if (forceWebBrowsing) {
+    searchMessageId = createWebSearchMessage();
+  }
+  
+  // استخراج موضوع البحث بطريقة ذكية
+  function extractSearchQuery(text) {
+    // إزالة كلمات الاستفهام والأوامر
+    let cleanText = text
+      .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
+      .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
+      .replace(/\?$/i, '')
+      .trim();
+    
+    return cleanText || text.trim();
+  }
+  
+  const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
 
-    } catch (error) {
-        console.error('Error sending message:', error);
-        showNotification(`حدث خطأ: ${error.message}`, 'error');
+  // لا نحتاج للتحقق من وجود searchQuery لأننا نستخدم النص كاملاً
 
-        // Complete streaming message with error
-        if (streamingState.isStreaming) {
-            appendToStreamingMessage('\n\n❌ عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.', true);
-        }
-    } finally {
-        // Re-enable input
-        input.disabled = false;
-        sendButton.disabled = false;
-        updateSendButton();
-        input.focus();
+  const payload = {
+    chatHistory, // للدردشة العادية
+    history: chatHistory, // لوضع الفريق
+    attachments: attachments.map(file => ({
+      name: file.name, type: file.type, size: file.size,
+      content: file.content, dataType: file.dataType, mimeType: file.mimeType
+    })),
+    settings,
+    meta: { forceWebBrowsing, searchQuery }
+  };
 
-        // Data will be saved when streaming completes
+  try {
+    await sendRequestToServer(payload, searchMessageId);
+  } catch (error) {
+    // إزالة رسالة البحث في حالة الخطأ
+    if (searchMessageId) {
+      removeWebSearchMessage(searchMessageId);
     }
-}
+    console.error('Error sending request to server:', error);
+    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+  }
 
 // التحقق من صحة إعدادات الفريق قبل الإرسال
 function validateTeamSettings() {
@@ -862,7 +937,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   }
 }
 
-async function sendRequestToServer(payload) {
+async function sendRequestToServer(payload, searchMessageId = null) {
   try {
     const token = localStorage.getItem('authToken');
 
@@ -893,12 +968,19 @@ async function sendRequestToServer(payload) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
+    let firstChunkReceived = false;
 
     try {
       while (true) {
         const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+
+        // إزالة رسالة البحث عند وصول أول رد من الخادم
+        if (!firstChunkReceived && searchMessageId) {
+          removeWebSearchMessage(searchMessageId);
+          firstChunkReceived = true;
+        }
 
         if (settings.activeMode === 'team') {
           processTeamChunk(chunk);          // بث مباشر لكل عضو
@@ -918,6 +1000,10 @@ async function sendRequestToServer(payload) {
       if (error.name === 'AbortError') {
         // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
         console.debug('Streaming aborted by user.');
+        // إزالة رسالة البحث في حالة الإلغاء
+        if (searchMessageId) {
+          removeWebSearchMessage(searchMessageId);
+        }
         return;
       }
       throw error;
@@ -930,6 +1016,10 @@ async function sendRequestToServer(payload) {
   } catch (error) {
     // أخطاء شبكة/خادم
     console.error('Fetch error:', error);
+    // إزالة رسالة البحث في حالة الخطأ
+    if (searchMessageId) {
+      removeWebSearchMessage(searchMessageId);
+    }
     if (error.name !== 'AbortError') {
       appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
