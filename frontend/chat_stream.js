@@ -918,7 +918,7 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   }
 }
 
-async function sendRequestToServer(payload, searchMessageId = null) {
+async function sendRequestToServer(payload) {
   try {
     const token = localStorage.getItem('authToken');
 
@@ -949,19 +949,12 @@ async function sendRequestToServer(payload, searchMessageId = null) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
-    let firstChunkReceived = false;
 
     try {
       while (true) {
         const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-
-        // إزالة رسالة البحث عند وصول أول رد من الخادم
-        if (!firstChunkReceived && searchMessageId) {
-          removeWebSearchMessage(searchMessageId);
-          firstChunkReceived = true;
-        }
 
         if (settings.activeMode === 'team') {
           processTeamChunk(chunk);          // بث مباشر لكل عضو
@@ -981,10 +974,6 @@ async function sendRequestToServer(payload, searchMessageId = null) {
       if (error.name === 'AbortError') {
         // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
         console.debug('Streaming aborted by user.');
-        // إزالة رسالة البحث في حالة الإلغاء
-        if (searchMessageId) {
-          removeWebSearchMessage(searchMessageId);
-        }
         return;
       }
       throw error;
@@ -997,10 +986,6 @@ async function sendRequestToServer(payload, searchMessageId = null) {
   } catch (error) {
     // أخطاء شبكة/خادم
     console.error('Fetch error:', error);
-    // إزالة رسالة البحث في حالة الخطأ
-    if (searchMessageId) {
-      removeWebSearchMessage(searchMessageId);
-    }
     if (error.name !== 'AbortError') {
       appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
