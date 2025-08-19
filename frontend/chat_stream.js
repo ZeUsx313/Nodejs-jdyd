@@ -752,14 +752,6 @@ if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i
 // Send to AI with streaming
 const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
   
-  // متغير لحفظ معرف رسالة البحث
-  let searchMessageId = null;
-  
-  // إظهار رسالة البحث إذا كان البحث مفعلاً
-  if (forceWebBrowsing) {
-    searchMessageId = createWebSearchMessage();
-  }
-  
   // استخراج موضوع البحث بطريقة ذكية
   function extractSearchQuery(text) {
     // إزالة كلمات الاستفهام والأوامر
@@ -786,17 +778,6 @@ const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg)
     settings,
     meta: { forceWebBrowsing, searchQuery }
   };
-
-  try {
-    await sendRequestToServer(payload, searchMessageId);
-  } catch (error) {
-    // إزالة رسالة البحث في حالة الخطأ
-    if (searchMessageId) {
-      removeWebSearchMessage(searchMessageId);
-    }
-    console.error('Error sending request to server:', error);
-    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
-  }
 
 // التحقق من صحة إعدادات الفريق قبل الإرسال
 function validateTeamSettings() {
