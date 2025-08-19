@@ -78,31 +78,6 @@ function removeWebSearchMessage(messageId) {
   }
 }
 
-// === جديد: عرض حالة البحث ===
-function showSearchingMessage(container, text) {
-  const msg = document.createElement("div");
-  msg.className = "searching-text";
-
-  // تقسيم النص إلى حروف وإعطاء كل حرف انيميشن متدرج
-  text.split("").forEach((ch, i) => {
-    const span = document.createElement("span");
-    span.textContent = ch;
-    span.style.animationDelay = (i * 0.05) + "s";
-    msg.appendChild(span);
-  });
-
-  container.appendChild(msg);
-
-  // إنشاء المؤشر البرق
-  const lightning = document.createElement("div");
-  lightning.className = "lightning-cursor searching";
-  lightning.textContent = "⚡"; // أو أيقونة SVG لديك
-
-  msg.appendChild(lightning);
-
-  return { msg, lightning };
-}
-
 // === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
 function placeLightningAtEnd(container, lightning) {
   if (!container || !lightning) return;
