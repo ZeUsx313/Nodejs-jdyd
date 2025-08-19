@@ -30,6 +30,31 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
+// === جديد: عرض حالة البحث ===
+function showSearchingMessage(container, text) {
+  const msg = document.createElement("div");
+  msg.className = "searching-text";
+
+  // تقسيم النص إلى حروف وإعطاء كل حرف انيميشن متدرج
+  text.split("").forEach((ch, i) => {
+    const span = document.createElement("span");
+    span.textContent = ch;
+    span.style.animationDelay = (i * 0.05) + "s";
+    msg.appendChild(span);
+  });
+
+  container.appendChild(msg);
+
+  // إنشاء المؤشر البرق
+  const lightning = document.createElement("div");
+  lightning.className = "lightning-cursor searching";
+  lightning.textContent = "⚡"; // أو أيقونة SVG لديك
+
+  msg.appendChild(lightning);
+
+  return { msg, lightning };
+}
+
 // === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
 function placeLightningAtEnd(container, lightning) {
   if (!container || !lightning) return;
@@ -574,20 +599,17 @@ function smoothScrollToBottom() {
 }
 
 async function sendMessage() {
-
-    if (streamingState.isStreaming) { 
-        cancelStreaming('new-send'); 
-        return; 
+    if (streamingState.isStreaming) {
+        cancelStreaming('new-send');
+        return;
     }
 
-    // التحقق من إعدادات الفريق في وضع الفريق
     if (settings.activeMode === 'team' && !validateTeamSettings()) {
         return;
     }
 
-    // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
     if (currentChatId && !chats[currentChatId]) {
-        const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
+        const latest = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0))[0];
         currentChatId = latest ? latest._id : null;
     }
 
@@ -600,79 +622,100 @@ async function sendMessage() {
     const message = input.value.trim();
     const files = Array.from(fileInput.files);
 
-    // The API key check is no longer needed on the frontend.
-    // The backend will handle API key management.
-
     console.log('Sending message to backend with provider:', settings.provider, 'model:', settings.model);
 
-    // Disable input during processing
     input.disabled = true;
     sendButton.disabled = true;
 
+    // =================================================================
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    //                  هنا يبدأ التعديل المطلوب
+    // =================================================================
+
+    let searchingMessageElement = null;
+    const messagesArea = document.getElementById('messagesArea');
+
+    // 1. تحقق مما إذا كان البحث مفعّلاً
+    const isSearchEnabled = settings.enableWebBrowsing;
+    const forceSearch = message.startsWith('/search') || message.startsWith('/ابحث');
+
+    if (isSearchEnabled || forceSearch) {
+        // 2. اعرض رسالة "جاري البحث..."
+        searchingMessageElement = showSearchingMessage(messagesArea, "جاري البحث في الويب...");
+        scrollToBottom(); // التمرير للأسفل لرؤية الرسالة
+    }
+
+    // =================================================================
+    //                  هنا ينتهي التعديل المطلوب
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    // =================================================================
+
     try {
-        // Create new chat if needed
         if (!currentChatId) {
             await startNewChat();
         }
 
-        // ✨✨✨ الميزة الجديدة تبدأ هنا ✨✨✨
-        // 1. تحقق إذا كانت هذه هي الرسالة الأولى في المحادثة الحالية
         if (chats[currentChatId] && chats[currentChatId].messages.length === 0 && message) {
-            // 2. إذا كانت كذلك، قم بتحديث عنوان المحادثة
             chats[currentChatId].title = message;
-            // 3. قم بتحديث قائمة المحادثات فورًا لإظهار الاسم الجديد
             displayChatHistory();
         }
-        // ✨✨✨ الميزة الجديدة تنتهي هنا ✨✨✨
 
-        // Process files if any
         let attachments = [];
         if (files.length > 0) {
             attachments = await processAttachedFiles(files);
         }
 
-        // Create user message
         const userMessage = {
-  role: 'user',
-  content: message,
-  attachments: attachments.map(file => ({
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    dataType: file.dataType || null,
-    mimeType: file.mimeType || file.type || null,
-    fileId: file.fileId || null,
-    fileUrl: file.fileUrl || null
-    // (لا نحفظ base64 في التاريخ حتى لا نضخم التخزين؛ يكفي أنه يُرسل للمساعد الآن)
-  })),
-  timestamp: Date.now()
-};
+            role: 'user',
+            content: message,
+            attachments: attachments.map(file => ({
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                dataType: file.dataType || null,
+                mimeType: file.mimeType || file.type || null,
+                fileId: file.fileId || null,
+                fileUrl: file.fileUrl || null
+            })),
+            timestamp: Date.now()
+        };
 
-        // Add user message to chat
         chats[currentChatId].messages.push(userMessage);
-
-        // Display user message with file cards
         displayUserMessage(userMessage);
-
-        // Scroll to show new message
         setTimeout(() => scrollToBottom(), 100);
-
-        // Clear input
         input.value = '';
         clearFileInput();
-
-        // Show welcome screen if hidden
         document.getElementById('welcomeScreen').classList.add('hidden');
         document.getElementById('messagesContainer').classList.remove('hidden');
 
-// ... بعد إنشاء userMessage وعرضه
-createStreamingMessage();
+        // استدعاء الدالة التي تبدأ البث الفعلي للرد
+        await createStreamingMessage();
 
-// (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
-if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
-  // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
-  settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
+    } catch (error) {
+        console.error("Send message process failed:", error);
+        showNotification(`حدث خطأ: ${error.message}`, 'error');
+    } finally {
+        // =================================================================
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        //          هنا نضيف إزالة رسالة البحث
+        // =================================================================
+        
+        // 3. احذف رسالة البحث بعد انتهاء كل شيء
+        if (searchingMessageElement) {
+            searchingMessageElement.remove();
+        }
+        
+        // =================================================================
+        //          هنا ينتهي التعديل الإضافي
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // =================================================================
+
+        // إعادة تفعيل الإدخال في كل الحالات
+        input.disabled = false;
+        sendButton.disabled = false;
+    }
 }
+
 
 // Send to AI with streaming
 await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
