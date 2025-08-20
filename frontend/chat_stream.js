@@ -352,6 +352,74 @@ function openSourcesModal(links) {
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 }
 
+// ✅ جديد: ترقية عرض "المصادر" في الرسائل المحمّلة من التاريخ (بعد التحديث/الرجوع)
+function upgradeSourcesInHistory(root = document) {
+  // لو المستخدم عطّل إظهار المصادر، نظّف أي بقايا للقسم البدائي أو الشريط وانهِ
+  if (typeof settings !== 'undefined' && settings.showSources === false) {
+    root.querySelectorAll('.chat-bubble.message-assistant .message-content').forEach(c => {
+      Array.from(c.querySelectorAll('p')).forEach(p => {
+        const t = (p.textContent || '').trim();
+        if (/^🔍?\s*المصادر:?$/.test(t)) {
+          const ul = p.nextElementSibling;
+          if (ul && ul.tagName && ul.tagName.toLowerCase() === 'ul') ul.remove();
+          p.remove();
+        }
+      });
+      const inline = c.parentElement && c.parentElement.querySelector('.sources-inline');
+      if (inline) inline.remove();
+    });
+    return;
+  }
+
+  // حوّل كل رسالة مساعد تحتوي على "🔍 المصادر:" من القائمة البدائية إلى الشريط الجميل
+  root.querySelectorAll('.chat-bubble.message-assistant').forEach(bubble => {
+    if (bubble.dataset.sourcesUpgraded === '1') return;               // لا تعالجها مرتين
+    if (bubble.querySelector('.sources-inline')) {                     // الشريط الجميل موجود
+      bubble.dataset.sourcesUpgraded = '1';
+      return;
+    }
+    const contentEl = bubble.querySelector('.message-content');
+    if (!contentEl) return;
+
+    // ابحث عن فقرة العنوان "🔍 المصادر:"
+    const headerP = Array.from(contentEl.querySelectorAll('p'))
+      .find(p => {
+        const txt = (p.textContent || '').trim();
+        return /^🔍?\s*المصادر:?$/.test(txt);
+      });
+    if (!headerP) return;
+
+    const listEl = headerP.nextElementSibling;
+    if (!listEl || (listEl.tagName || '').toLowerCase() !== 'ul') return;
+
+    // استخرج الروابط من عناصر القائمة
+    const seen = new Set();
+    const links = [];
+    listEl.querySelectorAll('li a[href]').forEach(a => {
+      try {
+        const url = unwrapUrl(a.getAttribute('href'));
+        const u = new URL(url);
+        const domain = u.hostname.replace(/^www\./, '').toLowerCase();
+        if (seen.has(domain)) return;     // أزل التكرار بالدومين (نفس أسلوب البث)
+        seen.add(domain);
+        const title = (a.textContent || '').trim() || domain;
+        const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        links.push({ title, url, domain, favicon });
+      } catch (_) { /* تجاهل روابط غير صالحة */ }
+    });
+
+    // احذف القسم البدائي
+    listEl.remove();
+    headerP.remove();
+
+    // ابنِ الشريط الجميل في نفس الفقاعة
+    if (links.length > 0) {
+      createSourcesInlineBar(bubble, links);
+      bubble.dataset.sourcesUpgraded = '1';
+    }
+  });
+}
+
 // ====== بعد (نسخة جديدة بالكامل) ======
 function completeStreamingMessage() {
   if (!streamingState.isStreaming) return;
