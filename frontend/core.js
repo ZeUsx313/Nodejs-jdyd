@@ -138,23 +138,47 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('messagesContainer').classList.remove('hidden');
   displayMessages();
 
-  // ✅ بعد رسم التاريخ: حوّل قسم المصادر البدائي إلى الشريط الجميل
-  if (typeof upgradeSourcesInHistory === 'function') {
-    upgradeSourcesInHistory();
+// ✅ بعد رسم التاريخ: طبّق التحويل دائماً حتى لو تم تحميل chat_stream.js لاحقاً
+(function waitAndUpgradeSources() {
+  const applyUpgrade = () => {
+    try {
+      upgradeSourcesInHistory(); // من chat_stream.js
+    } catch (_) { /* تجاهل */ }
 
-    // راقب إعادة رسم الرسائل من التاريخ (تبديل محادثة مثلًا) وطبّق الترقية تلقائيًا
+    // راقب تغيّرات منطقة الرسائل بعمق
     const area = document.getElementById('messagesArea');
     if (area && !area.__sourcesObserver) {
       const obs = new MutationObserver(() => {
-        // لا تلمس أثناء البث الحيّ
+        // لا تتدخل أثناء البث الحيّ
         if (window.streamingState && streamingState.isStreaming) return;
-        upgradeSourcesInHistory();
+        try { upgradeSourcesInHistory(); } catch (_) {}
       });
-      obs.observe(area, { childList: true });
+      // 👈 مراقبة شاملة داخل الشجرة أيضاً
+      obs.observe(area, { childList: true, subtree: true });
       area.__sourcesObserver = obs;
     }
+  };
+
+  // إن كانت الدالة جاهزة الآن، طبّق فوراً
+  if (typeof window.upgradeSourcesInHistory === 'function') {
+    // تأخير بسيط لضمان اكتمال render
+    setTimeout(applyUpgrade, 0);
+    return;
   }
-}
+
+  // غير جاهزة؟ انتظر حتى تُحمَّل ثم طبّق مرة واحدة
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries++;
+    if (typeof window.upgradeSourcesInHistory === 'function') {
+      clearInterval(timer);
+      setTimeout(applyUpgrade, 0);
+    } else if (tries > 50) {
+      // مهلة أمان (≈5 ثواني)
+      clearInterval(timer);
+    }
+  }, 100);
+})();
 
     // ✨ التحقق من حالة المستخدم ✨
     checkUserStatus();
