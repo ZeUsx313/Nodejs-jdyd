@@ -1608,40 +1608,30 @@ input[type="range"]::-moz-range-thumb:hover {
   gap: 0.5rem;
 }
 
-/* كل حرف في النص */
-.search-text .letter {
-  display: inline-block;
+/* كل "كلمة" في النص (تحافظ على اتصال الحروف داخل الكلمة) */
+.search-text .word {
+  display: inline;    /* لا يقطع الحروف العربية */
   opacity: 0;
-  animation: letterPulse 2.5s ease-in-out infinite;
+  animation: wordPulse 2.5s ease-in-out infinite;
 }
 
-/* تأخير متدرج لكل حرف */
-.search-text .letter:nth-child(1) { animation-delay: 0.1s; }
-.search-text .letter:nth-child(2) { animation-delay: 0.15s; }
-.search-text .letter:nth-child(3) { animation-delay: 0.2s; }
-.search-text .letter:nth-child(4) { animation-delay: 0.25s; }
-.search-text .letter:nth-child(5) { animation-delay: 0.3s; }
-.search-text .letter:nth-child(6) { animation-delay: 0.35s; }
-.search-text .letter:nth-child(7) { animation-delay: 0.4s; }
-.search-text .letter:nth-child(8) { animation-delay: 0.45s; }
-.search-text .letter:nth-child(9) { animation-delay: 0.5s; }
-.search-text .letter:nth-child(10) { animation-delay: 0.55s; }
-.search-text .letter:nth-child(11) { animation-delay: 0.6s; }
-.search-text .letter:nth-child(12) { animation-delay: 0.65s; }
-.search-text .letter:nth-child(13) { animation-delay: 0.7s; }
-.search-text .letter:nth-child(14) { animation-delay: 0.75s; }
-.search-text .letter:nth-child(15) { animation-delay: 0.8s; }
-.search-text .letter:nth-child(16) { animation-delay: 0.85s; }
-.search-text .letter:nth-child(17) { animation-delay: 0.9s; }
-.search-text .letter:nth-child(18) { animation-delay: 0.95s; }
-.search-text .letter:nth-child(19) { animation-delay: 1s; }
-.search-text .letter:nth-child(20) { animation-delay: 1.05s; }
+/* تأخير متدرج لكل كلمة */
+.search-text .word:nth-child(1)  { animation-delay: 0.1s; }
+.search-text .word:nth-child(2)  { animation-delay: 0.25s; }
+.search-text .word:nth-child(3)  { animation-delay: 0.4s; }
+.search-text .word:nth-child(4)  { animation-delay: 0.55s; }
+.search-text .word:nth-child(5)  { animation-delay: 0.7s; }
+.search-text .word:nth-child(6)  { animation-delay: 0.85s; }
+.search-text .word:nth-child(7)  { animation-delay: 1s; }
+.search-text .word:nth-child(8)  { animation-delay: 1.15s; }
+.search-text .word:nth-child(9)  { animation-delay: 1.3s; }
+.search-text .word:nth-child(10) { animation-delay: 1.45s; }
 
-/* تأثير ظهور واختفاء الحروف */
-@keyframes letterPulse {
-  0%, 20% { opacity: 0.3; transform: scale(1); }
-  40%, 60% { opacity: 1; transform: scale(1.05); filter: brightness(1.3); }
-  80%, 100% { opacity: 0.3; transform: scale(1); }
+/* تأثير ظهور واختفاء الكلمات */
+@keyframes wordPulse {
+  0%, 20%   { opacity: 0.3; transform: none; }
+  40%, 60%  { opacity: 1;   transform: none; filter: brightness(1.2); }
+  80%, 100% { opacity: 0.3; transform: none; }
 }
 
 /* البرق المتحرك حول النص */
@@ -1776,24 +1766,3 @@ input[type="range"]::-moz-range-thumb:hover {
     100% { transform: translateX(-40px) translateY(-8px) scale(0.7) rotate(90deg); }
   }
 }
-
-/* تحسين مظهر النص في رسالة البحث */
-.search-text-animated {
-  display: inline-block;
-  animation: searchTextGlow 2s ease-in-out infinite;
-}
-
-@keyframes searchTextGlow {
-  0%, 100% { 
-    opacity: 0.8; 
-    transform: scale(1);
-    filter: none;
-  }
-  50% { 
-    opacity: 1; 
-    transform: scale(1.02);
-    filter: brightness(1.2);
-  }
-}
-
-
