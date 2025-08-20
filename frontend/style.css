@@ -1776,3 +1776,24 @@ input[type="range"]::-moz-range-thumb:hover {
     100% { transform: translateX(-40px) translateY(-8px) scale(0.7) rotate(90deg); }
   }
 }
+
+/* تحسين مظهر النص في رسالة البحث */
+.search-text-animated {
+  display: inline-block;
+  animation: searchTextGlow 2s ease-in-out infinite;
+}
+
+@keyframes searchTextGlow {
+  0%, 100% { 
+    opacity: 0.8; 
+    transform: scale(1);
+    filter: none;
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.02);
+    filter: brightness(1.2);
+  }
+}
+
+
