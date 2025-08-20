@@ -134,10 +134,27 @@ document.addEventListener('DOMContentLoaded', function() {
     updateProviderUI();
 
     if (currentChatId && chats[currentChatId]) {
-        document.getElementById('welcomeScreen').classList.add('hidden');
-        document.getElementById('messagesContainer').classList.remove('hidden');
-        displayMessages();
+  document.getElementById('welcomeScreen').classList.add('hidden');
+  document.getElementById('messagesContainer').classList.remove('hidden');
+  displayMessages();
+
+  // ✅ بعد رسم التاريخ: حوّل قسم المصادر البدائي إلى الشريط الجميل
+  if (typeof upgradeSourcesInHistory === 'function') {
+    upgradeSourcesInHistory();
+
+    // راقب إعادة رسم الرسائل من التاريخ (تبديل محادثة مثلًا) وطبّق الترقية تلقائيًا
+    const area = document.getElementById('messagesArea');
+    if (area && !area.__sourcesObserver) {
+      const obs = new MutationObserver(() => {
+        // لا تلمس أثناء البث الحيّ
+        if (window.streamingState && streamingState.isStreaming) return;
+        upgradeSourcesInHistory();
+      });
+      obs.observe(area, { childList: true });
+      area.__sourcesObserver = obs;
     }
+  }
+}
 
     // ✨ التحقق من حالة المستخدم ✨
     checkUserStatus();
