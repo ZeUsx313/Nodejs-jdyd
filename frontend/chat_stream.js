@@ -30,9 +30,23 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
-function createAnimatedLetters(text, delayStep = 0.05) {
-  // عرض النص بشكل عادي بدون تقطيع للحروف
-  return `<span class="search-text-animated">${text}</span>`;
+/**
+ * يحول سلسلة نصية إلى HTML مع تأثير متدرج على كل "كلمة" للحفاظ على تشكيل العربية.
+ * @param {string} text
+ * @param {number} [delayStep=0.15]
+ * @returns {string}
+ */
+function createAnimatedWords(text, delayStep = 0.15) {
+  const parts = (text || '').split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) {
+    // نص قصير: أعده كما هو مع span واحدة (بدون تقطيع الحروف)
+    return `<span class="word" style="animation-delay:${delayStep}s;">${text}</span>`;
+  }
+  let delay = 0;
+  return parts.map((word) => {
+    delay += delayStep;
+    return `<span class="word" style="animation-delay:${delay}s;">${word}</span>`;
+  }).join(' ');
 }
 
 // === عرض رسالة البحث في الويب مع البرق المتحرك ===
@@ -44,8 +58,8 @@ function createWebSearchMessage() {
   messageDiv.className = 'chat-bubble message-assistant streaming-message web-search-message';
   messageDiv.id = `message-${messageId}`;
 
-  // استدعاء الدالة المساعدة لإنشاء النص المتحرك
-  const animatedText = createAnimatedLetters('جاري البحث في الويب');
+  // نص متحرك كلمة-بكلمة (يحافظ على اتصال الحروف العربية)
+const animatedText = createAnimatedWords('جاري البحث في الويب');
 
   messageDiv.innerHTML = `
     <div class="web-search-container">
@@ -64,16 +78,15 @@ function createWebSearchMessage() {
   messagesArea.appendChild(messageDiv);
   scrollToBottom();
 
-  return messageId;
+  return messageDiv.id;
 }
 
 // === إزالة رسالة البحث ===
 function removeWebSearchMessage(messageId) {
   if (!messageId) return;
-  const messageElement = document.getElementById(messageId);
-  if (messageElement) {
-    messageElement.remove();
-  }
+  const id = messageId.startsWith('message-') ? messageId : `message-${messageId}`;
+  const messageElement = document.getElementById(id);
+  if (messageElement) messageElement.remove();
 }
 
 // === ضعها هنا: بعد createStreamingMessage() وقبل appendToStreamingMessage() ===
@@ -712,13 +725,16 @@ async function sendMessage() {
         document.getElementById('messagesContainer').classList.remove('hidden');
 
 // ... بعد إنشاء userMessage وعرضه
-// لا ننشئ رسالة البث هنا، سيتم إنشاؤها حسب الحاجة
+// نؤجل إنشاء فقاعة البث للنص العادي إلى sendToAIWithStreaming()
+// حتى لا يظهر "برق الكتابة" أثناء البحث في الويب.
 
 // (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
 if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
   // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
   settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
-}
+
+}	
+
 
 // Send to AI with streaming
 await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
@@ -845,9 +861,12 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
   // متغير لحفظ معرف رسالة البحث
   let searchMessageId = null;
   
-  // إظهار رسالة البحث إذا كان البحث مفعلاً
   if (forceWebBrowsing) {
+    // أثناء البحث: أظهر فقط رسالة البحث
     searchMessageId = createWebSearchMessage();
+  } else {
+    // بدون بحث: أنشئ فقاعة البث مباشرة
+    createStreamingMessage();
   }
   
   // استخراج موضوع البحث بطريقة ذكية
@@ -882,13 +901,10 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     if (searchMessageId) {
       removeWebSearchMessage(searchMessageId);
     }
-    // إنشاء رسالة الخطأ إذا لم تكن موجودة
-    if (!streamingState.isStreaming) {
-      createStreamingMessage();
-    }
     console.error('Error sending request to server:', error);
     appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
   }
+}
 
 async function sendRequestToServer(payload, searchMessageId = null) {
   try {
@@ -927,11 +943,13 @@ async function sendRequestToServer(payload, searchMessageId = null) {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
 
-        // إزالة رسالة البحث وإنشاء الرسالة العادية عند وصول أول رد
-        if (!firstChunkReceived && searchMessageId) {
-          removeWebSearchMessage(searchMessageId);
-          // إنشاء رسالة البث العادية فقط إذا لم تكن موجودة
+        // عند وصول أول رد من الخادم
+        if (!firstChunkReceived) {
+          if (searchMessageId) {
+            removeWebSearchMessage(searchMessageId);
+          }
           if (!streamingState.isStreaming) {
+            // ننشئ فقاعة البث هنا (مع البرق العادي)
             createStreamingMessage();
           }
           firstChunkReceived = true;
@@ -947,9 +965,6 @@ async function sendRequestToServer(payload, searchMessageId = null) {
       // إذا لم تصل أي بيانات (رد فارغ)، تأكد من إزالة رسالة البحث
       if (!firstChunkReceived && searchMessageId) {
         removeWebSearchMessage(searchMessageId);
-        if (!streamingState.isStreaming) {
-          createStreamingMessage();
-        }
       }
 
       // اكتمال طبيعي
