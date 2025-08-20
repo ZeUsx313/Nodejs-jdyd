@@ -30,18 +30,9 @@ function createStreamingMessage(sender = 'assistant') {
     return messageId;
 }
 
-/**
- * يحول سلسلة نصية إلى HTML مع تأثير حركي متدرج على كل حرف.
- * @param {string} text - النص المراد تحريكه.
- * @param {number} [delayStep=0.05] - مقدار التأخير الزمني بين كل حرف بالثواني.
- * @returns {string} - سلسلة HTML جاهزة للعرض.
- */
 function createAnimatedLetters(text, delayStep = 0.05) {
-  return text.split('').map((char, index) => {
-    // التعامل مع المسافات الفارغة بشكل صحيح
-    const character = char === ' ' ? '&nbsp;' : char;
-    return `<span class="letter" style="animation-delay: ${(index + 1) * delayStep}s;">${character}</span>`;
-  }).join('');
+  // عرض النص بشكل عادي بدون تقطيع للحروف
+  return `<span class="search-text-animated">${text}</span>`;
 }
 
 // === عرض رسالة البحث في الويب مع البرق المتحرك ===
@@ -721,15 +712,13 @@ async function sendMessage() {
         document.getElementById('messagesContainer').classList.remove('hidden');
 
 // ... بعد إنشاء userMessage وعرضه
-createStreamingMessage();
+// لا ننشئ رسالة البث هنا، سيتم إنشاؤها حسب الحاجة
 
 // (اختياري) لو المستخدم كتب جملة تبدأ بـ "ابحث عبر الانترنت" ولم نغيّر العتبة
 if (settings.enableWebBrowsing && /^\\s*ابحث\\s+عبر\\s+الانترنت/i.test(message)) {
   // اجعل العتبة أقل قليلاً لتميل الأداة للبحث
   settings.dynamicThreshold = Math.max(0, Math.min(0.4, settings.dynamicThreshold || 0.6));
-
-}	
-
+}
 
 // Send to AI with streaming
 await sendToAIWithStreaming(chats[currentChatId].messages, attachments);
@@ -893,10 +882,13 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     if (searchMessageId) {
       removeWebSearchMessage(searchMessageId);
     }
+    // إنشاء رسالة الخطأ إذا لم تكن موجودة
+    if (!streamingState.isStreaming) {
+      createStreamingMessage();
+    }
     console.error('Error sending request to server:', error);
     appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
   }
-}
 
 async function sendRequestToServer(payload, searchMessageId = null) {
   try {
@@ -935,9 +927,13 @@ async function sendRequestToServer(payload, searchMessageId = null) {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
 
-        // إزالة رسالة البحث عند وصول أول رد من الخادم
+        // إزالة رسالة البحث وإنشاء الرسالة العادية عند وصول أول رد
         if (!firstChunkReceived && searchMessageId) {
           removeWebSearchMessage(searchMessageId);
+          // إنشاء رسالة البث العادية فقط إذا لم تكن موجودة
+          if (!streamingState.isStreaming) {
+            createStreamingMessage();
+          }
           firstChunkReceived = true;
         }
 
@@ -951,6 +947,9 @@ async function sendRequestToServer(payload, searchMessageId = null) {
       // إذا لم تصل أي بيانات (رد فارغ)، تأكد من إزالة رسالة البحث
       if (!firstChunkReceived && searchMessageId) {
         removeWebSearchMessage(searchMessageId);
+        if (!streamingState.isStreaming) {
+          createStreamingMessage();
+        }
       }
 
       // اكتمال طبيعي
