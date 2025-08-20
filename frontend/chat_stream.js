@@ -371,17 +371,59 @@ function upgradeSourcesInHistory(root = document) {
     return;
   }
 
-  // حوّل كل رسالة مساعد تحتوي على "🔍 المصادر:" من القائمة البدائية إلى الشريط الجميل
+  // حوّل كل رسالة مساعد (سواء بالتعليق المخفي أو الشكل البدائي) إلى الشريط الجميل
   root.querySelectorAll('.chat-bubble.message-assistant').forEach(bubble => {
-    if (bubble.dataset.sourcesUpgraded === '1') return;               // لا تعالجها مرتين
-    if (bubble.querySelector('.sources-inline')) {                     // الشريط الجميل موجود
+    if (bubble.dataset.sourcesUpgraded === '1') return; // لا تعالجها مرتين
+    if (bubble.querySelector('.sources-inline')) {
       bubble.dataset.sourcesUpgraded = '1';
       return;
     }
     const contentEl = bubble.querySelector('.message-content');
     if (!contentEl) return;
 
-    // ابحث عن فقرة العنوان "🔍 المصادر:"
+    // ✨ أولاً: دعم التعليق المخفي <!--SOURCES_MD ... END_SOURCES_MD-->
+    let sourcesMd = "";
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_COMMENT, null);
+    let node;
+    while ((node = walker.nextNode())) {
+      const txt = node.nodeValue || "";
+      if (txt.includes("SOURCES_MD")) {
+        const m = txt.match(/SOURCES_MD\s*([\s\S]*?)\s*END_SOURCES_MD/);
+        if (m && m[1]) {
+          sourcesMd = m[1].trim();
+        }
+        node.parentNode && node.parentNode.removeChild(node); // نظّف التعليق
+        break;
+      }
+    }
+
+    if (sourcesMd) {
+      const links = [];
+      const seen = new Set();
+      // حلّل الماركداون البسيط: - [title](url)
+      sourcesMd.split("\n").forEach(line => {
+        const match = line.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+        if (match) {
+          try {
+            const url = unwrapUrl(match[2]);
+            const u = new URL(url);
+            const domain = u.hostname.replace(/^www\./, "").toLowerCase();
+            if (seen.has(domain)) return;
+            seen.add(domain);
+            const title = match[1].trim() || domain;
+            const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            links.push({ title, url, domain, favicon });
+          } catch (_) { /* تجاهل روابط غير صالحة */ }
+        }
+      });
+      if (links.length > 0) {
+        createSourcesInlineBar(bubble, links);
+        bubble.dataset.sourcesUpgraded = '1';
+      }
+      return; // ✅ لا نكمل للمنطق القديم
+    }
+
+    // ✨ ثانياً: fallback (الكود القديم للفقرة UL)
     const headerP = Array.from(contentEl.querySelectorAll('p'))
       .find(p => {
         const txt = (p.textContent || '').trim();
@@ -400,7 +442,7 @@ function upgradeSourcesInHistory(root = document) {
         const url = unwrapUrl(a.getAttribute('href'));
         const u = new URL(url);
         const domain = u.hostname.replace(/^www\./, '').toLowerCase();
-        if (seen.has(domain)) return;     // أزل التكرار بالدومين (نفس أسلوب البث)
+        if (seen.has(domain)) return;
         seen.add(domain);
         const title = (a.textContent || '').trim() || domain;
         const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
@@ -466,11 +508,26 @@ function completeStreamingMessage() {
     }
   }
 
-  // حفظ الرسالة في المحادثة الصحيحة (كما كان)
+  // ✨ تجهيز نص الرسالة بدون الشكل البدائي
+  let mainText = streamingState.currentText || '';
+  let sourcesComment = '';
+
+  // إذا كان النص يحتوي على جزء "🔍 المصادر:" نحوله لتعليق HTML مخفي
+  const sourcesMatch = mainText.match(/(\*\*🔍 المصادر:\*\*[\s\S]*)/);
+  if (sourcesMatch) {
+    sourcesComment = `\n\n<!--SOURCES_MD\n${sourcesMatch[1]}\nEND_SOURCES_MD-->`;
+    mainText = mainText.replace(sourcesMatch[0], '').trim(); // نحذف الجزء البدائي من النص
+  }
+
+  // حفظ الرسالة في المحادثة الصحيحة (بدون الشكل البدائي)
   const targetChatId = streamingState.chatId;
-  if (targetChatId && chats[targetChatId] && (streamingState.currentText || '')) {
+  if (targetChatId && chats[targetChatId] && (mainText || '')) {
     const now = Date.now();
-    chats[targetChatId].messages.push({ role: 'assistant', content: streamingState.currentText, timestamp: now });
+    chats[targetChatId].messages.push({
+      role: 'assistant',
+      content: mainText + sourcesComment, // ← نص نظيف + تعليق مخفي
+      timestamp: now
+    });
     chats[targetChatId].updatedAt = now;
     chats[targetChatId].order = now;
   }
