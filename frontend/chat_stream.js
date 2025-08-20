@@ -420,6 +420,8 @@ function upgradeSourcesInHistory(root = document) {
   });
 }
 
+window.upgradeSourcesInHistory = upgradeSourcesInHistory;
+
 // ====== بعد (نسخة جديدة بالكامل) ======
 function completeStreamingMessage() {
   if (!streamingState.isStreaming) return;
