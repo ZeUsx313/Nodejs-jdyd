@@ -515,7 +515,9 @@
 <!-- داخل #app وقبل أي محتوى آخر -->
 <div id="bgCanvas" class="absolute inset-0 -z-10 bg-calm pointer-events-none"></div>
 
-<div class="flex w-full h-full">
+<!-- مُكبّر الواجهة: يُصغّر/يكبّر كل الواجهة لتلائم الشاشة -->
+<div id="viewportScaler" class="viewport-scaler">
+  <div class="flex w-full h-full">
 
         <div class="flex-1 flex flex-col bg-black">
             <header class="flex-shrink-0 px-6 py-4 border-b border-gray-800"
@@ -658,6 +660,52 @@
 <script src="settings.js"></script>
 <script src="ui_misc.js"></script>
 <script src="auth.js"></script>
+
+<!-- بعد: مُكبِّر الواجهة (Scale-to-Fit) -->
+<script id="scale-to-fit">
+(function () {
+  const scaler = document.getElementById('viewportScaler');
+  if (!scaler) return;
+
+  function viewportSize() {
+    const vv = window.visualViewport;
+    return {
+      w: vv ? vv.width : window.innerWidth,
+      h: vv ? vv.height : window.innerHeight
+    };
+  }
+
+  function applyScale() {
+    const { w, h } = viewportSize();
+
+    // أعِد القياس للوضع الطبيعي مؤقتاً لقياس الحجم الحقيقي للمحتوى
+   scaler.style.setProperty('--ui-scale', '1');
+    scaler.style.transform = 'scale(1)';
+    scaler.style.width  = '';
+    scaler.style.height = '';
+
+    // قياسات المحتوى الأصلي (قد تكون أكبر من الشاشة)
+    const contentW = Math.max(scaler.scrollWidth,  scaler.offsetWidth);
+    const contentH = Math.max(scaler.scrollHeight, scaler.offsetHeight);
+
+    // احسب معامل التصغير بحيث يلائم العرض والارتفاع معًا
+    const s = Math.min(1, w / contentW, h / contentH);
+
+    // طبّق المقياس و عوّض الأبعاد حتى تظل الواجهة ممدودة بصريًا
+    scaler.style.setProperty('--ui-scale', String(s));
+    scaler.style.transform = 'scale(' + s + ')';
+    scaler.style.width  = 'calc(' + w + 'px / ' + s + ')';
+    scaler.style.height = 'calc(' + h + 'px / ' + s + ')';
+  }
+
+  // شغّل الآن وعند أي تغيير في حجم/اتجاه الشاشة
+  applyScale();
+  window.addEventListener('resize', applyScale);
+  window.addEventListener('orientationchange', applyScale);
+  if (window.visualViewport) visualViewport.addEventListener('resize', applyScale);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyScale);
+})();
+</script>
 
 </body>
 </html>
