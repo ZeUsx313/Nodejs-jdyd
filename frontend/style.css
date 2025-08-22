@@ -1766,3 +1766,27 @@ input[type="range"]::-moz-range-thumb:hover {
     100% { transform: translateX(-40px) translateY(-8px) scale(0.7) rotate(90deg); }
   }
 }
+
+/* ============================
+   Scale-to-Fit (بدون تمرير عام)
+   ============================ */
+:root { --ui-scale: 1; }
+
+/* الغلاف الذي نُطبّق عليه التصغير */
+.viewport-scaler{
+  position: relative;
+  transform: scale(var(--ui-scale));
+  transform-origin: top right;   /* يمين لأجل RTL */
+  will-change: transform;
+
+  /* تعويض الأبعاد: بعد التصغير يظل ظاهرًا بالحجم البصري الكامل */
+  width:  calc(100vw / var(--ui-scale));
+  height: calc(100svh / var(--ui-scale));
+  /* احتياط للمتصفحات التي لا تدعم svh */
+}
+@supports not (height: 100svh) {
+  .viewport-scaler{ height: calc(100vh / var(--ui-scale)); }
+}
+
+/* لا نسمح بأي تمرير عام؛ التمرير يبقى داخل مناطق الرسائل فقط (كما هو لديك) */
+html, body { overflow: hidden; }
