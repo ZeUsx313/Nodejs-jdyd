@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>شات زيوس - إله الرعد</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -704,6 +705,59 @@
   window.addEventListener('orientationchange', applyScale);
   if (window.visualViewport) visualViewport.addEventListener('resize', applyScale);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyScale);
+})();
+</script>
+
+<script>
+/* ============ قياس ارتفاع الفوتر وتمريره للـCSS ============ */
+(function(){
+  const rs = document.documentElement;               // :root
+  const footer = document.querySelector('.footer-input');
+  function setFooterHeight(){
+    if(!footer) return;
+    // الطول المرئي الفعلي (يشمل الـpadding)
+    const h = Math.ceil(footer.getBoundingClientRect().height);
+    rs.style.setProperty('--footer-h', h + 'px');
+  }
+  // عند التحميل وتغير الحجم وتغير المحتوى
+  window.addEventListener('load', setFooterHeight);
+  window.addEventListener('resize', setFooterHeight);
+  // لو تغيّر محتوى الفوتر (مثلاً ظهور معاينة ملفات)
+  const mo = new MutationObserver(setFooterHeight);
+  if(footer) mo.observe(footer, {childList:true, subtree:true});
+
+  /* ======= autoGrow للـtextarea حتى حد أقصى بدون قفزة ======= */
+  const ta = document.getElementById('messageInput');
+  if(ta){
+    const MAX = 200; // يجب أن يطابق max-height في CSS
+    const minH = ta.scrollHeight; // الارتفاع المبدئي للسطر الواحد
+    function autoGrow(){
+      ta.style.height = 'auto';
+      const next = Math.min(ta.scrollHeight, MAX);
+      ta.style.height = Math.max(minH, next) + 'px';
+      // بعد تغيّر الارتفاع، حدّث قياس الفوتر لأن التخطيط تغيّر
+      setFooterHeight();
+    }
+    // أوّل مرة وعند الإدخال
+    autoGrow();
+    ta.addEventListener('input', autoGrow, {passive:true});
+  }
+
+  /* ======== التكيّف مع لوحة المفاتيح/visualViewport ======== */
+  const vv = window.visualViewport;
+  const messages = document.getElementById('messagesArea');
+  function onViewportChange(){
+    // عند ظهور الكيبورد، قد يتغيّر الارتفاع الفعلي – نعوض ذلك بتحديث الفوتر
+    setFooterHeight();
+    // تأكد أن آخر الرسائل مرئية
+    if(messages){
+      messages.scrollTop = messages.scrollHeight;
+    }
+  }
+  if(vv){
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
+  }
 })();
 </script>
 
