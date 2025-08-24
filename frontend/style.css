@@ -428,15 +428,19 @@ pre code .hljs-title {
 }
 
 /* حشوة افتراضية بسيطة لأسفل – بلا اعتماد على ارتفاع الفوتر */
+:root{ --footer-h: 88px; } /* قيمة افتراضية تُستبدل لاحقاً بالقياس الفعلي */
+
+:root{ --footer-h: 88px; } /* قيمة افتراضية تُستبدل لاحقاً بالقياس الفعلي */
+
 #messagesArea{
   scroll-behavior: smooth;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* عند الشاشات الصغيرة فقط (حيث الفوتر position: sticky) نضيف الحشوة المكافئة لارتفاعه */
 @media (max-width: 768px){
   #messagesArea{
-    padding-bottom: calc(env(safe-area-inset-bottom) + var(--footer-h, 88px));
+    /* نستخدم الارتفاع المقاس للفوتر إن وُجد */
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--footer-h));
   }
 }
 
@@ -514,6 +518,7 @@ pre code .hljs-title {
       margin-top: 8px;
       justify-content: flex-end;
   }
+
   /* شريط الإدخال ثابت */
   .footer-input {
     position: sticky;
@@ -521,7 +526,9 @@ pre code .hljs-title {
     padding-bottom: env(safe-area-inset-bottom);
     background: #000;
     z-index: 20;
+    contain: layout paint;   /* ✅ يمنع القفز عند الكيبورد */
   }
+
   .file-card { max-width: 250px; }
 } /* 👈 أغلق الموبايل هنا */
 
@@ -535,6 +542,20 @@ pre code .hljs-title {
 @media (min-width: 1536px){
   :root{ --bubble-max: 55%; }
   .message-assistant{ max-width: 55%; }
+}
+
+/* تثبيت سلوك textarea عبر الشاشات */
+#messageInput{
+  min-height: 44px;              /* سطر واحد مريح بدون قفزة */
+  max-height: 200px;             /* حد أعلى واضح على الديسكتوب */
+  line-height: 1.4;
+  overflow-y: auto;              /* تمرير داخلي عند تجاوز الحد */
+  resize: none;                  /* منع السحب اليدوي */
+}
+
+/* على الموبايل نتأكد من 16px لمنع زوم iOS */
+@media (max-width: 768px){
+  .chat-input{ font-size: 16px; }  /* موجود لديك – نؤكّده */
 }
 
 /* Custom Scrollbar */
@@ -1790,3 +1811,5 @@ input[type="range"]::-moz-range-thumb:hover {
 
 /* لا نسمح بأي تمرير عام؛ التمرير يبقى داخل مناطق الرسائل فقط (كما هو لديك) */
 html, body { overflow: hidden; }
+
+html, body { touch-action: manipulation; }
