@@ -942,26 +942,52 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
         .slice().reverse().find(m => m.role === 'user')?.content || '';
 
 if (settings.provider === 'puter') {
+    // التحقق من وجود Puter.js
+    if (typeof puter === 'undefined') {
+        appendToStreamingMessage('❌ خطأ: مكتبة Puter.js غير محملة. تأكد من إضافة السكريپت في HTML.', true);
+        return;
+    }
+
     // أنشئ فقاعة البث فوراً
     createStreamingMessage();
 
     try {
+        console.log('Starting Puter.js chat with model:', settings.model);
+        
         // جهّز الرسائل مع المرفقات
         const messagesForPuter = await buildPuterMessages(chatHistory, attachments);
+        console.log('Messages for Puter:', messagesForPuter);
 
-        // استدعاء Puter.js
-        const responseStream = await puter.ai.chat(messagesForPuter, {
-            model: settings.model,
-            temperature: settings.temperature,
+        // استدعاء Puter.js مع خيارات مبسطة
+        const options = {
+            model: settings.model || 'gpt-4o-mini',
             stream: true
-        });
+        };
+        
+        // إضافة temperature فقط إذا كانت مختلفة عن الافتراضية
+        if (settings.temperature && settings.temperature !== 0.7) {
+            options.temperature = settings.temperature;
+        }
 
-        // معالجة التدفق بالطريقة المحسّنة
+        console.log('Calling puter.ai.chat with options:', options);
+        const responseStream = await puter.ai.chat(messagesForPuter, options);
+
+        // معالجة التدفق
         await processPuterStream(responseStream);
 
     } catch (error) {
         console.error('Error with Puter.js streaming:', error);
-        appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${error.message}`, true);
+        let errorMessage = error.message || 'خطأ غير معروف';
+        
+        // رسائل خطأ مفيدة
+        if (errorMessage.includes('model')) {
+            errorMessage += '\n\nتلميح: تأكد من صحة اسم الموديل المحدد في الإعدادات.';
+        }
+        if (errorMessage.includes('auth')) {
+            errorMessage += '\n\nتلميح: قد تحتاج لتسجيل الدخول إلى Puter.js أولاً.';
+        }
+        
+        appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${errorMessage}`, true);
     }
     return;
 }
@@ -1105,46 +1131,62 @@ async function buildPuterMessages(chatHistory, attachments) {
     return messagesForPuter;
 }
 
-// دالة مساعدة للتعامل مع استجابة التدفق من Puter.js
+// دالة مساعدة للتعامل مع استجابة التدفق من // دالة محسّنة للتعامل مع Puter.js بتدفق حقيقي
 async function processPuterStream(responseStream) {
     try {
-        // التحقق إذا كانت الاستجابة تحتوي على getReader
-        if (responseStream && typeof responseStream.getReader === 'function') {
-            const reader = responseStream.getReader();
-            const decoder = new TextDecoder();
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        console.log('Processing Puter stream:', responseStream);
+        
+        // Puter.js يعطي async iterator مباشرة
+        if (responseStream && typeof responseStream[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of responseStream) {
+                console.log('Received chunk:', chunk);
                 
-                const chunk = decoder.decode(value, { stream: true });
-                if (chunk && chunk.trim()) {
-                    appendToStreamingMessage(chunk);
-                }
-            }
-        }
-        // إذا كانت الاستجابة عبارة عن async iterator
-        else if (responseStream && typeof responseStream[Symbol.asyncIterator] === 'function') {
-            for await (const part of responseStream) {
-                if (part && part.choices && part.choices[0] && part.choices[0].delta) {
-                    const content = part.choices[0].delta.content;
-                    if (content) {
-                        appendToStreamingMessage(content);
+                // معالجة أشكال مختلفة من الاستجابة
+                let content = '';
+                if (typeof chunk === 'string') {
+                    content = chunk;
+                } else if (chunk && chunk.content) {
+                    content = chunk.content;
+                } else if (chunk && chunk.text) {
+                    content = chunk.text;
+                } else if (chunk && chunk.choices && chunk.choices[0]) {
+                    const choice = chunk.choices[0];
+                    if (choice.delta && choice.delta.content) {
+                        content = choice.delta.content;
+                    } else if (choice.message && choice.message.content) {
+                        content = choice.message.content;
                     }
-                } else if (part && part.text) {
-                    appendToStreamingMessage(part.text);
-                } else if (typeof part === 'string') {
-                    appendToStreamingMessage(part);
+                }
+                
+                if (content && content.trim()) {
+                    appendToStreamingMessage(content);
+                    // تأخير صغير لضمان عرض سلس
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
             }
         }
-        // إذا كانت الاستجابة مباشرة نص
+        // إذا لم يكن async iterator
+        else if (responseStream && responseStream.then) {
+            // Promise - انتظر النتيجة الكاملة ثم حاكي التدفق
+            const fullResponse = await responseStream;
+            const text = typeof fullResponse === 'string' ? fullResponse : 
+                        (fullResponse.content || fullResponse.text || '');
+            
+            if (text) {
+                // تدفق محاكى بسرعة عالية
+                const chunks = text.match(/.{1,3}/g) || [text];
+                for (const chunk of chunks) {
+                    appendToStreamingMessage(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 15));
+                }
+            }
+        }
+        // إذا كان نص مباشر
         else if (typeof responseStream === 'string') {
-            // محاكاة التدفق للنص المباشر
-            const words = responseStream.split(' ');
-            for (let i = 0; i < words.length; i++) {
-                appendToStreamingMessage(words[i] + (i < words.length - 1 ? ' ' : ''));
-                await new Promise(resolve => setTimeout(resolve, 50)); // تأخير بسيط لمحاكاة التدفق
+            const chunks = responseStream.match(/.{1,5}/g) || [responseStream];
+            for (const chunk of chunks) {
+                appendToStreamingMessage(chunk);
+                await new Promise(resolve => setTimeout(resolve, 20));
             }
         }
         
