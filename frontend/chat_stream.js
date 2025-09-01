@@ -1088,15 +1088,20 @@ async function buildPuterMessages(chatHistory, attachments) {
             
             for (const attachment of msg.attachments) {
                 if (attachment.dataType === 'image' && attachment.content) {
-                    puterAttachments.push({
-                        type: 'image',
-                        data: `data:${attachment.mimeType || 'image/jpeg'};base64,${attachment.content}`,
-                        name: attachment.name
-                    });
-                } else if (attachment.dataType === 'text' && attachment.content) {
-                    // إضافة محتوى النص إلى الرسالة
-                    puterMessage.content += `\n\n[ملف: ${attachment.name}]\n${attachment.content}`;
-                }
+    currentAttachments.push({
+        type: 'image',
+        data: `data:${attachment.mimeType || 'image/jpeg'};base64,${attachment.content}`,
+        name: attachment.name
+    });
+} else if (attachment.dataType === 'text' && attachment.content) {
+    puterMessage.content += `\n\n[ملف نصي: ${attachment.name}]\n${attachment.content}`;
+} else if (attachment.fileUrl) {
+    currentAttachments.push({
+        type: 'file',
+        url: attachment.fileUrl,
+        name: attachment.name
+    });
+}
             }
             
             if (puterAttachments.length > 0) {
@@ -1136,12 +1141,11 @@ async function processPuterStream(responseStream) {
     try {
         console.log('Processing Puter stream:', responseStream);
         
-        // Puter.js يعطي async iterator مباشرة
+        // التدفق الحقيقي: async iterator من Puter.js
         if (responseStream && typeof responseStream[Symbol.asyncIterator] === 'function') {
             for await (const chunk of responseStream) {
                 console.log('Received chunk:', chunk);
                 
-                // معالجة أشكال مختلفة من الاستجابة
                 let content = '';
                 if (typeof chunk === 'string') {
                     content = chunk;
@@ -1149,45 +1153,33 @@ async function processPuterStream(responseStream) {
                     content = chunk.content;
                 } else if (chunk && chunk.text) {
                     content = chunk.text;
-                } else if (chunk && chunk.choices && chunk.choices[0]) {
+                } else if (chunk?.choices?.[0]) {
                     const choice = chunk.choices[0];
-                    if (choice.delta && choice.delta.content) {
+                    if (choice.delta?.content) {
                         content = choice.delta.content;
-                    } else if (choice.message && choice.message.content) {
+                    } else if (choice.message?.content) {
                         content = choice.message.content;
                     }
                 }
                 
                 if (content && content.trim()) {
                     appendToStreamingMessage(content);
-                    // تأخير صغير لضمان عرض سلس
-                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
             }
         }
-        // إذا لم يكن async iterator
+        // إذا لم يكن async iterator → رد كامل دفعة واحدة
         else if (responseStream && responseStream.then) {
-            // Promise - انتظر النتيجة الكاملة ثم حاكي التدفق
             const fullResponse = await responseStream;
-            const text = typeof fullResponse === 'string' ? fullResponse : 
-                        (fullResponse.content || fullResponse.text || '');
-            
+            const text = typeof fullResponse === 'string'
+                ? fullResponse
+                : (fullResponse.content || fullResponse.text || '');
             if (text) {
-                // تدفق محاكى بسرعة عالية
-                const chunks = text.match(/.{1,3}/g) || [text];
-                for (const chunk of chunks) {
-                    appendToStreamingMessage(chunk);
-                    await new Promise(resolve => setTimeout(resolve, 15));
-                }
+                appendToStreamingMessage(text);
             }
         }
         // إذا كان نص مباشر
         else if (typeof responseStream === 'string') {
-            const chunks = responseStream.match(/.{1,5}/g) || [responseStream];
-            for (const chunk of chunks) {
-                appendToStreamingMessage(chunk);
-                await new Promise(resolve => setTimeout(resolve, 20));
-            }
+            appendToStreamingMessage(responseStream);
         }
         
         // إنهاء التدفق
