@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
 // ===============================================
@@ -63,9 +63,22 @@ const providers = {
             { id: 'microsoft/phi-3-mini-128k-instruct:free', name: 'Microsoft: Phi-3 Mini (مجاني)' },
             { id: 'huggingfaceh4/zephyr-7b-beta:free', name: 'Hugging Face: Zephyr 7B (مجاني)' }
         ]
+    },
+    // ✨✨ الإضافة المطلوبة: Puter.js كمزود رئيسي ✨✨
+    puter: {
+        name: 'Puter.js (Serverless)',
+        models: [
+            { id: 'gpt-5-nano', name: 'GPT-5 Nano' },
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+            { id: 'o1-mini', name: 'Opus 1 Mini (o1-mini)' },
+            { id: 'dall-e-3', name: 'DALL-E 3 (Image Gen)' },
+            { id: 'gpt-5', name: 'GPT-5' },
+            { id: 'gpt-4o', name: 'GPT-4o' },
+        ]
     }
-    // سيتم إضافة المزودين المخصصين ديناميكياً
+    // سيتم إضافة المزودين المخصصين ديناميكياً كما هو معمول به حاليًا
 };
+
 
 // File type detection and icons system
 const fileTypeConfig = {
@@ -142,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
   (function waitAndUpgradeSources() {
     const applyUpgrade = () => {
       try {
-        // الدالة ستُعرَّف في chat_stream.js
+        // الدالة ستُعرَّف في chat_stream.js
         window.upgradeSourcesInHistory && window.upgradeSourcesInHistory();
       } catch (_) {}
 
@@ -166,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // غير جاهزة؟ انتظر حتى يُحمَّل chat_stream.js ثم طبّق مرة واحدة
+    // غير جاهزة؟ انتظر حتى يُحمَّل chat_stream.js ثم طبّق مرة واحدة
     let tries = 0;
     const timer = setInterval(() => {
       tries++;
