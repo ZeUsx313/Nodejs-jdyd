@@ -66,16 +66,18 @@ const providers = {
     },
     // ✨✨ الإضافة المطلوبة: Puter.js كمزود رئيسي ✨✨
     puter: {
-        name: 'Puter.js (Serverless)',
-        models: [
-            { id: 'gpt-5-nano', name: 'GPT-5 Nano' },
-            { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-            { id: 'o1-mini', name: 'Opus 1 Mini (o1-mini)' },
-            { id: 'dall-e-3', name: 'DALL-E 3 (Image Gen)' },
-            { id: 'gpt-5', name: 'GPT-5' },
-            { id: 'gpt-4o', name: 'GPT-4o' },
-        ]
-    }
+    name: 'Puter.js (Serverless)',
+    models: [
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini (مجاني)' },
+        { id: 'gpt-4o', name: 'GPT-4o (مجاني)' },
+        { id: 'o1-mini', name: 'OpenAI o1-mini (مجاني)' },
+        { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet (مجاني)' },
+        { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet (مجاني)' },
+        { id: 'gemini-2-0-flash', name: 'Gemini 2.0 Flash (مجاني)' },
+        { id: 'deepseek-chat', name: 'DeepSeek Chat (مجاني)' },
+        { id: 'llama-3-2-90b', name: 'Llama 3.2 90B (مجاني)' }
+    ]
+}
     // سيتم إضافة المزودين المخصصين ديناميكياً كما هو معمول به حاليًا
 };
 
