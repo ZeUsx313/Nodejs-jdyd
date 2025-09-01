@@ -938,100 +938,126 @@ function displayUserMessage(message) {
 // ----------------------------------------------------------------------------------
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
-  const lastUserMsg = (chatHistory || [])
-    .slice().reverse().find(m => m.role === 'user')?.content || '';
+    const lastUserMsg = (chatHistory || [])
+        .slice().reverse().find(m => m.role === 'user')?.content || '';
 
-  // البحث الذكي المتقدم - يحدد تلقائياً إذا كان المستخدم يريد البحث
-  function shouldSearch(message) {
-    const msg = message.toLowerCase().trim();
-    
-    const directSearchTerms = [
-      'ابحث', 'بحث', 'البحث', 'تصفح', 'اعطني معلومات عن', 
-      'ما هي آخر أخبار', 'آخر الأخبار', 'الأخبار الحديثة',
-      'search', 'browse', 'find information', 'latest news', 'recent news'
-    ];
-    
-    const timeIndicators = [
-      'اليوم', 'أمس', 'هذا الأسبوع', 'هذا الشهر', 'الآن', 'حالياً',
-      'مؤخراً', 'جديد', 'حديث', 'متى', 'كم', 'أين',
-      'today', 'yesterday', 'this week', 'this month', 'now', 'currently',
-      'recently', 'new', 'recent', 'when', 'how much', 'where'
-    ];
-    
-    const currentTopics = [
-      'سعر', 'أسعار', 'الأسهم', 'العملة', 'الطقس', 'الأخبار',
-      'أحداث', 'تحديثات', 'إحصائيات', 'بيانات',
-      'price', 'prices', 'stock', 'currency', 'weather', 'news',
-      'events', 'updates', 'statistics', 'data'
-    ];
+    // 1. ✨ التفريع الرئيسي: التحقق من المزود المختار أولاً ✨
+    if (settings.provider === 'puter') {
+        // --- المسار الجديد: استخدام Puter.js مباشرة (لا يحتاج لخادم) ---
 
-    const hasDirectSearch = directSearchTerms.some(term => msg.includes(term));
-    const hasTimeIndicator = timeIndicators.some(term => msg.includes(term));
-    const hasCurrentTopic = currentTopics.some(term => msg.includes(term));
-    
-    const threshold = settings.dynamicThreshold || 0.6;
-    let searchScore = 0;
-    
-    if (hasDirectSearch) searchScore += 0.6;
-    if (hasTimeIndicator) searchScore += 0.3;
-    if (hasCurrentTopic) searchScore += 0.4;
-    
-    if (msg.includes('؟') || msg.includes('?')) {
-      if (hasTimeIndicator || hasCurrentTopic) searchScore += 0.2;
+        // أ. أنشئ فقاعة البث فورًا
+        createStreamingMessage();
+
+        // ب. جهّز الرسائل لـ Puter.js (صيغة بسيطة)
+        const messagesForPuter = chatHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content
+            // ملاحظة: معالجة المرفقات مع Puter تتطلب منطقًا خاصًا لتحميل الملفات أولاً
+        }));
+
+        try {
+            // ج. استدعاء Puter.js مع تفعيل البث
+            const responseStream = await puter.ai.chat(messagesForPuter, {
+                model: settings.model,
+                temperature: settings.temperature,
+                stream: true
+            });
+
+            // د. قراءة الدفق وعرضه
+            for await (const part of responseStream) {
+                if (part?.text) {
+                    appendToStreamingMessage(part.text);
+                }
+            }
+            // هـ. إنهاء عملية البث عند الاكتمال
+            appendToStreamingMessage('', true);
+
+        } catch (error) {
+            console.error('Error with Puter.js streaming:', error);
+            appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${error.message}`, true);
+        }
+        return; // ✨ مهم: إنهاء الدالة هنا لمنع تنفيذ الكود التالي
     }
-    
-    return searchScore >= threshold;
-  }
 
-  const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
-  
-  // متغير لحفظ معرف رسالة البحث
-  let searchMessageId = null;
-  
-  if (forceWebBrowsing) {
-    // أثناء البحث: أظهر فقط رسالة البحث
-    searchMessageId = createWebSearchMessage();
-  } else {
-    // بدون بحث: أنشئ فقاعة البث مباشرة
-    createStreamingMessage();
-  }
-  
-  // استخراج موضوع البحث بطريقة ذكية
-  function extractSearchQuery(text) {
-    let cleanText = text
-      .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
-      .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
-      .replace(/\?$/i, '')
-      .trim();
-    
-    return cleanText || text.trim();
-  }
-  
-  const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
+    // --- المسار الحالي: استخدام الخادم الخلفي (Gemini, OpenRouter, والمخصصين) ---
+    // لا تغييرات هنا، كل الكود التالي هو الكود الأصلي الخاص بك
 
-  const payload = {
-    chatHistory,
-    history: chatHistory,
-    attachments: attachments.map(file => ({
-      name: file.name, type: file.type, size: file.size,
-      content: file.content, dataType: file.dataType, mimeType: file.mimeType
-    })),
-    settings,
-    meta: { forceWebBrowsing, searchQuery }
-  };
-
-  try {
-    // استدعاء الدالة الجديدة مع تمرير معرف رسالة البحث
-    await sendRequestToServer(payload, searchMessageId);
-  } catch (error) {
-    // إزالة رسالة البحث في حالة الخطأ
-    if (searchMessageId) {
-      removeWebSearchMessage(searchMessageId);
+    // البحث الذكي المتقدم - يحدد تلقائياً إذا كان المستخدم يريد البحث
+    function shouldSearch(message) {
+        const msg = message.toLowerCase().trim();
+        const directSearchTerms = ['ابحث', 'بحث', 'البحث', 'تصفح', 'اعطني معلومات عن', 'ما هي آخر أخبار', 'آخر الأخبار', 'الأخبار الحديثة', 'search', 'browse', 'find information', 'latest news', 'recent news'];
+        const timeIndicators = ['اليوم', 'أمس', 'هذا الأسبوع', 'هذا الشهر', 'الآن', 'حالياً', 'مؤخراً', 'جديد', 'حديث', 'متى', 'كم', 'أين', 'today', 'yesterday', 'this week', 'this month', 'now', 'currently', 'recently', 'new', 'recent', 'when', 'how much', 'where'];
+        const currentTopics = ['سعر', 'أسعار', 'الأسهم', 'العملة', 'الطقس', 'الأخبار', 'أحداث', 'تحديثات', 'إحصائيات', 'بيانات', 'price', 'prices', 'stock', 'currency', 'weather', 'news', 'events', 'updates', 'statistics', 'data'];
+        const hasDirectSearch = directSearchTerms.some(term => msg.includes(term));
+        const hasTimeIndicator = timeIndicators.some(term => msg.includes(term));
+        const hasCurrentTopic = currentTopics.some(term => msg.includes(term));
+        const threshold = settings.dynamicThreshold || 0.6;
+        let searchScore = 0;
+        if (hasDirectSearch) searchScore += 0.6;
+        if (hasTimeIndicator) searchScore += 0.3;
+        if (hasCurrentTopic) searchScore += 0.4;
+        if (msg.includes('؟') || msg.includes('?')) {
+            if (hasTimeIndicator || hasCurrentTopic) searchScore += 0.2;
+        }
+        return searchScore >= threshold;
     }
-    console.error('Error sending request to server:', error);
-    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
-  }
+
+    const forceWebBrowsing = settings.enableWebBrowsing && shouldSearch(lastUserMsg);
+
+    // متغير لحفظ معرف رسالة البحث
+    let searchMessageId = null;
+
+    if (forceWebBrowsing) {
+        // أثناء البحث: أظهر فقط رسالة البحث
+        searchMessageId = createWebSearchMessage();
+    } else {
+        // بدون بحث: أنشئ فقاعة البث مباشرة
+        createStreamingMessage();
+    }
+
+    // استخراج موضوع البحث بطريقة ذكية
+    function extractSearchQuery(text) {
+        let cleanText = text
+            .replace(/^(ابحث\s+عن\s+|ابحث\s+|بحث\s+عن\s+|قم\s+بالبحث\s+عن\s+|search\s+for\s+|find\s+)/i, '')
+            .replace(/^(ما\s+هي\s+|ما\s+هو\s+|what\s+is\s+|what\s+are\s+)/i, '')
+            .replace(/\?$/i, '')
+            .trim();
+        return cleanText || text.trim();
+    }
+
+    const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
+
+    const payload = {
+        chatHistory,
+        history: chatHistory,
+        attachments: attachments.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: file.content,
+            dataType: file.dataType,
+            mimeType: file.mimeType
+        })),
+        settings,
+        meta: {
+            forceWebBrowsing,
+            searchQuery
+        }
+    };
+
+    try {
+        // استدعاء الدالة الجديدة مع تمرير معرف رسالة البحث
+        await sendRequestToServer(payload, searchMessageId);
+    } catch (error) {
+        // إزالة رسالة البحث في حالة الخطأ
+        if (searchMessageId) {
+            removeWebSearchMessage(searchMessageId);
+        }
+        console.error('Error sending request to server:', error);
+        appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+    }
 }
+
 
 async function sendRequestToServer(payload, searchMessageId = null) {
   try {
