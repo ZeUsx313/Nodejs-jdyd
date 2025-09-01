@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>شات زيوس - إله الرعد</title>
+    <script src="https://js.puter.com/v2/"></script>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <!-- iOS PWA full-screen -->
@@ -611,7 +612,7 @@
 
                             <div class="flex items-end space-x-3 space-x-reverse">
     <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
-    <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700"
+    <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700 mobile-file-button"
        aria-label="إرفاق ملف" title="إرفاق ملف">
   <i class="fas fa-paperclip text-2xl" aria-hidden="true"></i>
   <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)" aria-label="اختيار ملف">
@@ -622,7 +623,7 @@
         <textarea
             id="messageInput"
             placeholder="تكلم عن أي شيء."
-            class="chat-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-zeus-accent focus:border-transparent resize-none"
+            class="chat-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-zeus-accent focus:border-transparent resize-none mobile-input"
             rows="1"
             style="max-height: 128px;"
         ></textarea>
@@ -633,7 +634,7 @@
   id="sendButton"
   onclick="sendMessage()"
   disabled
-  class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+  class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 mobile-send-button"
   aria-label="إرسال الرسالة" title="إرسال الرسالة">
   <i class="fas fa-paper-plane" aria-hidden="true"></i>
 </button>
