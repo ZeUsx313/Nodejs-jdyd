@@ -941,44 +941,6 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     const lastUserMsg = (chatHistory || [])
         .slice().reverse().find(m => m.role === 'user')?.content || '';
 
-    // 1. ✨ التفريع الرئيسي: التحقق من المزود المختار أولاً ✨
-    if (settings.provider === 'puter') {
-        // --- المسار الجديد: استخدام Puter.js مباشرة (لا يحتاج لخادم) ---
-
-        // أ. أنشئ فقاعة البث فورًا
-        createStreamingMessage();
-
-        // ب. جهّز الرسائل لـ Puter.js (صيغة بسيطة)
-        const messagesForPuter = chatHistory.map(msg => ({
-            role: msg.role,
-            content: msg.content
-            // ملاحظة: معالجة المرفقات مع Puter تتطلب منطقًا خاصًا لتحميل الملفات أولاً
-        }));
-
-        try {
-            // ج. استدعاء Puter.js مع تفعيل البث
-            const responseStream = await puter.ai.chat(messagesForPuter, {
-                model: settings.model,
-                temperature: settings.temperature,
-                stream: true
-            });
-
-            // د. قراءة الدفق وعرضه
-            for await (const part of responseStream) {
-                if (part?.text) {
-                    appendToStreamingMessage(part.text);
-                }
-            }
-            // هـ. إنهاء عملية البث عند الاكتمال
-            appendToStreamingMessage('', true);
-
-        } catch (error) {
-            console.error('Error with Puter.js streaming:', error);
-            appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${error.message}`, true);
-        }
-        return; // ✨ مهم: إنهاء الدالة هنا لمنع تنفيذ الكود التالي
-    }
-
     // --- المسار الحالي: استخدام الخادم الخلفي (Gemini, OpenRouter, والمخصصين) ---
     // لا تغييرات هنا، كل الكود التالي هو الكود الأصلي الخاص بك
 
@@ -1007,12 +969,14 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     // متغير لحفظ معرف رسالة البحث
     let searchMessageId = null;
 
-    if (forceWebBrowsing) {
-        // أثناء البحث: أظهر فقط رسالة البحث
-        searchMessageId = createWebSearchMessage();
-    } else {
-        // بدون بحث: أنشئ فقاعة البث مباشرة
-        createStreamingMessage();
+    // ✨✨ تعديل بسيط هنا: لا ننشئ فقاعة البث إذا كان المزود هو Puter ✨✨
+    // لأننا سنستدعي دالة أخرى بالكامل
+    if (settings.provider !== 'puter') {
+        if (forceWebBrowsing) {
+            searchMessageId = createWebSearchMessage();
+        } else {
+            createStreamingMessage();
+        }
     }
 
     // استخراج موضوع البحث بطريقة ذكية
@@ -1027,36 +991,89 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
 
     const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
 
-    const payload = {
-        chatHistory,
-        history: chatHistory,
-        attachments: attachments.map(file => ({
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            content: file.content,
-            dataType: file.dataType,
-            mimeType: file.mimeType
-        })),
-        settings,
-        meta: {
-            forceWebBrowsing,
-            searchQuery
-        }
-    };
+    // ✨✨ التفريع الرئيسي: التحقق من المزود المختار ✨✨
+    if (settings.provider === 'puter') {
+        // --- المسار الجديد: استدعاء دالة مخصصة لـ Puter.js ---
+        // هذا يجعل الكود أنظف وأسهل في الصيانة
+        await sendToPuterWithStreaming(chatHistory, attachments);
+    } else {
+        // --- المسار الحالي: تجهيز payload وإرساله للخادم الخلفي ---
+        const payload = {
+            chatHistory,
+            history: chatHistory,
+            attachments: attachments.map(file => ({
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                content: file.content,
+                dataType: file.dataType,
+                mimeType: file.mimeType
+            })),
+            settings,
+            meta: {
+                forceWebBrowsing,
+                searchQuery
+            }
+        };
 
-    try {
-        // استدعاء الدالة الجديدة مع تمرير معرف رسالة البحث
-        await sendRequestToServer(payload, searchMessageId);
-    } catch (error) {
-        // إزالة رسالة البحث في حالة الخطأ
-        if (searchMessageId) {
-            removeWebSearchMessage(searchMessageId);
+        try {
+            await sendRequestToServer(payload, searchMessageId);
+        } catch (error) {
+            if (searchMessageId) {
+                removeWebSearchMessage(searchMessageId);
+            }
+            console.error('Error sending request to server:', error);
+            appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
         }
-        console.error('Error sending request to server:', error);
-        appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
     }
 }
+
+// ✨✨ دالة جديدة ومخصصة للتعامل مع Puter.js فقط ✨✨
+// يمكنك وضع هذه الدالة مباشرة بعد sendToAIWithStreaming
+async function sendToPuterWithStreaming(chatHistory, attachments) {
+    // 1. أنشئ فقاعة البث فورًا
+    createStreamingMessage();
+
+    // 2. جهّز الرسائل لـ Puter.js
+    const messagesForPuter = chatHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content
+    }));
+
+    try {
+        const controller = new AbortController();
+        streamingState.streamController = controller;
+
+        // 3. استدعاء Puter.js مع تفعيل البث الحقيقي
+        const responseStream = await puter.ai.chat(messagesForPuter, {
+            model: settings.model,
+            temperature: settings.temperature,
+            stream: true,
+            signal: controller.signal
+        });
+
+        // 4. قراءة الدفق الحقيقي وعرضه
+        for await (const part of responseStream) {
+            if (part?.text) {
+                appendToStreamingMessage(part.text);
+            }
+        }
+        // 5. إنهاء عملية البث عند الاكتمال
+        appendToStreamingMessage('', true);
+
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.debug('Puter.js streaming aborted by user.');
+            // لا حاجة لإزالة رسالة البحث لأنها لم تُنشأ
+            return;
+        }
+        console.error('Error with Puter.js streaming:', error);
+        appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${error.message}`, true);
+    } finally {
+        streamingState.streamController = null;
+    }
+}
+
 
 
 async function sendRequestToServer(payload, searchMessageId = null) {
