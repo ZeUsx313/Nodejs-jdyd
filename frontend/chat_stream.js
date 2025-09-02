@@ -942,9 +942,12 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
         .slice().reverse().find(m => m.role === 'user')?.content || '';
 
 if (settings.provider === 'puter') {
-    // التحقق من وجود Puter.js
+    // تحقق من وجود Puter.js
     if (typeof puter === 'undefined') {
-        appendToStreamingMessage('❌ خطأ: مكتبة Puter.js غير محملة. تأكد من إضافة السكريپت في HTML.', true);
+        appendToStreamingMessage(
+            '❌ خطأ: مكتبة Puter.js غير محملة. تأكد من إضافة السكربت في HTML.',
+            true
+        );
         return;
     }
 
@@ -952,43 +955,57 @@ if (settings.provider === 'puter') {
     createStreamingMessage();
 
     try {
-        console.log('Starting Puter.js chat with model:', settings.model);
-        
-        // جهّز الرسائل مع المرفقات
-        const messagesForPuter = await buildPuterMessages(chatHistory, attachments);
-        console.log('Messages for Puter:', messagesForPuter);
+        console.log('🚀 بدء محادثة Puter.js مع الموديل:', settings.model);
 
-        // استدعاء Puter.js مع خيارات مبسطة
+        // تجهيز الرسائل مع المرفقات
+        const messagesForPuter = await buildPuterMessages(chatHistory, attachments);
+        console.log('📩 الرسائل المرسلة إلى Puter:', messagesForPuter);
+
+        // خيارات الاستدعاء
         const options = {
             model: settings.model || 'gpt-4o-mini',
             stream: true
         };
-        
-        // إضافة temperature فقط إذا كانت مختلفة عن الافتراضية
+
+        // إضافة temperature فقط إذا مختلف عن الافتراضي
         if (settings.temperature && settings.temperature !== 0.7) {
             options.temperature = settings.temperature;
         }
 
-        console.log('Calling puter.ai.chat with options:', options);
+        // إضافة حد أقصى للتوكنات لكن بشكل اختياري
+        if (settings.max_tokens) {
+            options.max_tokens = settings.max_tokens;
+        }
+
+        console.log('⚙️ خيارات Puter.ai.chat:', options);
+
+        // استدعاء Puter.js
         const responseStream = await puter.ai.chat(messagesForPuter, options);
 
-        // معالجة التدفق
+        console.log('📡 تم استلام استجابة Puter.js، جاري المعالجة...');
         await processPuterStream(responseStream);
 
+        console.log('✅ تم إنهاء التدفق من Puter.js بنجاح');
+
     } catch (error) {
-        console.error('Error with Puter.js streaming:', error);
+        console.error('❌ خطأ في Puter.js streaming:', error);
+
+        // تحليل الخطأ
         let errorMessage = error.message || 'خطأ غير معروف';
-        
-        // رسائل خطأ مفيدة
-        if (errorMessage.includes('model')) {
-            errorMessage += '\n\nتلميح: تأكد من صحة اسم الموديل المحدد في الإعدادات.';
+
+        if (errorMessage.includes('quota')) {
+            errorMessage = 'تم تجاوز الحد المسموح. حاول لاحقاً.';
+        } else if (errorMessage.includes('network')) {
+            errorMessage = 'مشكلة في الاتصال بالإنترنت.';
+        } else if (errorMessage.includes('model')) {
+            errorMessage += '\n\n💡 تلميح: تأكد من صحة اسم النموذج المحدد في الإعدادات.';
+        } else if (errorMessage.includes('auth')) {
+            errorMessage += '\n\n🔑 تلميح: قد تحتاج لتسجيل الدخول إلى Puter.js أولاً.';
         }
-        if (errorMessage.includes('auth')) {
-            errorMessage += '\n\nتلميح: قد تحتاج لتسجيل الدخول إلى Puter.js أولاً.';
-        }
-        
+
         appendToStreamingMessage(`\n\n❌ خطأ من Puter.js: ${errorMessage}`, true);
     }
+
     return;
 }
 
@@ -1040,7 +1057,7 @@ if (settings.provider === 'puter') {
 
     const searchQuery = forceWebBrowsing ? extractSearchQuery(lastUserMsg) : '';
 
-    const payload = {
+        const payload = {
         chatHistory,
         history: chatHistory,
         attachments: attachments.map(file => ({
@@ -1052,6 +1069,7 @@ if (settings.provider === 'puter') {
             mimeType: file.mimeType
         })),
         settings,
+        customProviders: settings.customProviders || [], // إضافة المزودين المخصصين
         meta: {
             forceWebBrowsing,
             searchQuery
@@ -1136,50 +1154,129 @@ async function buildPuterMessages(chatHistory, attachments) {
     return messagesForPuter;
 }
 
-// دالة مساعدة للتعامل مع استجابة التدفق من // دالة محسّنة للتعامل مع Puter.js بتدفق حقيقي
+// دالة محسنة للتعامل مع استجابة التدفق من Puter.js
 async function processPuterStream(responseStream) {
     try {
-        console.log('Processing Puter stream:', responseStream);
+        console.log('Processing Puter stream, type:', typeof responseStream);
         
-        // التدفق الحقيقي: async iterator من Puter.js
-        if (responseStream && typeof responseStream[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of responseStream) {
-                console.log('Received chunk:', chunk);
-                
-                let content = '';
-                if (typeof chunk === 'string') {
-                    content = chunk;
-                } else if (chunk && chunk.content) {
-                    content = chunk.content;
-                } else if (chunk && chunk.text) {
-                    content = chunk.text;
-                } else if (chunk?.choices?.[0]) {
-                    const choice = chunk.choices[0];
-                    if (choice.delta?.content) {
-                        content = choice.delta.content;
-                    } else if (choice.message?.content) {
-                        content = choice.message.content;
+        // حالة 1: ReadableStream (التدفق الحقيقي المطلوب)
+        if (responseStream && typeof responseStream.getReader === 'function') {
+            console.log('Using ReadableStream for real-time streaming');
+            const reader = responseStream.getReader();
+            const decoder = new TextDecoder();
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    if (chunk && chunk.trim()) {
+                        // تدفق فوري حقيقي - نفس آلية Gemini
+                        appendToStreamingMessage(chunk);
                     }
                 }
+            } finally {
+                reader.releaseLock();
+            }
+        }
+        // حالة 2: Async Iterator
+        else if (responseStream && typeof responseStream[Symbol.asyncIterator] === 'function') {
+            console.log('Using async iterator for streaming');
+            for await (const part of responseStream) {
+                let content = '';
                 
-                if (content && content.trim()) {
+                // تنسيقات مختلفة لاستجابات AI
+                if (part && part.choices && part.choices[0] && part.choices[0].delta) {
+                    content = part.choices[0].delta.content || '';
+                } else if (part && part.text) {
+                    content = part.text;
+                } else if (part && part.content) {
+                    content = part.content;
+                } else if (typeof part === 'string') {
+                    content = part;
+                } else if (part && part.data) {
+                    // بعض APIs ترسل البيانات في data field
+                    content = typeof part.data === 'string' ? part.data : JSON.stringify(part.data);
+                }
+                
+                if (content) {
                     appendToStreamingMessage(content);
                 }
             }
         }
-        // إذا لم يكن async iterator → رد كامل دفعة واحدة
-        else if (responseStream && responseStream.then) {
-            const fullResponse = await responseStream;
-            const text = typeof fullResponse === 'string'
-                ? fullResponse
-                : (fullResponse.content || fullResponse.text || '');
-            if (text) {
-                appendToStreamingMessage(text);
+        // حالة 3: Response object مع body stream
+        else if (responseStream && responseStream.body && typeof responseStream.body.getReader === 'function') {
+            console.log('Using Response body stream');
+            const reader = responseStream.body.getReader();
+            const decoder = new TextDecoder();
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    
+                    // تحليل Server-Sent Events format إذا لزم الأمر
+                    if (chunk.includes('data: ')) {
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data.trim() === '[DONE]') continue;
+                                
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    const content = parsed.choices?.[0]?.delta?.content || 
+                                                  parsed.text || 
+                                                  parsed.content || '';
+                                    if (content) {
+                                        appendToStreamingMessage(content);
+                                    }
+                                } catch (parseError) {
+                                    // إذا لم يكن JSON، اعتبره نص خام
+                                    if (data.trim()) {
+                                        appendToStreamingMessage(data);
+                                    }
+                                }
+                            }
+                        }
+                    } else if (chunk.trim()) {
+                        // نص خام مباشر
+                        appendToStreamingMessage(chunk);
+                    }
+                }
+            } finally {
+                reader.releaseLock();
             }
         }
-        // إذا كان نص مباشر
+        // حالة 4: Promise يعيد نص كامل (fallback - محاكاة)
+        else if (responseStream && typeof responseStream.then === 'function') {
+            console.log('Using Promise-based response (simulated streaming)');
+            const fullResponse = await responseStream;
+            
+            if (typeof fullResponse === 'string') {
+                // محاكاة التدفق بتقطيع النص
+                const sentences = fullResponse.split(/(?<=[.!?])\s+/);
+                for (const sentence of sentences) {
+                    appendToStreamingMessage(sentence + ' ');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            } else {
+                appendToStreamingMessage(fullResponse.toString());
+            }
+        }
+        // حالة 5: نص مباشر (fallback أخير)
         else if (typeof responseStream === 'string') {
-            appendToStreamingMessage(responseStream);
+            console.log('Using direct string (simulated streaming)');
+            const words = responseStream.split(' ');
+            for (let i = 0; i < words.length; i++) {
+                appendToStreamingMessage(words[i] + (i < words.length - 1 ? ' ' : ''));
+                await new Promise(resolve => setTimeout(resolve, 30));
+            }
+        } else {
+            throw new Error('نوع استجابة غير مدعوم من Puter.js');
         }
         
         // إنهاء التدفق
