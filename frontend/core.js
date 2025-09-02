@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailway
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailwayailway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
 // ===============================================
@@ -149,7 +149,17 @@ document.addEventListener('DOMContentLoaded', function() {
     displayChatHistory();
     updateProviderUI();
 
-    if (currentChatId && chats[currentChatId]) {
+    // إضافة منطق تحديد آخر محادثة إذا لم تكن محددة
+if (!currentChatId && Object.keys(chats).length > 0) {
+    // البحث عن آخر محادثة حسب order أو updatedAt
+    const latestChat = Object.values(chats)
+        .sort((a, b) => (b.order || b.updatedAt || 0) - (a.order || a.updatedAt || 0))[0];
+    if (latestChat) {
+        currentChatId = latestChat._id;
+    }
+}
+
+if (currentChatId && chats[currentChatId]) {
   document.getElementById('welcomeScreen').classList.add('hidden');
   document.getElementById('messagesContainer').classList.remove('hidden');
   displayMessages();
@@ -374,6 +384,61 @@ function switchMode(mode) {
 // دالة للتحقق من حالة وضع الفريق
 function isTeamMode() {
     return settings.activeMode === 'team';
+}
+
+// دالة التحقق من حالة المستخدم وتحميل البيانات
+async function checkUserStatus() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.log('No auth token found');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const userData = await response.json();
+            currentUser = userData.user;
+            await loadUserData();
+        } else {
+            localStorage.removeItem('authToken');
+            console.log('Invalid token, removed from storage');
+        }
+    } catch (error) {
+        console.error('Error checking user status:', error);
+    }
+}
+
+// دالة تحميل بيانات المستخدم
+async function loadUserData() {
+    if (!currentUser) return;
+    
+    const token = localStorage.getItem('authToken');
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            settings = { ...defaultSettings, ...data.settings };
+            
+            // تحويل المحادثات لكائن مفهرس
+            chats = {};
+            if (data.chats) {
+                data.chats.forEach(chat => {
+                    chats[chat._id] = chat;
+                });
+            }
+            
+            console.log('User data loaded successfully');
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
 }
 
 // دالة للتحقق من وجود أعضاء الفريق
