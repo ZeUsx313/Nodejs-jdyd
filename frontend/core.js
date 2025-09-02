@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailwayailway
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailwayailwayailway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
 // ===============================================
@@ -312,6 +312,50 @@ function zeusFlash() {
   bgCanvas.classList.add('flash');
   setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
 }
+
+// إضافة هذا في نهاية DOMContentLoaded في core.js
+// ========== إعداد أزرار الإعدادات ==========
+const settingsButtons = document.querySelectorAll('[onclick*="openSettings"]');
+settingsButtons.forEach(button => {
+    // إزالة onclick القديم وإضافة event listener جديد
+    const originalOnclick = button.getAttribute('onclick');
+    button.removeAttribute('onclick');
+    
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        console.log('Settings button clicked');
+        
+        // تأكد من تحميل الدالة
+        if (typeof openSettings === 'function') {
+            console.log('Opening settings...');
+            openSettings();
+        } else {
+            console.error('openSettings not loaded, trying fallback...');
+            
+            // حل بديل
+            const modal = document.getElementById('settingsModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                if (typeof loadSettingsUI === 'function') {
+                    loadSettingsUI();
+                }
+                if (typeof onOpenSettingsModal === 'function') {
+                    onOpenSettingsModal();
+                }
+            } else {
+                showNotification('خطأ: نافذة الإعدادات غير موجودة', 'error');
+            }
+        }
+    });
+});
+
+// ========== تشخيص الأخطاء ==========
+console.log('Available functions check:');
+console.log('openSettings:', typeof openSettings);
+console.log('loadSettingsUI:', typeof loadSettingsUI);
+console.log('closeSettings:', typeof closeSettins);
+
 });  // نهاية DOMContentLoaded
 
 // ===========================
