@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
 // ===============================================
@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeTheme();
     updateCustomProviders(); // تحديث المزودين المخصصين
+    updateProviderSelect(); // إضافة هذا السطر الجديد
     updateSendButton();
     initializeEventListeners();
     displayChatHistory();
