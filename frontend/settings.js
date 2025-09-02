@@ -55,6 +55,10 @@ if (cpi) cpi.value = settings.customPrompt || '';
 
     updateProviderUI();
     updateModelOptions();
+// تحديث المزودين المخصصين في واجهة المستخدم
+    updateCustomProviders();
+    updateProviderSelect();
+
 
     // === وضع الفريق: تعبئة الحقول ===
     settings.team = settings.team || {};
@@ -149,11 +153,25 @@ async function saveSettings() {
   document.documentElement.style.setProperty('--chat-font-size', `${settings.fontSize}px`);
   localStorage.setItem('zeus-font-size', String(settings.fontSize));
 
-  // حفظ واحد فقط بعد جمع كل الإعدادات
+  // حفظ واحد فقط بعد جمع كل الإعدادات// التحقق من صحة المزودين المخصصين قبل الحفظ
+  if (settings.customProviders && settings.customProviders.length > 0) {
+    for (const provider of settings.customProviders) {
+      const errors = validateCustomProvider(provider);
+      if (errors.length > 0) {
+        showNotification(`خطأ في المزود "${provider.name}": ${errors.join(', ')}`, 'error');
+        return; // لا تحفظ إذا كان هناك أخطاء
+      }
+    }
+  }
+
+  // حفظ واحد فقط بعد جمع كل الإعدادات
   await saveSettingsToDB();
+  
+  // تحديث واجهة المزودين بعد الحفظ
+  updateCustomProviders();
+  updateProviderSelect();
 
   closeSettings();
-}
 
 async function saveSettingsToDB() {
     if (!currentUser) return;
