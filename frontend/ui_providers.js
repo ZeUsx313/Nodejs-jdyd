@@ -64,7 +64,12 @@ function initializeEventListeners() {
     const messageInput = document.getElementById('messageInput');
     const temperatureSlider = document.getElementById('temperatureSlider');
     const providerSelect = document.getElementById('providerSelect');
-document.getElementById('fileInput').addEventListener('change', updateSendButton);
+    
+    // إضافة التحقق من وجود العنصر
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', updateSendButton);
+    }
 
 const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
 const selBrowsingMode   = document.getElementById('browsingMode');
