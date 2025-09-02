@@ -435,4 +435,15 @@ function cryptoRandomId() {
   return Math.random().toString(36).slice(2);
 }
 
+// إضافة الدالة المفقودة
+function onOpenSettingsModal() {
+    // تحديث المزودين المخصصين عند فتح الإعدادات
+    updateCustomProviders();
+    updateProviderSelect();
+    
+    // تحديث واجهة المزود الحالي
+    updateProviderUI();
+    updateModelOptions();
+}
+
 // UI functions
