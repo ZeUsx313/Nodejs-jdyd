@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>شات زيوس - إله الرعد</title>
+    <title>شات زيوس - إله الرعد</title>
     <script src="https://js.puter.com/v2/"></script>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -25,10 +25,10 @@
       extend: {
         colors: {
           zeus: {
-            primary: '#0a0f1a',          // خلفية داكنة مائلة للأزرق
-            secondary: '#122033',        // طبقة أفتح
-            accent: '#2d9cff',           // أزرق كهربائي
-            'accent-hover': '#1e7fe0',   // أزرق أغمق عند التحويم
+            primary: '#0a0f1a',          // خلفية داكنة مائلة للأزرق
+            secondary: '#122033',        // طبقة أفتح
+            accent: '#2d9cff',           // أزرق كهربائي
+            'accent-hover': '#1e7fe0',   // أزرق أغمق عند التحويم
             text: '#e6f0ff'              // نص فاتح مزرق
           }
         },
@@ -60,9 +60,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<!-- إضافة أيقونة البرق المخصصة إذا لم تكن متوفرة في Font Awesome -->
+<!-- إضافة أيقونة البرق المخصصة إذا لم تكن متوفرة في Font Awesome -->
 <style>
-/* ضمان وجود أيقونة البرق */
+/* ضمان وجود أيقونة البرق */
 .fa-bolt:before {
     content: "\26A1"; /* رمز البرق Unicode كبديل */
 }
@@ -118,12 +118,12 @@
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">المحادثات</h2>
                 <button onclick="closeSidebar()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
-        aria-label="إغلاق الشريط الجانبي" aria-controls="sidebar">
+        aria-label="إغلاق الشريط الجانبي" aria-controls="sidebar">
   <i class="fas fa-times text-xl" aria-hidden="true"></i>
 </button>
             </div>
             <button onclick="startNewChat()" class="w-full mt-4 bg-zeus-accent hover:bg-zeus-accent-hover text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105"
-        aria-label="إنشاء محادثة جديدة" title="إنشاء محادثة جديدة">
+        aria-label="إنشاء محادثة جديدة" title="إنشاء محادثة جديدة">
   <i class="fas fa-plus ml-2" aria-hidden="true"></i>محادثة جديدة
 </button>
         </div>
@@ -136,16 +136,16 @@
 
     <!-- شريط علوي -->
     <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
-      <h3 id="settingsTitle" class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
-      <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="إغلاق الإعدادات" title="إغلاق الإعدادات">
+      <h3 id="settingsTitle" class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
+      <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="إغلاق الإعدادات" title="إغلاق الإعدادات">
         <i class="fas fa-times" aria-hidden="true"></i>
       </button>
     </div>
 
-    <!-- جسم النافذة: قائمة يسار + محتوى يمين -->
+    <!-- جسم النافذة: قائمة يسار + محتوى يمين -->
     <div class="flex h-[70vh]">
 
-      <!-- القائمة الجانبية -->
+      <!-- القائمة الجانبية -->
       <aside class="w-64 p-4 border-l border-white/10 overflow-y-auto">
         <button class="settings-tab active" data-tab="account"><i class="fas fa-user ml-2"></i>الحساب</button>
         <button class="settings-tab" data-tab="models"><i class="fas fa-robot ml-2"></i>النماذج والمزوّد</button>
@@ -189,7 +189,7 @@
             <div class="flex items-center justify-between mb-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">مزود الذكاء الاصطناعي</label>
               <button onclick="openCustomProvidersManager()" class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
-                <i class="fas fa-cog ml-1"></i>إدارة المزودين المخصصين
+                <i class="fas fa-cog ml-1"></i>إدارة المزودين المخصصين
               </button>
             </div>
             <select id="providerSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
@@ -205,7 +205,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مفاتيح Gemini API</label>
             <div id="geminiApiKeysContainer" class="space-y-2 mb-2"></div>
             <button onclick="addGeminiApiKeyField()" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
             </button>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">احصل على مفاتيح مجانية من
               <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-zeus-accent hover:underline">Google AI Studio</a>
@@ -216,7 +216,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مفاتيح OpenRouter API</label>
             <div id="openrouterApiKeysContainer" class="space-y-2 mb-2"></div>
             <button onclick="addOpenRouterApiKeyField()" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحًا جديدًا
             </button>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">احصل على مفتاح API من
               <a href="https://openrouter.ai/keys" target="_blank" class="text-zeus-accent hover:underline">OpenRouter</a>
@@ -227,7 +227,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" id="customProviderApiKeysLabel">مفاتيح API للمزود المخصص</label>
             <div id="customProviderApiKeysContainer" class="space-y-3"></div>
             <button type="button" onclick="addCustomProviderApiKey()" class="mt-3 px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg transition-colors text-sm">
-              <i class="fas fa-plus ml-2"></i>أضف مفتاحاً جديداً
+              <i class="fas fa-plus ml-2"></i>أضف مفتاحاً جديداً
             </button>
           </div>
 
@@ -235,20 +235,20 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">استراتيجية تبديل المفاتيح</label>
             <select id="apiKeyRetryStrategySelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
               <option value="sequential">تبديل تسلسلي (Sequential)</option>
-              <option value="round-robin">تبديل دائري (Round Robin)</option>
+              <option value="round-robin">تبديل دائري (Round Robin)</option>
             </select>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">اختر كيفية استخدام مفاتيح API المتعددة عند حدوث أخطاء.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">اختر كيفية استخدام مفاتيح API المتعددة عند حدوث أخطاء.</p>
           </div>
 
           <div class="settings-section">
             <div class="flex items-center justify-between mb-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">نموذج الذكاء الاصطناعي</label>
               <button onclick="openCustomModelsManager()" class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
-                <i class="fas fa-cog ml-1"></i>إدارة النماذج المخصصة
+                <i class="fas fa-cog ml-1"></i>إدارة النماذج المخصصة
               </button>
             </div>
             <select id="modelSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
-              <!-- يتم تعبئته ديناميكياً -->
+              <!-- يتم تعبئته ديناميكياً -->
             </select>
           </div>
 
@@ -263,9 +263,9 @@
               <i class="fas fa-user-cog mr-2"></i>تخصيص شخصية الذكاء الاصطناعي
             </label>
             <textarea id="customPromptInput" rows="4" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm resize-vertical" 
-                placeholder="مثال: أنت مساعد ذكي ودود، أجب دائماً باللغة العربية واستخدم أمثلة عملية في شرحك. كن مختصراً ومفيداً..."></textarea>
+                placeholder="مثال: أنت مساعد ذكي ودود، أجب دائماً باللغة العربية واستخدم أمثلة عملية في شرحك. كن مختصراً ومفيداً..."></textarea>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              هذا النص سيتم إرساله في بداية كل محادثة لتوجيه سلوك المساعد وتخصيص شخصيته حسب احتياجاتك
+              هذا النص سيتم إرساله في بداية كل محادثة لتوجيه سلوك المساعد وتخصيص شخصيته حسب احتياجاتك
             </p>
           </div>
      </div>
@@ -273,12 +273,12 @@
         <!-- التصفح والربط -->
         <div class="settings-panel hidden" data-tab="browsing">
           
-          <!-- تفعيل البحث الرئيسي -->
+          <!-- تفعيل البحث الرئيسي -->
           <div class="settings-section">
             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">تفعيل البحث عبر الإنترنت</h4>
-                <p class="text-xs text-gray-500 dark:text-gray-400">يسمح للذكاء الاصطناعي بالبحث في الإنترنت للحصول على معلومات حديثة</p>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">تفعيل البحث عبر الإنترنت</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">يسمح للذكاء الاصطناعي بالبحث في الإنترنت للحصول على معلومات حديثة</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="enableWebBrowsing" class="sr-only peer">
@@ -294,15 +294,15 @@
               <option value="gemini">Google Search Grounding (Gemini) - مُوصى به</option>
               <option value="proxy">وكيل بحث خارجي</option>
             </select>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Gemini يوفر بحثاً مدمجاً أسرع وأدق</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Gemini يوفر بحثاً مدمجاً أسرع وأدق</p>
           </div>
 
           <!-- عرض المصادر -->
           <div class="settings-section">
             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">إظهار المصادر</h4>
-                <p class="text-xs text-gray-500 dark:text-gray-400">عرض روابط المصادر مع النتائج</p>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">إظهار المصادر</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">عرض روابط المصادر مع النتائج</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="showSources" class="sr-only peer" checked>
@@ -311,33 +311,33 @@
             </div>
           </div>
 
-          <!-- حساسية البحث التلقائي -->
+          <!-- حساسية البحث التلقائي -->
           <div class="settings-section">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              حساسية البحث التلقائي: <span id="dynamicThresholdValue" class="text-zeus-accent">0.3</span>
+              حساسية البحث التلقائي: <span id="dynamicThresholdValue" class="text-zeus-accent">0.3</span>
             </label>
             <input type="range" id="dynamicThresholdSlider" min="0.1" max="1.0" step="0.1" value="0.3" 
                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
             <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
               <span>حساس جداً (يبحث كثيراً)</span>
               <span>متوسط</span>
-              <span>أقل حساسية (يبحث قليلاً)</span>
+              <span>أقل حساسية (يبحث قليلاً)</span>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              يحدد مدى سهولة تفعيل البحث تلقائياً عند طرح الأسئلة
+              يحدد مدى سهولة تفعيل البحث تلقائياً عند طرح الأسئلة
             </p>
           </div>
 
-          <!-- معلومات إضافية -->
+          <!-- معلومات إضافية -->
           <div class="settings-section">
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div class="flex items-start">
                 <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-2"></i>
                 <div class="text-sm">
-                  <h5 class="font-medium text-blue-800 dark:text-blue-200 mb-1">كيف يعمل البحث التلقائي؟</h5>
+                  <h5 class="font-medium text-blue-800 dark:text-blue-200 mb-1">كيف يعمل البحث التلقائي؟</h5>
                   <p class="text-blue-700 dark:text-blue-300 text-xs">
-                    عندما تسأل أسئلة مثل "ما آخر أخبار الذكاء الاصطناعي" أو "سعر البتكوين اليوم"، 
-                    سيقوم النظام تلقائياً بالبحث في الإنترنت للحصول على أحدث المعلومات دون الحاجة لكتابة "ابحث".
+                    عندما تسأل أسئلة مثل "ما آخر أخبار الذكاء الاصطناعي" أو "سعر البتكوين اليوم"، 
+                    سيقوم النظام تلقائياً بالبحث في الإنترنت للحصول على أحدث المعلومات دون الحاجة لكتابة "ابحث".
                   </p>
                 </div>
               </div>
@@ -351,7 +351,7 @@
 
   <!-- حجم الخط -->
   <div class="settings-section">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">حجم خط الرسائل</label>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">حجم خط الرسائل</label>
     <div class="flex items-center space-x-3 space-x-reverse">
       <span class="text-sm">صغير</span>
       <input type="range" id="fontSizeSlider" min="14" max="24" step="1" value="18" class="w-full accent-zeus-accent">
@@ -364,9 +364,9 @@
   <div class="settings-section">
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
     <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-  <option value="theme-blue">أزرق داكن</option>
-  <option value="theme-black">أسود كامل (OLED)</option>
-  <option value="theme-light">نهاري أبيض</option>
+  <option value="theme-blue">أزرق داكن</option>
+  <option value="theme-black">أسود كامل (OLED)</option>
+  <option value="theme-light">نهاري أبيض</option>
 </select>
   </div>
 
@@ -374,10 +374,10 @@
   <div class="settings-section">
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
     <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-      <option value="calm">ليلي هادئ</option>
+      <option value="calm">ليلي هادئ</option>
       <option value="storm">عاصفة برق</option>
     </select>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
   </div>
 
 </div>
@@ -385,14 +385,14 @@
         <!-- البيانات والخصوصية -->
         <div class="settings-panel hidden" data-tab="data">
           <div class="settings-section">
-            <p class="text-sm text-gray-400">إدارة البيانات ستُضاف هنا لاحقًا (مسح المحادثات، تنزيل البيانات، …).</p>
+            <p class="text-sm text-gray-400">إدارة البيانات ستُضاف هنا لاحقًا (مسح المحادثات، تنزيل البيانات، ...).</p>
           </div>
         </div>
 
         <!-- حول -->
         <div class="settings-panel hidden" data-tab="about">
           <div class="settings-section">
-            <p class="text-sm text-gray-400">شات زيوس — إصدار الواجهة الحالي.</p>
+            <p class="text-sm text-gray-400">شات زيوس — إصدار الواجهة الحالي.</p>
           </div>
         </div>
 
@@ -414,7 +414,7 @@
       </div>
       <div>
         <label class="form-label">النموذج</label>
-        <input id="teamCoordinatorModel" class="form-input" placeholder="gemini-1.5-pro أو معرف OpenRouter">
+        <input id="teamCoordinatorModel" class="form-input" placeholder="gemini-1.5-pro أو معرف OpenRouter">
       </div>
     </div>
     <div class="mt-3">
@@ -423,20 +423,20 @@
     </div>
   </div>
 
-  <!-- أعضاء الفريق -->
+  <!-- أعضاء الفريق -->
   <div class="settings-section">
     <div class="flex items-center justify-between">
-      <h4 class="text-sm font-medium">أعضاء الفريق</h4>
+      <h4 class="text-sm font-medium">أعضاء الفريق</h4>
       <button type="button" class="btn-custom btn-primary" onclick="addTeamMemberRow()">
-        <i class="fas fa-plus ml-1"></i> إضافة عضو
+        <i class="fas fa-plus ml-1"></i> إضافة عضو
       </button>
     </div>
     <div id="teamMembersContainer" class="space-y-3 mt-3"></div>
   </div>
 
-  <!-- أسلوب الدوران -->
+  <!-- أسلوب الدوران -->
   <div class="settings-section">
-    <h4 class="text-sm font-medium">أسلوب الدوران</h4>
+    <h4 class="text-sm font-medium">أسلوب الدوران</h4>
     <select id="teamTurnStyle" class="form-input mt-2">
       <option value="sequential">تتابعي صارم (عضو واحد في كل خطوة)</option>
       <option value="parallel" disabled>متوازي (لاحقًا)</option>
@@ -447,28 +447,28 @@
       </section>
     </div>
 
-    <!-- أزرار أسفل -->
+    <!-- أزرار أسفل -->
     <div class="flex justify-end px-6 py-4 border-t border-white/10">
-      <button onclick="closeSettings()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">إلغاء</button>
+      <button onclick="closeSettings()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">إلغاء</button>
       <button onclick="saveSettings()" class="px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg ml-2">حفظ</button>
     </div>
   </div>
 </div>
 
-    <!-- نافذة إدارة النماذج المخصصة -->
+    <!-- نافذة إدارة النماذج المخصصة -->
     <div id="customModelsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customModelsTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 id="customModelsTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة النماذج المخصصة</h3>
+                <h3 id="customModelsTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة النماذج المخصصة</h3>
                 <button onclick="closeCustomModelsManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
-        aria-label="إغلاق نافذة النماذج المخصصة" title="إغلاق نافذة النماذج المخصصة">
+        aria-label="إغلاق نافذة النماذج المخصصة" title="إغلاق نافذة النماذج المخصصة">
   <i class="fas fa-times" aria-hidden="true"></i>
 </button>
             </div>
 
             <div class="mb-6">
                 <button onclick="addCustomModel()" class="w-full btn-custom btn-primary">
-                    <i class="fas fa-plus ml-2"></i>إضافة نموذج مخصص جديد
+                    <i class="fas fa-plus ml-2"></i>إضافة نموذج مخصص جديد
                 </button>
             </div>
 
@@ -478,26 +478,26 @@
 
             <div class="flex justify-end mt-6 space-x-3 space-x-reverse">
                 <button onclick="closeCustomModelsManager()" class="btn-custom btn-secondary">
-                    إغلاق
+                    إغلاق
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- نافذة إدارة المزودين المخصصين -->
+    <!-- نافذة إدارة المزودين المخصصين -->
     <div id="customProvidersModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customProvidersTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 id="customProvidersTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة المزودين المخصصين</h3>
+                <h3 id="customProvidersTitle" class="text-xl font-bold text-gray-800 dark:text-white">إدارة المزودين المخصصين</h3>
                 <button onclick="closeCustomProvidersManager()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors"
-        aria-label="إغلاق نافذة المزوّدين المخصصين" title="إغلاق نافذة المزوّدين المخصصين">
+        aria-label="إغلاق نافذة المزوّدين المخصصين" title="إغلاق نافذة المزوّدين المخصصين">
   <i class="fas fa-times" aria-hidden="true"></i>
 </button>
             </div>
 
             <div class="mb-6">
                 <button onclick="addCustomProvider()" class="w-full btn-custom btn-primary">
-                    <i class="fas fa-plus ml-2"></i>إضافة مزود مخصص جديد
+                    <i class="fas fa-plus ml-2"></i>إضافة مزود مخصص جديد
                 </button>
             </div>
 
@@ -507,7 +507,7 @@
 
             <div class="flex justify-end mt-6 space-x-3 space-x-reverse">
                 <button onclick="closeCustomProvidersManager()" class="btn-custom btn-secondary">
-                    إغلاق
+                    إغلاق
                 </button>
             </div>
         </div>
@@ -515,7 +515,7 @@
 
     <!-- داخل #app -->
 
-<!-- داخل #app وقبل أي محتوى آخر -->
+<!-- داخل #app وقبل أي محتوى آخر -->
 <div id="bgCanvas" class="absolute inset-0 -z-10 bg-calm pointer-events-none"></div>
 
 <div class="flex w-full h-full">
@@ -536,12 +536,12 @@
                             <div class="zeus-logo w-8 h-8 rounded-full"></div>
                             <div>
                                 <h1 class="header-title text-xl font-bold text-white">شات زيوس</h1>
-                                <p class="header-subtitle text-sm text-gray-400">إله الرعد والحكمة</p>
+                                <p class="header-subtitle text-sm text-gray-400">إله الرعد والحكمة</p>
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-  <!-- أزرار التبديل بين الوضعين -->
+  <!-- أزرار التبديل بين الوضعين -->
   <div class="flex items-center gap-2">
     <button id="btnModeChat" class="btn-custom btn-primary" onclick="switchMode('chat')" title="وضع الدردشة" aria-pressed="true">
       <i class="fas fa-comment-dots ml-1"></i> الدردشة
@@ -551,7 +551,7 @@
     </button>
   </div>
 
-  <!-- الأفاتار/قائمة الحساب تبقى كما هي -->
+  <!-- الأفاتار/قائمة الحساب تبقى كما هي -->
   <div id="user-info-container"></div>
 </div>
                 </div>
@@ -562,23 +562,23 @@
                     <div class="text-center max-w-2xl">
                         <div class="zeus-logo w-20 h-20 mx-auto mb-6 rounded-full"></div>
                         <h2 class="text-3xl font-bold text-white mb-4">مرحباً بك في شات زيوس</h2>
-                        <p class="text-gray-400 text-lg mb-8">إله الرعد والحكمة في خدمتك. ابدأ محادثة جديدة واكتشف قوة الذكاء الاصطناعي.</p>
+                        <p class="text-gray-400 text-lg mb-8">إله الرعد والحكمة في خدمتك. ابدأ محادثة جديدة واكتشف قوة الذكاء الاصطناعي.</p>
 
                         <div class="welcome-grid grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                             <div class="glass-effect p-6 rounded-xl">
                                 <i class="fas fa-lightbulb text-zeus-accent text-2xl mb-4"></i>
-                                <h3 class="text-white font-semibold mb-2">أسئلة ذكية</h3>
-                                <p class="text-gray-400 text-sm">احصل على إجابات دقيقة ومفيدة لجميع استفساراتك</p>
+                                <h3 class="text-white font-semibold mb-2">أسئلة ذكية</h3>
+                                <p class="text-gray-400 text-sm">احصل على إجابات دقيقة ومفيدة لجميع استفساراتك</p>
                             </div>
                             <div class="glass-effect p-6 rounded-xl">
                                 <i class="fas fa-code text-zeus-accent text-2xl mb-4"></i>
                                 <h3 class="text-white font-semibold mb-2">مساعدة برمجية</h3>
-                                <p class="text-gray-400 text-sm">حلول برمجية متقدمة وشرح للأكواد المعقدة</p>
+                                <p class="text-gray-400 text-sm">حلول برمجية متقدمة وشرح للأكواد المعقدة</p>
                             </div>
                             <div class="glass-effect p-6 rounded-xl">
                                 <i class="fas fa-language text-zeus-accent text-2xl mb-4"></i>
                                 <h3 class="text-white font-semibold mb-2">دعم متعدد اللغات</h3>
-                                <p class="text-gray-400 text-sm">تفاعل بالعربية والإنجليزية بسهولة تامة</p>
+                                <p class="text-gray-400 text-sm">تفاعل بالعربية والإنجليزية بسهولة تامة</p>
                             </div>
                             <div class="glass-effect p-6 rounded-xl">
                                 <i class="fas fa-bolt text-zeus-accent text-2xl mb-4"></i>
@@ -613,31 +613,31 @@
                             </div>
 
                             <div class="flex items-end space-x-3 space-x-reverse">
-    <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
+    <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
     <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700 mobile-file-button"
-       aria-label="إرفاق ملف" title="إرفاق ملف">
+       aria-label="إرفاق ملف" title="إرفاق ملف">
   <i class="fas fa-paperclip text-2xl" aria-hidden="true"></i>
   <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)" aria-label="اختيار ملف">
 </label>
 
-    <!-- الخطوة 2: مربع النص يأتي بعده -->
+    <!-- الخطوة 2: مربع النص يأتي بعده -->
     <div class="flex-1 relative">
         <textarea
             id="messageInput"
-            placeholder="تكلم عن أي شيء."
+            placeholder="تكلم عن أي شيء."
             class="chat-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-zeus-accent focus:border-transparent resize-none mobile-input"
             rows="1"
             style="max-height: 128px;"
         ></textarea>
     </div>
 
-    <!-- الخطوة 3: زر الإرسال يبقى في النهاية (أقصى اليسار) -->
+    <!-- الخطوة 3: زر الإرسال يبقى في النهاية (أقصى اليسار) -->
     <button
   id="sendButton"
   onclick="sendMessage()"
   disabled
   class="px-6 py-3 bg-zeus-accent text-white rounded-xl hover:bg-zeus-accent-hover disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 mobile-send-button"
-  aria-label="إرسال الرسالة" title="إرسال الرسالة">
+  aria-label="إرسال الرسالة" title="إرسال الرسالة">
   <i class="fas fa-paper-plane" aria-hidden="true"></i>
 </button>
 </div>
@@ -654,13 +654,13 @@
     </div>
 
 <script src="core.js"></script>
+<script src="settings.js"></script>
 <script src="ui_providers.js"></script>
+<script src="auth.js"></script>
 <script src="files.js"></script>
 <script src="chat_stream.js"></script>
 <script src="chat_management.js"></script>
-<script src="settings.js"></script>
 <script src="ui_misc.js"></script>
-<script src="auth.js"></script>
 
 </body>
 </html>
