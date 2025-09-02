@@ -1,20 +1,63 @@
 
-// تحديث المزودين المخصصين في كائن providers
+// تحديث المزودين المخصصين في كائن providers
 function updateCustomProviders() {
-    // إزالة المزودين المخصصين القدامى
+    // إزالة المزودين المخصصين القدامى
     Object.keys(providers).forEach(key => {
         if (key.startsWith('custom_')) {
             delete providers[key];
         }
     });
 
-    // إضافة المزودين المخصصين الجدد
+    // إضافة المزودين المخصصين الجدد
     settings.customProviders.forEach(provider => {
         providers[provider.id] = {
             name: provider.name,
             models: provider.models || []
         };
     });
+}
+
+// دالة للتحقق من صحة المزود المخصص قبل الحفظ
+function validateCustomProvider(provider) {
+    const errors = [];
+    
+    if (!provider.name || !provider.name.trim()) {
+        errors.push('اسم المزود مطلوب');
+    }
+    
+    if (!provider.baseUrl || !provider.baseUrl.trim()) {
+        errors.push('رابط API الأساسي مطلوب');
+    } else {
+        try {
+            new URL(provider.baseUrl);
+        } catch {
+            errors.push('رابط API الأساسي غير صالح');
+        }
+    }
+    
+    if (!provider.models || provider.models.length === 0) {
+        errors.push('يجب إضافة نموذج واحد على الأقل');
+    } else {
+        provider.models.forEach((model, index) => {
+            if (!model.id || !model.id.trim()) {
+                errors.push(`معرف النموذج ${index + 1} مطلوب`);
+            }
+            if (!model.name || !model.name.trim()) {
+                errors.push(`اسم النموذج ${index + 1} مطلوب`);
+            }
+        });
+    }
+    
+    if (!provider.apiKeys || provider.apiKeys.length === 0) {
+        errors.push('يجب إضافة مفتاح API واحد على الأقل');
+    } else {
+        const validKeys = provider.apiKeys.filter(key => key.key && key.key.trim());
+        if (validKeys.length === 0) {
+            errors.push('يجب إضافة مفتاح API صالح واحد على الأقل');
+        }
+    }
+    
+    return errors;
 }
 
 function initializeEventListeners() {
@@ -101,18 +144,18 @@ function updateProviderUI() {
     const openrouterSection = document.getElementById('openrouterApiKeysSection');
     const customSection = document.getElementById('customProviderApiKeysSection');
 
-    // إخفاء جميع الأقسام أولاً
+    // إخفاء جميع الأقسام أولاً
     geminiSection.classList.add('hidden');
     openrouterSection.classList.add('hidden');
     if (customSection) customSection.classList.add('hidden');
 
-    // إظهار القسم المناسب
+    // إظهار القسم المناسب
     if (provider === 'gemini') {
         geminiSection.classList.remove('hidden');
     } else if (provider === 'openrouter') {
         openrouterSection.classList.remove('hidden');
     } else if (provider.startsWith('custom_')) {
-        // مزود مخصص - إظهار قسم مفاتيح API الخاص به
+        // مزود مخصص - إظهار قسم مفاتيح API الخاص به
         if (customSection) {
             customSection.classList.remove('hidden');
             updateCustomProviderApiKeysUI(provider);
@@ -153,21 +196,21 @@ function updateModelOptions() {
         });
     }
 
-    // تعيين النموذج الحالي إذا كان موجوداً
+    // تعيين النموذج الحالي إذا كان موجوداً
     const currentModel = settings.model;
     const modelExists = Array.from(modelSelect.options).some(option => option.value === currentModel);
 
     if (modelExists) {
         modelSelect.value = currentModel;
     } else {
-        // إذا لم يكن النموذج الحالي موجوداً، اختر الأول
+        // إذا لم يكن النموذج الحالي موجوداً، اختر الأول
         if (modelSelect.options.length > 0) {
             modelSelect.value = modelSelect.options[0].value;
         }
     }
 }
 
-// إدارة مفاتيح API للمزودين المخصصين
+// إدارة مفاتيح API للمزودين المخصصين
 function renderCustomProviderApiKeys(providerId) {
     const customProvider = settings.customProviders.find(p => p.id === providerId);
     if (!customProvider) return;
@@ -180,7 +223,7 @@ function renderCustomProviderApiKeys(providerId) {
             <div class="text-center text-gray-500 dark:text-gray-400 py-4">
                 <i class="fas fa-key text-2xl mb-2"></i>
                 <p>لا توجد مفاتيح API بعد</p>
-                <p class="text-xs">اضغط على "أضف مفتاحاً جديداً" لإضافة مفتاح API</p>
+                <p class="text-xs">اضغط على "أضف مفتاحاً جديداً" لإضافة مفتاح API</p>
             </div>
         `;
         return;
@@ -195,7 +238,7 @@ function renderCustomProviderApiKeys(providerId) {
                     onchange="updateCustomProviderApiKeyValue('${providerId}', ${index}, this.value)"
                     id="customProviderApiKeyInput-${providerId}-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
-                    placeholder="أدخل مفتاح API">
+                    placeholder="أدخل مفتاح API">
                 <button type="button" onclick="toggleCustomProviderApiKeyVisibility('${providerId}', ${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="customProviderApiKeyToggleIcon-${providerId}-${index}" class="fas fa-eye"></i>
@@ -260,7 +303,7 @@ function toggleCustomProviderApiKeyVisibility(providerId, index) {
     }
 }
 
-// إدارة المزودين المخصصين
+// إدارة المزودين المخصصين
 function openCustomProvidersManager() {
     document.getElementById('customProvidersModal').classList.remove('hidden');
     renderCustomProviders();
@@ -279,7 +322,7 @@ function renderCustomProviders() {
             <div class="text-center text-gray-500 dark:text-gray-400 py-8">
                 <i class="fas fa-server text-4xl mb-4"></i>
                 <p>لا توجد مزودين مخصصين بعد</p>
-                <p class="text-sm">اضغط على "إضافة مزود جديد" لإنشاء مزود مخصص</p>
+                <p class="text-sm">اضغط على "إضافة مزود جديد" لإنشاء مزود مخصص</p>
             </div>
         `;
         return;
@@ -305,14 +348,14 @@ function renderCustomProviders() {
                 <input type="text" value="${provider.baseUrl || ''}"
                     onchange="updateCustomProviderBaseUrl(${index}, this.value)"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm"
-                    placeholder="رابط API الأساسي">
+                    placeholder="رابط API الأساسي">
             </div>
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">النماذج:</span>
                     <button onclick="addCustomProviderModel(${index})"
                         class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
-                        <i class="fas fa-plus ml-1"></i>إضافة نموذج
+                        <i class="fas fa-plus ml-1"></i>إضافة نموذج
                     </button>
                 </div>
                 <div id="customProviderModels-${index}" class="space-y-2">
@@ -341,16 +384,24 @@ function renderCustomProviders() {
 
 function addCustomProvider() {
     const newId = `custom_${Date.now()}`;
-    settings.customProviders.push({
+    const newProvider = {
         id: newId,
         name: 'مزود مخصص جديد',
         baseUrl: '',
         models: [],
         apiKeys: []
-    });
+    };
+    
+    if (!Array.isArray(settings.customProviders)) {
+        settings.customProviders = [];
+    }
+    
+    settings.customProviders.push(newProvider);
     renderCustomProviders();
     updateCustomProviders();
     updateProviderSelect();
+    
+    console.log('Custom provider added:', newProvider); // للتشخيص
 }
 
 function removeCustomProvider(index) {
@@ -408,32 +459,46 @@ function updateCustomProviderModelName(providerIndex, modelIndex, name) {
 
 function updateProviderSelect() {
     const providerSelect = document.getElementById('providerSelect');
+    if (!providerSelect) return; // التحقق من وجود العنصر
+    
     const currentValue = providerSelect.value;
 
-    // إزالة المزودين المخصصين القدامى
+    // إزالة المزودين المخصصين القدامى
     const options = Array.from(providerSelect.options);
     options.forEach(option => {
         if (option.value.startsWith('custom_')) {
-            providerSelect.removeChild(option);
+            option.remove(); // استخدام remove() بدلاً من removeChild()
         }
     });
 
-    // إضافة المزودين المخصصين الجدد
-    settings.customProviders.forEach(provider => {
-        const option = document.createElement('option');
-        option.value = provider.id;
-        option.textContent = provider.name;
-        providerSelect.appendChild(option);
-    });
+    // إضافة المزودين المخصصين الجدد
+    if (Array.isArray(settings.customProviders)) {
+        settings.customProviders.forEach(provider => {
+            if (provider && provider.id && provider.name) { // التحقق من صحة البيانات
+                const option = document.createElement('option');
+                option.value = provider.id;
+                option.textContent = provider.name;
+                providerSelect.appendChild(option);
+            }
+        });
+    }
 
-    // استعادة القيمة المحددة إذا كانت لا تزال موجودة
+    // استعادة القيمة المحددة إذا كانت لا تزال موجودة
     const stillExists = Array.from(providerSelect.options).some(option => option.value === currentValue);
     if (stillExists) {
         providerSelect.value = currentValue;
     }
+
+    // إذا لم تعد القيمة الحالية موجودة، اختر أول خيار
+    if (!stillExists && providerSelect.options.length > 0) {
+        providerSelect.value = providerSelect.options[0].value;
+        // تحديث واجهة المستخدم للمزود الجديد
+        updateProviderUI();
+        updateModelOptions();
+    }
 }
 
-// إدارة النماذج المخصصة
+// إدارة النماذج المخصصة
 function openCustomModelsManager() {
     document.getElementById('customModelsModal').classList.remove('hidden');
     renderCustomModels();
@@ -452,7 +517,7 @@ function renderCustomModels() {
             <div class="text-center text-gray-500 dark:text-gray-400 py-8">
                 <i class="fas fa-brain text-4xl mb-4"></i>
                 <p>لا توجد نماذج مخصصة بعد</p>
-                <p class="text-sm">اضغط على "إضافة نموذج مخصص جديد" لإنشاء نموذج مخصص</p>
+                <p class="text-sm">اضغط على "إضافة نموذج مخصص جديد" لإنشاء نموذج مخصص</p>
             </div>
         `;
         return;
