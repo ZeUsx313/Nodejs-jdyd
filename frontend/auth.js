@@ -1,22 +1,3 @@
-
-function openSettingsFromMenu() {
-    // تحقق من وجود الدالة قبل استدعائها
-    if (typeof openSettings === 'function') {
-        openSettings();
-    } else {
-        // إذا لم تُحمل بعد، انتظر قليلاً ثم حاول مرة أخرى
-        console.warn('openSettings function not loaded yet, retrying...');
-        setTimeout(() => {
-            if (typeof openSettings === 'function') {
-                openSettings();
-            } else {
-                console.error('openSettings function still not available');
-                alert('خطأ: لم يتم تحميل إعدادات التطبيق بشكل صحيح. يرجى إعادة تحميل الصفحة.');
-            }
-        }, 100);
-    }
-}
-
 async function checkUserStatus() {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -36,12 +17,12 @@ async function checkUserStatus() {
         if (!userResponse.ok) throw new Error('Invalid or expired token');
         const userData = await userResponse.json();
 
-        // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
+        // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
         currentUser = userData.user;
 updateUserDisplay();
 renderAccountInfo(); // 👈 تحديث تبويب "الحساب" // <--- هذا هو السحر! سيُظهر الصورة والاسم فورًا!
 
-        // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
+        // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
         const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -55,12 +36,12 @@ renderAccountInfo(); // 👈 تحديث تبويب "الحساب" // <--- هذا
         // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
         chats = data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {});
         settings = { ...defaultSettings, ...data.settings };
-// توحيد قيمة الثيم القادمة من الخادم (قديمة أو جديدة)
+// توحيد قيمة الثيم القادمة من الخادم (قديمة أو جديدة)
 settings.theme = normalizeThemeValue(settings.theme);
-// خزِّن الثيم الموحّد محلياً لتقليل الوميض بعد التحديث
+// خزِّن الثيم الموحّد محلياً لتقليل الوميض بعد التحديث
 localStorage.setItem('zeus-theme', settings.theme);
 
-        // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
+        // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
         updateCustomProviders();
         updateProviderSelect();
         displayChatHistory();
@@ -73,7 +54,7 @@ localStorage.setItem('zeus-theme', settings.theme);
 
     } catch (error) {
         console.error("Check user status process failed:", error.message);
-        // إذا فشلت أي خطوة بعد تعيين المستخدم، لا تسجل خروجه بالكامل
+        // إذا فشلت أي خطوة بعد تعيين المستخدم، لا تسجل خروجه بالكامل
         // هذا يضمن بقاء الصورة والاسم ظاهرين حتى لو فشل جلب البيانات
         if (!currentUser) {
              localStorage.removeItem('authToken');
@@ -90,7 +71,7 @@ function updateUserDisplay() {
 }
 
 /**
- * تبدأ عملية تسجيل الدخول.
+ * تبدأ عملية تسجيل الدخول.
  */
 function loginWithGoogle() {
     showNotification('جارٍ توجيهك لتسجيل الدخول...', 'info');
@@ -98,28 +79,28 @@ function loginWithGoogle() {
 }
 
 /**
- * تبدأ عملية تسجيل الخروج.
+ * تبدأ عملية تسجيل الخروج.
  */
 function logout() {
     // حذف التوكن من التخزين المحلي
     localStorage.removeItem('authToken');
 
-    // إعادة تعيين حالة المستخدم في الواجهة
+    // إعادة تعيين حالة المستخدم في الواجهة
     currentUser = null;
     
-    // ✨ إعادة تعيين البيانات المحلية بالكامل
+    // ✨ إعادة تعيين البيانات المحلية بالكامل
     chats = {};
     currentChatId = null;
-    // يمكنك إعادة تعيين الإعدادات إلى الافتراضية هنا إذا أردت
+    // يمكنك إعادة تعيين الإعدادات إلى الافتراضية هنا إذا أردت
     
     // تحديث الواجهة لعرض زر تسجيل الدخول
     updateUserDisplay();
     
-    // عرض شاشة الترحيب وإخفاء المحادثات
+    // عرض شاشة الترحيب وإخفاء المحادثات
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('messagesContainer').classList.add('hidden');
     
-    // تحديث قائمة المحادثات (ستكون فارغة)
+    // تحديث قائمة المحادثات (ستكون فارغة)
     displayChatHistory();
 
     showNotification('تم تسجيل الخروج بنجاح', 'success');
@@ -149,7 +130,7 @@ function renderUserMenu(user) {
   const root = document.getElementById('user-info-container');
   if (!root) return;
 
-  // إن لم تكن مسجلاً: زر تسجيل الدخول (نفس سلوكك الحالي)
+  // إن لم تكن مسجلاً: زر تسجيل الدخول (نفس سلوكك الحالي)
   if (!user) {
     root.innerHTML = `
       <button onclick="loginWithGoogle()"
@@ -168,7 +149,7 @@ function renderUserMenu(user) {
     return;
   }
 
-  // عند تسجيل الدخول: زر أفاتار + قائمة مثل GPT
+  // عند تسجيل الدخول: زر أفاتار + قائمة مثل GPT
   const name = user.name || 'حسابي';
   const email = user.email || '';
   const picture = user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
@@ -199,7 +180,7 @@ function renderUserMenu(user) {
 
         <div class="bg-gray-950/90 backdrop-blur divide-y divide-white/5">
           <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="openSettingsFromMenu()">
-  <i class="fas fa-cog mr-2"></i> الإعدادات
+  <i class="fas fa-cog mr-2"></i> الإعدادات
 </button>
           <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="toggleDarkMode()">
             <i class="fas fa-moon mr-2"></i> تبديل المظهر
@@ -212,7 +193,7 @@ function renderUserMenu(user) {
     </div>
   `;
 
-  // تفعيل/إغلاق القائمة
+  // تفعيل/إغلاق القائمة
   const btn = document.getElementById('userMenuBtn');
   const panel = document.getElementById('userMenuPanel');
 
@@ -234,16 +215,16 @@ function renderUserMenu(user) {
   });
 }
 
-// إغلاق قائمة الحساب ثم فتح نافذة الإعدادات
+// إغلاق قائمة الحساب ثم فتح نافذة الإعدادات
 function openSettingsFromMenu() {
   try {
     const panel = document.getElementById('userMenuPanel');
-    if (panel) panel.classList.add('hidden'); // أخفِ القائمة فوراً
+    if (panel) panel.classList.add('hidden'); // أخفِ القائمة فوراً
   } catch(e) {}
-  openSettings(); // افتح نافذة الإعدادات
+  openSettings(); // افتح نافذة الإعدادات
 }
 
-// ===== تبويبات نافذة الإعدادات =====
+// ===== تبويبات نافذة الإعدادات =====
 function activateSettingsTab(tab) {
   document.querySelectorAll('.settings-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
@@ -253,14 +234,14 @@ function activateSettingsTab(tab) {
   });
 }
 
-// مستمع عام للنقر على تبويبات الإعدادات
+// مستمع عام للنقر على تبويبات الإعدادات
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.settings-tab');
   if (!btn) return;
   activateSettingsTab(btn.dataset.tab);
 });
 
-// (اختياري) استدعاء عند فتح النافذة لأول مرة
+// (اختياري) استدعاء عند فتح النافذة لأول مرة
 function onOpenSettingsModal() {
   // اجعل تبويب "الحساب" هو الافتراضي
   activateSettingsTab('account');
