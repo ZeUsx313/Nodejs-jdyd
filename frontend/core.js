@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailwayailwayailway
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railwayailwayailwayailwayailway
 const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
 // ===============================================
@@ -149,17 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
     displayChatHistory();
     updateProviderUI();
 
-    // إضافة منطق تحديد آخر محادثة إذا لم تكن محددة
-if (!currentChatId && Object.keys(chats).length > 0) {
-    // البحث عن آخر محادثة حسب order أو updatedAt
-    const latestChat = Object.values(chats)
-        .sort((a, b) => (b.order || b.updatedAt || 0) - (a.order || a.updatedAt || 0))[0];
-    if (latestChat) {
-        currentChatId = latestChat._id;
-    }
-}
-
-if (currentChatId && chats[currentChatId]) {
+    if (currentChatId && chats[currentChatId]) {
   document.getElementById('welcomeScreen').classList.add('hidden');
   document.getElementById('messagesContainer').classList.remove('hidden');
   displayMessages();
@@ -312,50 +302,6 @@ function zeusFlash() {
   bgCanvas.classList.add('flash');
   setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
 }
-
-// إضافة هذا في نهاية DOMContentLoaded في core.js
-// ========== إعداد أزرار الإعدادات ==========
-const settingsButtons = document.querySelectorAll('[onclick*="openSettings"]');
-settingsButtons.forEach(button => {
-    // إزالة onclick القديم وإضافة event listener جديد
-    const originalOnclick = button.getAttribute('onclick');
-    button.removeAttribute('onclick');
-    
-    button.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        console.log('Settings button clicked');
-        
-        // تأكد من تحميل الدالة
-        if (typeof openSettings === 'function') {
-            console.log('Opening settings...');
-            openSettings();
-        } else {
-            console.error('openSettings not loaded, trying fallback...');
-            
-            // حل بديل
-            const modal = document.getElementById('settingsModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                if (typeof loadSettingsUI === 'function') {
-                    loadSettingsUI();
-                }
-                if (typeof onOpenSettingsModal === 'function') {
-                    onOpenSettingsModal();
-                }
-            } else {
-                showNotification('خطأ: نافذة الإعدادات غير موجودة', 'error');
-            }
-        }
-    });
-});
-
-// ========== تشخيص الأخطاء ==========
-console.log('Available functions check:');
-console.log('openSettings:', typeof openSettings);
-console.log('loadSettingsUI:', typeof loadSettingsUI);
-console.log('closeSettings:', typeof closeSettins);
-
 });  // نهاية DOMContentLoaded
 
 // ===========================
@@ -428,61 +374,6 @@ function switchMode(mode) {
 // دالة للتحقق من حالة وضع الفريق
 function isTeamMode() {
     return settings.activeMode === 'team';
-}
-
-// دالة التحقق من حالة المستخدم وتحميل البيانات
-async function checkUserStatus() {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        console.log('No auth token found');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/user`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            const userData = await response.json();
-            currentUser = userData.user;
-            await loadUserData();
-        } else {
-            localStorage.removeItem('authToken');
-            console.log('Invalid token, removed from storage');
-        }
-    } catch (error) {
-        console.error('Error checking user status:', error);
-    }
-}
-
-// دالة تحميل بيانات المستخدم
-async function loadUserData() {
-    if (!currentUser) return;
-    
-    const token = localStorage.getItem('authToken');
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/data`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            settings = { ...defaultSettings, ...data.settings };
-            
-            // تحويل المحادثات لكائن مفهرس
-            chats = {};
-            if (data.chats) {
-                data.chats.forEach(chat => {
-                    chats[chat._id] = chat;
-                });
-            }
-            
-            console.log('User data loaded successfully');
-        }
-    } catch (error) {
-        console.error('Error loading user data:', error);
-    }
 }
 
 // دالة للتحقق من وجود أعضاء الفريق
