@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeTheme();
     updateCustomProviders(); // تحديث المزودين المخصصين
-    updateProviderSelect(); // إضافة هذا السطر الجديد
     updateSendButton();
     initializeEventListeners();
     displayChatHistory();
