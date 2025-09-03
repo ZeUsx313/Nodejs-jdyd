@@ -163,13 +163,9 @@ async function saveSettings() {
       }
     }
   }
-
+  
   // حفظ واحد فقط بعد جمع كل الإعدادات
   await saveSettingsToDB();
-  
-  // تحديث واجهة المزودين بعد الحفظ
-  updateCustomProviders();
-  updateProviderSelect();
 
   closeSettings();
 
