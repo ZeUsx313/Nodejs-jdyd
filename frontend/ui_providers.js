@@ -384,24 +384,16 @@ function renderCustomProviders() {
 
 function addCustomProvider() {
     const newId = `custom_${Date.now()}`;
-    const newProvider = {
+    settings.customProviders.push({
         id: newId,
         name: 'مزود مخصص جديد',
         baseUrl: '',
         models: [],
         apiKeys: []
-    };
-    
-    if (!Array.isArray(settings.customProviders)) {
-        settings.customProviders = [];
-    }
-    
-    settings.customProviders.push(newProvider);
+    });
     renderCustomProviders();
     updateCustomProviders();
     updateProviderSelect();
-    
-    console.log('Custom provider added:', newProvider); // للتشخيص
 }
 
 function removeCustomProvider(index) {
