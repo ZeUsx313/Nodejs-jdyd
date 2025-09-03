@@ -1069,13 +1069,12 @@ if (settings.provider === 'puter') {
             mimeType: file.mimeType
         })),
         settings,
-        customProviders: settings.customProviders || [], // إضافة المزودين المخصصين
         meta: {
             forceWebBrowsing,
             searchQuery
         }
     };
-
+    
     try {
         // استدعاء الدالة الجديدة مع تمرير معرف رسالة البحث
         await sendRequestToServer(payload, searchMessageId);
