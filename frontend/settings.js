@@ -1,8 +1,6 @@
 function openSettings() {
     document.getElementById('settingsModal').classList.remove('hidden');
-    if (typeof onOpenSettingsModal === 'function') {
-        onOpenSettingsModal();
-    }
+    onOpenSettingsModal();
     loadSettingsUI();
 }
 
@@ -436,42 +434,5 @@ function collectTeamMembersFromUI() {
 function cryptoRandomId() {
   return Math.random().toString(36).slice(2);
 }
-
-// إضافة الدالة المفقودة// أضف هذه الدالة أيضاً إذا لم تكن موجودة
-function onOpenSettingsModal() {
-    // Setup settings tabs functionality
-    const tabs = document.querySelectorAll('.settings-tab');
-    const panels = document.querySelectorAll('.settings-panel');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
-            
-            // Remove active class from all tabs
-            tabs.forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
-            tab.classList.add('active');
-            
-            // Hide all panels
-            panels.forEach(panel => panel.classList.add('hidden'));
-            // Show target panel
-            const targetPanel = document.querySelector(`[data-tab="${targetTab}"]`);
-            if (targetPanel && targetPanel.classList.contains('settings-panel')) {
-                targetPanel.classList.remove('hidden');
-            }
-        });
-    });
-}
-
-// أضف هذا في نهاية settings.js
-console.log('✅ settings.js loaded successfully');
-console.log('openSettings function:', typeof openSettings);
-console.log('loadSettingsUI function:', typeof loadSettingsUI);
-console.log('closeSettings function:', typeof closeSettings);
-
-// تأكد من أن الدوال متاحة عالمياً
-window.openSettings = openSettings;
-window.loadSettingsUI = loadSettingsUI;
-window.closeSettings = closeSettings;
 
 // UI functions
