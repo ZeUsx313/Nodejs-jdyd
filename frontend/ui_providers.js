@@ -18,48 +18,6 @@ function updateCustomProviders() {
 }
 
 // دالة للتحقق من صحة المزود المخصص قبل الحفظ
-function validateCustomProvider(provider) {
-    const errors = [];
-    
-    if (!provider.name || !provider.name.trim()) {
-        errors.push('اسم المزود مطلوب');
-    }
-    
-    if (!provider.baseUrl || !provider.baseUrl.trim()) {
-        errors.push('رابط API الأساسي مطلوب');
-    } else {
-        try {
-            new URL(provider.baseUrl);
-        } catch {
-            errors.push('رابط API الأساسي غير صالح');
-        }
-    }
-    
-    if (!provider.models || provider.models.length === 0) {
-        errors.push('يجب إضافة نموذج واحد على الأقل');
-    } else {
-        provider.models.forEach((model, index) => {
-            if (!model.id || !model.id.trim()) {
-                errors.push(`معرف النموذج ${index + 1} مطلوب`);
-            }
-            if (!model.name || !model.name.trim()) {
-                errors.push(`اسم النموذج ${index + 1} مطلوب`);
-            }
-        });
-    }
-    
-    if (!provider.apiKeys || provider.apiKeys.length === 0) {
-        errors.push('يجب إضافة مفتاح API واحد على الأقل');
-    } else {
-        const validKeys = provider.apiKeys.filter(key => key.key && key.key.trim());
-        if (validKeys.length === 0) {
-            errors.push('يجب إضافة مفتاح API صالح واحد على الأقل');
-        }
-    }
-    
-    return errors;
-}
-
 function initializeEventListeners() {
     const messageInput = document.getElementById('messageInput');
     const temperatureSlider = document.getElementById('temperatureSlider');
