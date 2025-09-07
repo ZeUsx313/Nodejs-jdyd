@@ -1,4 +1,3 @@
-
 // تحديث المزودين المخصصين في كائن providers
 function updateCustomProviders() {
     // إزالة المزودين المخصصين القدامى
