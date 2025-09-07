@@ -1,12 +1,22 @@
 const CACHE_NAME = 'chatzeus-cache-v1';
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  'index.html', // يمكنك استخدام النسبي
+  'style.css',
+  'manifest.json',
+  'icons/icon-192x192.png',
+  'icons/icon-512x512.png',
+
+  // أضف هنا كل ملفات JS التي تستخدمها في index.html
+  'core.js',
+  'ui_providers.js',
+  'files.js',
+  'chat_stream.js',
+  'chat_management.js',
+  'settings.js',
+  'ui_misc.js',
+  'auth.js'
+  // ملاحظة: لقد أزلت 'script.js' لأنه غير مستخدم في صفحتك
 ];
 
 self.addEventListener('install', event => {
