@@ -75,7 +75,7 @@ function updateUserDisplay() {
  */
 function loginWithGoogle() {
     showNotification('جارٍ توجيهك لتسجيل الدخول...', 'info');
-    window.location.href = 'https://chatzeus-production.up.railway.app/auth/google'; // <--- هذا هو السطر الصحيح
+    window.location.href = 'https://chatzeusb.vercel.app/auth/google'; // <--- هذا هو السطر الصحيح
 }
 
 /**
