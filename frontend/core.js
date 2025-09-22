@@ -1,5 +1,5 @@
 // ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
-const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
+const API_BASE_URL = 'https://chatzeusb.vercel.app';
 
 // ===============================================
 // المتغيرات العامة
