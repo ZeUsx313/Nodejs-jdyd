@@ -3,14 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>شات زيوس - إله الرعد</title>
+    
+    <!-- العنوان المحسّن لمحركات البحث -->
+    <title>شات زيوس - منصة الذكاء الاصطناعي المتقدمة | AI Chat Platform</title>
+    
+    <!-- وصف الموقع (Meta Description) - مهم جداً لمحركات البحث -->
+    <meta name="description" content="شات زيوس - منصة دردشة ذكاء اصطناعي مفتوحة المصدر مع دعم متعدد المزوّدين (Gemini, OpenRouter) وإمكانيات تخصيص لا محدودة. ادردش مع AI بالعربية مجاناً">
+    
+    <!-- الكلمات المفتاحية -->
+    <meta name="keywords" content="ذكاء اصطناعي, AI عربي, دردشة ذكية, Gemini AI, OpenRouter, مفتوح المصدر, ChatGPT بديل, AI Chat, شات بوت عربي">
+    
+    <!-- Meta tags للشبكات الاجتماعية (Open Graph) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="شات زيوس - منصة الذكاء الاصطناعي المتقدمة">
+    <meta property="og:description" content="منصة دردشة ذكاء اصطناعي مفتوحة المصدر مع دعم متعدد المزوّدين وإمكانيات تخصيص لا محدودة">
+    <meta property="og:url" content="https://chatzeus.vercel.app">
+    <meta property="og:site_name" content="شات زيوس">
+    <meta property="og:locale" content="ar_SA">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta property="og:image" content="https://chatzeus.vercel.app/icons/icon-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="شات زيوس - منصة الذكاء الاصطناعي">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="شات زيوس - منصة الذكاء الاصطناعي المتقدمة">
+    <meta name="twitter:description" content="منصة دردشة ذكاء اصطناعي مفتوحة المصدر مع دعم متعدد المزوّدين">
+    <meta name="twitter:image" content="https://chatzeus.vercel.app/icons/icon-512x512.png">
+    
+    <!-- معلومات المؤلف والناشر -->
+    <meta name="author" content="ChatZeus">
+    <meta name="publisher" content="ChatZeus">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    
+    <!-- Canonical URL لتجنب المحتوى المكرر -->
+    <link rel="canonical" href="https://chatzeus.vercel.app">
+    
+    <!-- Schema.org JSON-LD للبيانات المنظمة -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "شات زيوس",
+        "alternateName": "ChatZeus",
+        "description": "منصة دردشة ذكاء اصطناعي مفتوحة المصدر مع دعم متعدد المزوّدين (Gemini, OpenRouter) وإمكانيات تخصيص لا محدودة",
+        "url": "https://chatzeus.vercel.app",
+        "applicationCategory": "AI ChatBot",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "دعم متعدد المزوّدين (Gemini, OpenRouter)",
+            "إمكانية إضافة مزوّدين مخصصين",
+            "تبديل تلقائي للمفاتيح",
+            "تخصيص شخصية الذكاء الاصطناعي",
+            "مفتوح المصدر",
+            "واجهة عربية"
+        ],
+        "creator": {
+            "@type": "Organization",
+            "name": "ChatZeus"
+        },
+        "inLanguage": ["ar", "en"],
+        "screenshot": "https://chatzeus.vercel.app/icons/icon-512x512.png"
+    }
+    </script>
+    
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- iOS PWA full-screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="شات زيوس">
+    
+    <!-- Theme colors -->
+    <meta name="theme-color" content="#2d9cff">
+    <meta name="msapplication-TileColor" content="#2d9cff">
+    
+    <!-- Preconnect للموارد الخارجية -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- CSS Libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<!-- iOS PWA full-screen -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="شات زيوس">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- JavaScript Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
@@ -18,17 +108,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script>
   tailwind.config = {
     theme: {
       extend: {
         colors: {
           zeus: {
-            primary: '#0a0f1a',          // خلفية داكنة مائلة للأزرق
-            secondary: '#122033',        // طبقة أفتح
-            accent: '#2d9cff',           // أزرق كهربائي
-            'accent-hover': '#1e7fe0',   // أزرق أغمق عند التحويم
-            text: '#e6f0ff'              // نص فاتح مزرق
+            primary: '#0a0f1a',
+            secondary: '#122033',
+            accent: '#2d9cff',
+            'accent-hover': '#1e7fe0',
+            text: '#e6f0ff'
           }
         },
         fontFamily: {
@@ -56,20 +147,19 @@
     darkMode: 'class'
   }
 </script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
 <link rel="stylesheet" href="style.css">
+
 <!-- إضافة أيقونة البرق المخصصة إذا لم تكن متوفرة في Font Awesome -->
 <style>
-/* ضمان وجود أيقونة البرق */
 .fa-bolt:before {
-    content: "\26A1"; /* رمز البرق Unicode كبديل */
+    content: "\26A1";
 }
 </style>
 </head>
 <body class="transition-colors duration-300 min-h-screen">
 
-  <!-- Service Worker (سكربت مستقل ومغلق) -->
+  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator &&
         (window.location.protocol === "https:" || window.location.hostname === "localhost")) {
@@ -81,7 +171,7 @@
     }
   </script>
 
-  <!-- Bootstrap early theme (سكربت مستقل ومغلق) -->
+  <!-- Bootstrap early theme -->
   <script>
     (() => {
       const KEY = 'zeus-theme';
@@ -133,7 +223,6 @@
     <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="settings-modal glass-effect rounded-xl shadow-2xl w-full max-w-5xl mx-4 animate-fade-in overflow-hidden">
 
-    <!-- شريط علوي -->
     <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
       <h3 id="settingsTitle" class="text-xl font-bold text-gray-800 dark:text-white">الإعدادات</h3>
       <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="إغلاق الإعدادات" title="إغلاق الإعدادات">
@@ -141,10 +230,8 @@
       </button>
     </div>
 
-    <!-- جسم النافذة: قائمة يسار + محتوى يمين -->
     <div class="flex h-[70vh]">
 
-      <!-- القائمة الجانبية -->
       <aside class="w-64 p-4 border-l border-white/10 overflow-y-auto">
         <button class="settings-tab active" data-tab="account"><i class="fas fa-user ml-2"></i>الحساب</button>
         <button class="settings-tab" data-tab="models"><i class="fas fa-robot ml-2"></i>النماذج والمزوّد</button>
@@ -157,12 +244,9 @@
 </button>
       </aside>
 
-      <!-- المحتوى -->
       <section id="settingsPanels" class="flex-1 overflow-y-auto p-6 space-y-6">
 
-        <!-- الحساب -->
 <div class="settings-panel" data-tab="account">
-  <!-- معلومات الحساب الفعلية -->
   <div class="settings-section" id="accountInfoSection">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -182,7 +266,6 @@
   </div>
 </div>
 
-        <!-- النماذج والمزوّد -->
         <div class="settings-panel hidden" data-tab="models">
           <div class="settings-section">
             <div class="flex items-center justify-between mb-2">
@@ -267,10 +350,8 @@
           </div>
      </div>
 
-        <!-- التصفح والربط -->
         <div class="settings-panel hidden" data-tab="browsing">
           
-          <!-- تفعيل البحث الرئيسي -->
           <div class="settings-section">
             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
@@ -284,7 +365,6 @@
             </div>
           </div>
 
-          <!-- طريقة التصفح -->
           <div class="settings-section">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">طريقة التصفح</label>
             <select id="browsingMode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm">
@@ -294,7 +374,6 @@
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Gemini يوفر بحثاً مدمجاً أسرع وأدق</p>
           </div>
 
-          <!-- عرض المصادر -->
           <div class="settings-section">
             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
@@ -308,7 +387,6 @@
             </div>
           </div>
 
-          <!-- حساسية البحث التلقائي -->
           <div class="settings-section">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               حساسية البحث التلقائي: <span id="dynamicThresholdValue" class="text-zeus-accent">0.3</span>
@@ -325,7 +403,6 @@
             </p>
           </div>
 
-          <!-- معلومات إضافية -->
           <div class="settings-section">
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div class="flex items-start">
@@ -343,108 +420,115 @@
 
         </div>
 
-        <!-- المظهر -->
-<div class="settings-panel hidden" data-tab="appearance">
+        <div class="settings-panel hidden" data-tab="appearance">
 
-  <!-- حجم الخط -->
-  <div class="settings-section">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">حجم خط الرسائل</label>
-    <div class="flex items-center space-x-3 space-x-reverse">
-      <span class="text-sm">صغير</span>
-      <input type="range" id="fontSizeSlider" min="14" max="24" step="1" value="18" class="w-full accent-zeus-accent">
-      <span class="text-sm">كبير</span>
-    </div>
-    <span id="fontSizeValue" class="text-sm text-gray-600 dark:text-gray-400 block text-center mt-1">18px</span>
-  </div>
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">حجم خط الرسائل</label>
+            <div class="flex items-center space-x-3 space-x-reverse">
+              <span class="text-sm">صغير</span>
+              <input type="range" id="fontSizeSlider" min="14" max="24" step="1" value="18" class="w-full accent-zeus-accent">
+              <span class="text-sm">كبير</span>
+            </div>
+            <span id="fontSizeValue" class="text-sm text-gray-600 dark:text-gray-400 block text-center mt-1">18px</span>
+          </div>
 
-  <!-- اختيار الثيم العام (داخل تبويب المظهر) -->
-  <div class="settings-section">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
-    <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-  <option value="theme-blue">أزرق داكن</option>
-  <option value="theme-black">أسود كامل (OLED)</option>
-  <option value="theme-light">نهاري أبيض</option>
-</select>
-  </div>
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ثيم الواجهة</label>
+            <select id="themeSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+              <option value="theme-blue">أزرق داكن</option>
+              <option value="theme-black">أسود كامل (OLED)</option>
+              <option value="theme-light">نهاري أبيض</option>
+            </select>
+          </div>
 
-  <!-- خلفية زيوس (داخل تبويب المظهر) -->
-  <div class="settings-section">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
-    <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
-      <option value="calm">ليلي هادئ</option>
-      <option value="storm">عاصفة برق</option>
-    </select>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
-  </div>
+          <div class="settings-section">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">خلفية زيوس</label>
+            <select id="bgStyleSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white">
+              <option value="calm">ليلي هادئ</option>
+              <option value="storm">عاصفة برق</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">يمكنك التبديل في أي وقت.</p>
+          </div>
 
-</div>
+        </div>
 
-        <!-- البيانات والخصوصية -->
         <div class="settings-panel hidden" data-tab="data">
           <div class="settings-section">
             <p class="text-sm text-gray-400">إدارة البيانات ستُضاف هنا لاحقًا (مسح المحادثات، تنزيل البيانات، …).</p>
           </div>
         </div>
 
-        <!-- حول -->
         <div class="settings-panel hidden" data-tab="about">
           <div class="settings-section">
-            <p class="text-sm text-gray-400">شات زيوس — إصدار الواجهة الحالي.</p>
+            <h4 class="text-lg font-semibold text-white mb-4">شات زيوس - منصة الذكاء الاصطناعي المتقدمة</h4>
+            <div class="space-y-4 text-gray-300">
+              <div>
+                <h5 class="font-medium text-white mb-2">الميزات الرئيسية:</h5>
+                <ul class="list-disc list-inside space-y-1 text-sm">
+                  <li>دعم متعدد المزوّدين (Gemini, OpenRouter)</li>
+                  <li>إمكانية إضافة مزوّدين مخصصين متوافقين مع OpenAI API</li>
+                  <li>تبديل تلقائي ودائري للمفاتيح</li>
+                  <li>تخصيص شخصية الذكاء الاصطناعي</li>
+                  <li>واجهة عربية متقدمة</li>
+                  <li>مفتوح المصدر</li>
+                </ul>
+              </div>
+              <div>
+                <h5 class="font-medium text-white mb-2">التقنيات المستخدمة:</h5>
+                <p class="text-sm">HTML5, CSS3, JavaScript, Tailwind CSS, Progressive Web App (PWA)</p>
+              </div>
+            </div>
           </div>
         </div>
 
-<div class="settings-panel hidden" data-tab="team">
-  <!-- الوكيل (المنسّق) -->
-  <div class="settings-section">
-    <h4 class="text-sm font-medium">الوكيل (المنسّق)</h4>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
-      <div>
-        <label class="form-label">الاسم</label>
-        <input id="teamCoordinatorName" class="form-input" placeholder="مثل: المنسّق">
-      </div>
-      <div>
-        <label class="form-label">مزود</label>
-        <select id="teamCoordinatorProvider" class="form-input">
-          <option value="gemini">Gemini</option>
-          <option value="openrouter">OpenRouter</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">النموذج</label>
-        <input id="teamCoordinatorModel" class="form-input" placeholder="gemini-1.5-pro أو معرف OpenRouter">
-      </div>
-    </div>
-    <div class="mt-3">
-      <label class="form-label">الشخصية/الدور (System Prompt)</label>
-      <textarea id="teamCoordinatorPersona" class="form-textarea" rows="3" placeholder="عرّف شخصية المنسّق ودوره..."></textarea>
-    </div>
-  </div>
+        <div class="settings-panel hidden" data-tab="team">
+          <div class="settings-section">
+            <h4 class="text-sm font-medium">الوكيل (المنسّق)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+              <div>
+                <label class="form-label">الاسم</label>
+                <input id="teamCoordinatorName" class="form-input" placeholder="مثل: المنسّق">
+              </div>
+              <div>
+                <label class="form-label">مزود</label>
+                <select id="teamCoordinatorProvider" class="form-input">
+                  <option value="gemini">Gemini</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">النموذج</label>
+                <input id="teamCoordinatorModel" class="form-input" placeholder="gemini-1.5-pro أو معرف OpenRouter">
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="form-label">الشخصية/الدور (System Prompt)</label>
+              <textarea id="teamCoordinatorPersona" class="form-textarea" rows="3" placeholder="عرّف شخصية المنسّق ودوره..."></textarea>
+            </div>
+          </div>
 
-  <!-- أعضاء الفريق -->
-  <div class="settings-section">
-    <div class="flex items-center justify-between">
-      <h4 class="text-sm font-medium">أعضاء الفريق</h4>
-      <button type="button" class="btn-custom btn-primary" onclick="addTeamMemberRow()">
-        <i class="fas fa-plus ml-1"></i> إضافة عضو
-      </button>
-    </div>
-    <div id="teamMembersContainer" class="space-y-3 mt-3"></div>
-  </div>
+          <div class="settings-section">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-medium">أعضاء الفريق</h4>
+              <button type="button" class="btn-custom btn-primary" onclick="addTeamMemberRow()">
+                <i class="fas fa-plus ml-1"></i> إضافة عضو
+              </button>
+            </div>
+            <div id="teamMembersContainer" class="space-y-3 mt-3"></div>
+          </div>
 
-  <!-- أسلوب الدوران -->
-  <div class="settings-section">
-    <h4 class="text-sm font-medium">أسلوب الدوران</h4>
-    <select id="teamTurnStyle" class="form-input mt-2">
-      <option value="sequential">تتابعي صارم (عضو واحد في كل خطوة)</option>
-      <option value="parallel" disabled>متوازي (لاحقًا)</option>
-    </select>
-  </div>
-</div>
+          <div class="settings-section">
+            <h4 class="text-sm font-medium">أسلوب الدوران</h4>
+            <select id="teamTurnStyle" class="form-input mt-2">
+              <option value="sequential">تتابعي صارم (عضو واحد في كل خطوة)</option>
+              <option value="parallel" disabled>متوازي (لاحقًا)</option>
+            </select>
+          </div>
+        </div>
 
       </section>
     </div>
 
-    <!-- أزرار أسفل -->
     <div class="flex justify-end px-6 py-4 border-t border-white/10">
       <button onclick="closeSettings()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">إلغاء</button>
       <button onclick="saveSettings()" class="px-4 py-2 bg-zeus-accent hover:bg-zeus-accent-hover text-white rounded-lg ml-2">حفظ</button>
@@ -452,7 +536,6 @@
   </div>
 </div>
 
-    <!-- نافذة إدارة النماذج المخصصة -->
     <div id="customModelsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customModelsTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
@@ -481,7 +564,6 @@
         </div>
     </div>
 
-    <!-- نافذة إدارة المزودين المخصصين -->
     <div id="customProvidersModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="customProvidersTitle">
         <div class="custom-models-modal glass-effect p-6 rounded-xl shadow-2xl max-w-4xl w-full mx-4 animate-fade-in">
             <div class="flex items-center justify-between mb-6">
@@ -510,9 +592,6 @@
         </div>
     </div>
 
-    <!-- داخل #app -->
-
-<!-- داخل #app وقبل أي محتوى آخر -->
 <div id="bgCanvas" class="absolute inset-0 -z-10 bg-calm pointer-events-none"></div>
 
 <div class="flex w-full h-full">
@@ -538,19 +617,16 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-  <!-- أزرار التبديل بين الوضعين -->
-  <div class="flex items-center gap-2">
-    <button id="btnModeChat" class="btn-custom btn-primary" onclick="switchMode('chat')" title="وضع الدردشة" aria-pressed="true">
-      <i class="fas fa-comment-dots ml-1"></i> الدردشة
-    </button>
-    <button id="btnModeTeam" class="btn-custom btn-secondary" onclick="switchMode('team')" title="وضع الفريق" aria-pressed="false">
-      <i class="fas fa-users-gear ml-1"></i> وضع الفريق
-    </button>
-  </div>
-
-  <!-- الأفاتار/قائمة الحساب تبقى كما هي -->
-  <div id="user-info-container"></div>
-</div>
+                      <div class="flex items-center gap-2">
+                        <button id="btnModeChat" class="btn-custom btn-primary" onclick="switchMode('chat')" title="وضع الدردشة" aria-pressed="true">
+                          <i class="fas fa-comment-dots ml-1"></i> الدردشة
+                        </button>
+                        <button id="btnModeTeam" class="btn-custom btn-secondary" onclick="switchMode('team')" title="وضع الفريق" aria-pressed="false">
+                          <i class="fas fa-users-gear ml-1"></i> وضع الفريق
+                        </button>
+                      </div>
+                      <div id="user-info-container"></div>
+                    </div>
                 </div>
             </header>
 
@@ -610,14 +686,12 @@
                             </div>
 
                             <div class="flex items-end space-x-3 space-x-reverse">
-    <!-- ✨ الخطوة 1: وضع المشبك هنا ليظهر في أقصى اليمين -->
     <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-gray-200 transition-colors p-3 rounded-xl hover:bg-gray-700"
        aria-label="إرفاق ملف" title="إرفاق ملف">
   <i class="fas fa-paperclip text-2xl" aria-hidden="true"></i>
   <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelection(this)" aria-label="اختيار ملف">
 </label>
 
-    <!-- الخطوة 2: مربع النص يأتي بعده -->
     <div class="flex-1 relative">
         <textarea
             id="messageInput"
@@ -628,7 +702,6 @@
         ></textarea>
     </div>
 
-    <!-- الخطوة 3: زر الإرسال يبقى في النهاية (أقصى اليسار) -->
     <button
   id="sendButton"
   onclick="sendMessage()"
@@ -638,7 +711,6 @@
   <i class="fas fa-paper-plane" aria-hidden="true"></i>
 </button>
 </div>
-
 
                         </div>
                         <div class="mt-2 text-xs text-gray-500 text-center">
