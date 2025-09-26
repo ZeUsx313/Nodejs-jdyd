@@ -28,22 +28,23 @@ const cpi = document.getElementById('customPromptInput');
 if (cpi) cpi.value = settings.customPrompt || '';
 
     // Load API key retry strategy
-    document.getElementById('apiKeyRetryStrategySelect').value = settings.apiKeyRetryStrategy;
+document.getElementById('apiKeyRetryStrategySelect').value = settings.apiKeyRetryStrategy;
 
-    // ✨ تحميل إعدادات البحث الجديدة ✨
-    const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
-    const selBrowsingMode = document.getElementById('browsingMode');
-    const chkShowSources = document.getElementById('showSources');
-    const dynThresholdSlider = document.getElementById('dynamicThresholdSlider');
-    const dynThresholdValue = document.getElementById('dynamicThresholdValue');
+// ✨ تحميل إعدادات البحث الجديدة ✨
+const chkEnableBrowsing = document.getElementById('enableWebBrowsing');
+const selBrowsingMode = document.getElementById('browsingMode');
+const chkShowSources = document.getElementById('showSources');
+const dynThresholdSlider = document.getElementById('dynamicThresholdSlider');
+const dynThresholdValue = document.getElementById('dynamicThresholdValue');
 
-    if (chkEnableBrowsing) chkEnableBrowsing.checked = settings.enableWebBrowsing || false;
-    if (selBrowsingMode) selBrowsingMode.value = settings.browsingMode || 'gemini';
-    if (chkShowSources) chkShowSources.checked = settings.showSources !== false; // افتراضي true
-    if (dynThresholdSlider) {
-        dynThresholdSlider.value = settings.dynamicThreshold || 0.6;
-        if (dynThresholdValue) dynThresholdValue.textContent = (settings.dynamicThreshold || 0.6).toFixed(1);
-    }
+// ✨ الإصلاح: التحقق الصحيح من الحالة المحفوظة ✨
+if (chkEnableBrowsing) chkEnableBrowsing.checked = settings.enableWebBrowsing === true;
+if (selBrowsingMode) selBrowsingMode.value = settings.browsingMode || 'gemini';
+if (chkShowSources) chkShowSources.checked = settings.showSources !== false; // افتراضي true
+if (dynThresholdSlider) {
+    dynThresholdSlider.value = settings.dynamicThreshold || 0.6;
+    if (dynThresholdValue) dynThresholdValue.textContent = (settings.dynamicThreshold || 0.6).toFixed(1);
+}
 
     // Load API keys
     renderGeminiApiKeys();
