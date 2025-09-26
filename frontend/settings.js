@@ -152,6 +152,10 @@ async function saveSettings() {
   // حفظ واحد فقط بعد جمع كل الإعدادات
   await saveSettingsToDB();
 
+  
+  // ✨ تحديث حالة زر الإرسال بعد حفظ الإعدادات ✨
+  updateSendButton();
+
   closeSettings();
 }
 
