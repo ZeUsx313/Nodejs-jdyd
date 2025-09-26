@@ -766,6 +766,11 @@ async function sendMessage() {
         return; 
     }
 
+    // ✨ التحقق من وجود مفاتيح API قبل أي شيء آخر ✨
+    if (!validateApiKeys()) {
+        return;
+    }
+
     // التحقق من إعدادات الفريق في وضع الفريق
     if (settings.activeMode === 'team' && !validateTeamSettings()) {
         return;
@@ -912,6 +917,98 @@ function validateTeamSettings() {
 
   return true;
 }
+
+// ✨ دالة جديدة للتحقق من وجود مفاتيح API ✨
+function validateApiKeys() {
+  // إذا كان المستخدم غير مسجل، لا نحتاج للتحقق
+  if (!currentUser) {
+    return true;
+  }
+
+  const currentProvider = settings.provider;
+  
+  // التحقق حسب نوع المزود
+  if (currentProvider === 'gemini') {
+    const geminiKeys = settings.geminiApiKeys || [];
+    const activeKeys = geminiKeys.filter(key => key.status === 'active' && key.key && key.key.trim());
+    
+    if (activeKeys.length === 0) {
+      showApiKeyRequiredNotification('Google Gemini');
+      return false;
+    }
+  } else if (currentProvider === 'openrouter') {
+    const openrouterKeys = settings.openrouterApiKeys || [];
+    const activeKeys = openrouterKeys.filter(key => key.status === 'active' && key.key && key.key.trim());
+    
+    if (activeKeys.length === 0) {
+      showApiKeyRequiredNotification('OpenRouter');
+      return false;
+    }
+  } else {
+    // للمزودين المخصصين
+    const customProvider = settings.customProviders?.find(p => p.id === currentProvider);
+    if (customProvider) {
+      const customKeys = customProvider.apiKeys || [];
+      const activeKeys = customKeys.filter(key => key.status === 'active' && key.key && key.key.trim());
+      
+      if (activeKeys.length === 0) {
+        showApiKeyRequiredNotification(customProvider.name || 'المزود المخصص');
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+// ✨ دالة عرض إشعار مفتاح API مطلوب ✨
+function showApiKeyRequiredNotification(providerName) {
+  // إنشاء إشعار مخصص بدلاً من الإشعار العادي
+  const container = document.getElementById('notificationContainer');
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification error animate-fade-in pointer-events-auto';
+  notification.innerHTML = `
+    <div class="p-4 rounded-lg border border-red-400 bg-red-900/20 backdrop-blur-sm">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+        </div>
+        <div class="mr-3 flex-1">
+          <h3 class="text-sm font-medium text-red-200 mb-1">
+            مطلوب مفتاح API للمزود ${providerName}
+          </h3>
+          <p class="text-sm text-red-300 mb-3">
+            لا يمكن إرسال الرسائل بدون إضافة مفتاح API صالح للمزود المحدد حالياً. يرجى إضافة مفتاح واحد على الأقل من الإعدادات.
+          </p>
+          <div class="flex space-x-2 space-x-reverse">
+            <button onclick="openSettings(); this.closest('.notification').remove();" 
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-900 bg-red-200 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors">
+              <i class="fas fa-cog ml-1"></i>
+              فتح الإعدادات
+            </button>
+            <button onclick="this.closest('.notification').remove();" 
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-red-200 hover:text-red-100 focus:outline-none transition-colors">
+              تجاهل
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(notification);
+
+  // إزالة الإشعار تلقائياً بعد 10 ثوانٍ
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 10000);
+}
+
+
+
 
 function displayUserMessage(message) {
     const messagesArea = document.getElementById('messagesArea');
@@ -1156,12 +1253,14 @@ function updateSendButton() {
 
   const hasText = input.value.trim().length > 0;
   const hasFiles = fileInput.files.length > 0;
+  const hasApiKeys = checkHasApiKeys(); // ✨ التحقق من وجود مفاتيح
 
   // إزالة أي ألوان سابقة
   sendButton.classList.remove(
     'bg-red-600', 'hover:bg-red-700',
     'bg-zeus-accent', 'hover:bg-zeus-accent-hover',
-    'bg-gray-600', 'cursor-not-allowed', 'opacity-60'
+    'bg-gray-600', 'cursor-not-allowed', 'opacity-60',
+    'bg-orange-600', 'hover:bg-orange-700' // ✨ لون جديد للتحذير
   );
 
   if (streamingState.isStreaming) {
@@ -1170,18 +1269,72 @@ function updateSendButton() {
     sendButton.innerHTML = '<i class="fas fa-stop"></i>';
     sendButton.classList.add('bg-red-600', 'hover:bg-red-700');
   } else {
-    const enabled = hasText || hasFiles;
-    sendButton.disabled = !enabled;
-    sendButton.onclick = () => sendMessage();
-    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-
-    if (enabled) {
-      sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+    const hasContent = hasText || hasFiles;
+    
+    // ✨ إذا لم تكن هناك مفاتيح API وكان المستخدم مسجلاً
+    if (!hasApiKeys && currentUser) {
+      sendButton.disabled = true;
+      sendButton.onclick = () => showApiKeyRequiredNotification(getProviderDisplayName());
+      sendButton.innerHTML = '<i class="fas fa-key"></i>';
+      sendButton.classList.add('bg-orange-600', 'cursor-not-allowed');
+      sendButton.title = 'مطلوب إضافة مفتاح API من الإعدادات';
     } else {
-      sendButton.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-60');
+      const enabled = hasContent;
+      sendButton.disabled = !enabled;
+      sendButton.onclick = () => sendMessage();
+      sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+      sendButton.title = 'إرسال الرسالة';
+
+      if (enabled) {
+        sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+      } else {
+        sendButton.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-60');
+      }
     }
   }
 }
+
+// ✨ دالة للتحقق من وجود مفاتيح API (سريعة للواجهة) ✨
+function checkHasApiKeys() {
+  // إذا كان المستخدم غير مسجل، لا نحتاج مفاتيح
+  if (!currentUser) {
+    return true;
+  }
+
+  const currentProvider = settings.provider;
+  
+  if (currentProvider === 'gemini') {
+    const geminiKeys = settings.geminiApiKeys || [];
+    return geminiKeys.some(key => key.status === 'active' && key.key && key.key.trim());
+  } else if (currentProvider === 'openrouter') {
+    const openrouterKeys = settings.openrouterApiKeys || [];
+    return openrouterKeys.some(key => key.status === 'active' && key.key && key.key.trim());
+  } else {
+    // للمزودين المخصصين
+    const customProvider = settings.customProviders?.find(p => p.id === currentProvider);
+    if (customProvider) {
+      const customKeys = customProvider.apiKeys || [];
+      return customKeys.some(key => key.status === 'active' && key.key && key.key.trim());
+    }
+  }
+  
+  return false;
+}
+
+// ✨ دالة للحصول على اسم المزود للعرض ✨
+function getProviderDisplayName() {
+  const currentProvider = settings.provider;
+  
+  if (currentProvider === 'gemini') {
+    return 'Google Gemini';
+  } else if (currentProvider === 'openrouter') {
+    return 'OpenRouter';
+  } else {
+    const customProvider = settings.customProviders?.find(p => p.id === currentProvider);
+    return customProvider?.name || 'المزود المخصص';
+  }
+}
+
 
 // ==== إلغاء البث الحالي ====
 function cancelStreaming(reason = 'user') {
