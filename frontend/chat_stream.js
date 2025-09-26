@@ -1233,6 +1233,94 @@ async function sendRequestToServer(payload, searchMessageId = null) {
 
 // =================== نهاية الكود الجديد ===================
 
+
+async function handleImageGenerationRequest(payload, searchMessageId, controller, token) {
+  try {
+    // إزالة رسالة البحث إن وجدت
+    if (searchMessageId) {
+      removeWebSearchMessage(searchMessageId);
+    }
+
+    // إنشاء مؤشر توليد الصورة
+    const indicatorId = createImageGenerationIndicator();
+
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let accumulatedText = '';
+    let imageData = '';
+    let imageMimeType = 'image/jpeg';
+    let collectingImageData = false;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          if (line === 'IMAGE_GENERATION_STARTED') {
+            // تم بدء التوليد
+            continue;
+          } else if (line.startsWith('IMAGE_DATA_START:')) {
+            collectingImageData = true;
+            imageMimeType = line.split(':')[1] || 'image/jpeg';
+            imageData = '';
+          } else if (line === 'IMAGE_DATA_END') {
+            collectingImageData = false;
+            // إظهار الصورة المولدة
+            removeImageGenerationIndicator(indicatorId);
+            displayGeneratedImage(imageData, imageMimeType);
+          } else if (line === 'IMAGE_GENERATION_COMPLETED') {
+            // اكتمل التوليد
+            break;
+          } else if (line.startsWith('IMAGE_GENERATION_ERROR:')) {
+            const error = line.split(':').slice(1).join(':');
+            removeImageGenerationIndicator(indicatorId);
+            throw new Error(error);
+          } else if (collectingImageData) {
+            imageData += line;
+          } else {
+            // نص عادي
+            accumulatedText += line;
+          }
+        }
+      }
+
+      // حفظ النص في المحادثة إذا وجد
+      if (accumulatedText.trim()) {
+        saveAssistantMessage(accumulatedText);
+      }
+
+    } finally {
+      streamingState.streamController = null;
+    }
+
+  } catch (error) {
+    console.error('Image generation error:', error);
+    appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء توليد الصورة: ${error.message}`, true);
+  }
+}
+
+
 // Rest of the existing functions (chat management, UI functions, etc.)
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -1381,3 +1469,107 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Chat management functions
+
+
+
+
+// إنشاء مؤشر توليد الصورة
+function createImageGenerationIndicator() {
+  const messageId = 'img-gen-' + Date.now().toString();
+  const messagesArea = document.getElementById('messagesArea');
+
+  const indicatorDiv = document.createElement('div');
+  indicatorDiv.className = 'image-generation-indicator';
+  indicatorDiv.id = `indicator-${messageId}`;
+  indicatorDiv.innerHTML = `
+    <div class="indicator-content">
+      <div class="spinner"></div>
+      <span>جاري توليد الصورة بواسطة نانو بنانا...</span>
+    </div>
+  `;
+
+  messagesArea.appendChild(indicatorDiv);
+  scrollToBottom();
+  return messageId;
+}
+
+// إزالة مؤشر توليد الصورة
+function removeImageGenerationIndicator(indicatorId) {
+  const indicator = document.getElementById(`indicator-${indicatorId}`);
+  if (indicator) {
+    indicator.remove();
+  }
+}
+
+// عرض الصورة المولدة
+function displayGeneratedImage(base64Data, mimeType) {
+  const messagesArea = document.getElementById('messagesArea');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-bubble message-assistant';
+
+  const imageContainer = document.createElement('div');
+  imageContainer.className = 'generated-image-container';
+
+  const img = document.createElement('img');
+  img.className = 'generated-image';
+  img.src = `data:${mimeType};base64,${base64Data}`;
+  img.alt = 'صورة مولدة بواسطة نانو بنانا';
+  img.onclick = () => openImageModal(img.src);
+
+  imageContainer.appendChild(img);
+  messageDiv.innerHTML = `
+    <div class="message-content">
+      <p><i class="fas fa-image mr-2"></i>صورة مولدة بواسطة نانو بنانا:</p>
+    </div>
+  `;
+  messageDiv.appendChild(imageContainer);
+
+  messagesArea.appendChild(messageDiv);
+  scrollToBottom();
+
+  // حفظ الصورة في المحادثة
+  saveImageToChat(base64Data, mimeType);
+}
+
+// فتح نافذة عرض الصورة
+function openImageModal(imageSrc) {
+  // إنشاء النافذة المنبثقة
+  const modal = document.createElement('div');
+  modal.className = 'image-modal';
+  modal.innerHTML = `
+    <button class="image-modal-close" onclick="this.parentElement.remove()">
+      <i class="fas fa-times"></i>
+    </button>
+    <img src="${imageSrc}" alt="عرض بالحجم الكامل">
+  `;
+
+  // إغلاق عند النقر على الخلفية
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  };
+
+  document.body.appendChild(modal);
+  
+  // إظهار النافذة
+  setTimeout(() => modal.classList.add('show'), 10);
+}
+
+// حفظ الصورة في المحادثة
+function saveImageToChat(base64Data, mimeType) {
+  if (currentChatId && chats[currentChatId]) {
+    const now = Date.now();
+    chats[currentChatId].messages.push({
+      role: 'assistant',
+      content: `![صورة مولدة](data:${mimeType};base64,${base64Data})`,
+      timestamp: now,
+      type: 'image',
+      imageData: base64Data,
+      imageMimeType: mimeType
+    });
+    chats[currentChatId].updatedAt = now;
+    chats[currentChatId].order = now;
+    saveCurrentChat(currentChatId);
+  }
+}
