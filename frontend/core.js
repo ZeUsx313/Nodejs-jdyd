@@ -1,4 +1,4 @@
-// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
+
 const API_BASE_URL = 'https://chatzeusb.vercel.app';
 
 // ===============================================
@@ -182,6 +182,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ✨ التحقق من حالة المستخدم ✨
 checkUserStatus();
+
+// ✨ مراقبة تغييرات حقل الإدخال لتحديث زر الإرسال ✨
+const messageInput = document.getElementById('messageInput');
+if (messageInput) {
+  messageInput.addEventListener('input', updateSendButton);
+  messageInput.addEventListener('paste', () => setTimeout(updateSendButton, 10));
+}
+
 // ===== ثبات الشاشة على iOS عند فتح الكيبورد =====
 try {
   const root = document.documentElement;
