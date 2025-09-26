@@ -357,7 +357,7 @@ function addTeamMemberRow() {
     name: 'عضو',
     role: '',
     provider: 'gemini',
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     persona: ''
   };
   settings.team = settings.team || {};
