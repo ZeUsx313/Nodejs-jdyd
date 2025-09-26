@@ -11,7 +11,7 @@ let chats = {};
 // ✨ 1. الإعدادات الافتراضية الثابتة (لا تتغير أبدًا) ✨
 const defaultSettings = {
   provider: 'gemini',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash',
   temperature: 0.7,
   geminiApiKeys: [],
   openrouterApiKeys: [],
