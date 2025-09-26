@@ -1137,6 +1137,14 @@ async function sendRequestToServer(payload, searchMessageId = null) {
     const controller = new AbortController();
     streamingState.streamController = controller;
 
+    // التحقق من نوع النموذج
+    const isImageModel = payload.settings.model === 'gemini-2.5-flash-image-preview';
+    
+    if (isImageModel) {
+      return await handleImageGenerationRequest(payload, searchMessageId, controller, token);
+    }
+    
+
     const endpoint = (settings.activeMode === 'team')
       ? `${API_BASE_URL}/api/team_chat`
       : `${API_BASE_URL}/api/chat`;
