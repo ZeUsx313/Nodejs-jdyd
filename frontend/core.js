@@ -1,4 +1,3 @@
-
 const API_BASE_URL = 'https://chatzeusb.vercel.app';
 
 // ===============================================
@@ -47,11 +46,10 @@ const providers = {
         name: 'Google Gemini',
         models: [
             { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-            { id: 'gemini-2.5-flash-image-preview', name: 'Gemini 2.5 Flash Image (Nano Banana)', type: 'image' }
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' }
+            
         ]
     },
-    
     openrouter: {
         name: 'OpenRouter',
         models: [
